@@ -1,0 +1,24 @@
+<!-- @dsCard group="Diálogos" height=400 subtitle="620px · cabeçalho com contexto, corpo em 2 colunas, rodapé de 56px" -->
+<div id="root"></div>
+<script>
+  var L = window.LureCapital, h = React.createElement;
+  var app = h('div', { className: 'lc-root' },
+    h(L.Dialog, {
+      title: 'Cadastrar cliente',
+      context: 'Funil de Clientes',
+      width: 'sm',
+      footer: [
+        h(L.Button, { key: 1, variant: 'secondary' }, 'Cancelar'),
+        h(L.Button, { key: 2, variant: 'primary' }, 'Cadastrar')
+      ]
+    },
+      h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } },
+        h(L.Field, { key: 1, label: 'CNPJ', placeholder: '00.000.000/0000-00' }),
+        h(L.Field, { key: 2, label: 'Nome / razão social', placeholder: 'Razão social' }),
+        h(L.Field, { key: 3, label: 'Atividade da CIA', placeholder: 'Setor de atuação' }),
+        h(L.Field, { key: 4, label: 'Faturamento anual', placeholder: 'R$ 2MM' }),
+        h('div', { key: 5, style: { gridColumn: '1 / -1' } },
+          h(L.Field, { label: 'Parecer', multiline: true, rows: 2,
+            placeholder: 'Parecer sobre o cliente…' })))));
+  ReactDOM.createRoot(document.getElementById('root')).render(app);
+</script>

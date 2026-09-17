@@ -1,0 +1,15 @@
+<!-- @dsCard group="Estados" height=250 subtitle="Símbolo, título e a contagem do que o filtro esconde" -->
+<div id="root"></div>
+<script>
+  var L = window.LureCapital, h = React.createElement;
+  var app = h('div', { className: 'lc-root', style: { padding: '20px', background: 'var(--bg)',
+      display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' } },
+    h('div', { key: 1, style: { background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)' } },
+      h(L.EmptyState, { title: 'Nenhum fornecedor encontrado', hiddenCount: 42 })),
+    h('div', { key: 2, style: { background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)' } },
+      h(L.EmptyState, { title: 'Nenhuma operação cadastrada ainda',
+        clearLabel: 'Nova Operação' })));
+  ReactDOM.createRoot(document.getElementById('root')).render(app);
+</script>

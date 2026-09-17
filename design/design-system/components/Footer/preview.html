@@ -1,0 +1,8 @@
+<!-- @dsCard group="Casca" height=190 subtitle="Rodapé escuro, assinatura negativa e links secundários" -->
+<div id="root"></div>
+<script>
+  var L = window.LureCapital, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    h('div', { className: 'lc-root', style: { padding: '20px', background: 'var(--bg)' } },
+      h('div', { style: { borderRadius: 'var(--radius-lg)', overflow: 'hidden' } }, h(L.Footer, null))));
+</script>

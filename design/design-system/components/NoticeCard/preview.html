@@ -1,0 +1,12 @@
+<!-- @dsCard group="Estados" height=250 subtitle="Erro com Tentar de novo e cartão de sem permissão" -->
+<div id="root"></div>
+<script>
+  var L = window.LureCapital, h = React.createElement;
+  var app = h('div', { className: 'lc-root', style: { padding: '20px', background: 'var(--bg)',
+      display: 'flex', flexDirection: 'column', gap: '16px' } },
+    h(L.NoticeCard, { key: 1, tone: 'danger', title: 'Não foi possível carregar os fornecedores',
+      body: 'A consulta falhou. Nada foi alterado.', actionLabel: 'Tentar de novo' }),
+    h(L.NoticeCard, { key: 2, tone: 'neutral', title: 'Sem permissão para ver esta tela',
+      body: 'Seu nível de acesso é indicante, que vê apenas Funil de Clientes e Clientes. Peça a liberação a um usuário master.' }));
+  ReactDOM.createRoot(document.getElementById('root')).render(app);
+</script>

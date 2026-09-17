@@ -1,0 +1,22 @@
+<!-- @dsCard group="Casca" height=330 subtitle="Cinco itens em ordem fixa · master e indicante" -->
+<div id="root"></div>
+<script>
+  var L = window.LureCapital, h = React.createElement;
+  var ICONS = {
+    'Funil de Clientes': '▽', 'Cliente': '○', 'Fornecedor': '▦',
+    'Operação': '▣', 'Esteira de Estruturação': '⑂'
+  };
+  function Painel(titulo, node) {
+    return h('div', { style: { flex: '1', minWidth: 0 } },
+      h('p', { style: { margin: '0 0 8px', fontSize: '11px', letterSpacing: '.06em',
+        textTransform: 'uppercase', color: 'var(--text-muted)' } }, titulo),
+      h('div', { style: { border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)',
+        overflow: 'hidden', display: 'flex', background: 'var(--surface)' } }, node));
+  }
+  var app = h('div', { className: 'lc-root', style: { padding: '20px', background: 'var(--bg)',
+      display: 'flex', gap: '20px' } },
+    Painel('Master — cinco itens', h(L.SideNav, { active: 'Operação', icons: ICONS })),
+    Painel('Indicante — sobram dois, alinhados ao topo',
+      h(L.SideNav, { items: ['Funil de Clientes', 'Cliente'], active: 'Cliente', icons: ICONS })));
+  ReactDOM.createRoot(document.getElementById('root')).render(app);
+</script>

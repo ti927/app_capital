@@ -1,0 +1,101 @@
+{
+  "v": 3,
+  "layout": "files",
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-09-17T19:19:09Z"
+  },
+  "title": "Lure Capital",
+  "namespace": "LureCapital",
+  "libraries": [
+    {
+      "name": "react",
+      "version": "18"
+    },
+    {
+      "name": "react-dom",
+      "version": "18"
+    }
+  ],
+  "sections": {},
+  "groups": [
+    "Marca"
+  ],
+  "assetGroups": {
+    "Marca": {
+      "name": "Marca",
+      "tile": "m",
+      "order": [
+        "symbol.svg",
+        "symbol-white.svg",
+        "symbol-mono-black.svg",
+        "logo-horizontal.svg",
+        "logo-horizontal-negative.svg",
+        "favicon.svg",
+        "favicon-yellow.svg",
+        "app-icon.svg"
+      ],
+      "files": {
+        "symbol.svg": {
+          "name": "symbol.svg",
+          "blob": "0074e38d3bd158184efc7021b79e28af",
+          "size": 542,
+          "type": "image/svg+xml"
+        },
+        "symbol-white.svg": {
+          "name": "symbol-white.svg",
+          "blob": "411305173eb93efac1470d74a3a07037",
+          "size": 542,
+          "type": "image/svg+xml"
+        },
+        "symbol-mono-black.svg": {
+          "name": "symbol-mono-black.svg",
+          "blob": "418e39083c00a31ca14bd31880b22647",
+          "size": 542,
+          "type": "image/svg+xml"
+        },
+        "logo-horizontal.svg": {
+          "name": "logo-horizontal.svg",
+          "blob": "0d2404448c9583907b0908e165b03558",
+          "size": 1029,
+          "type": "image/svg+xml"
+        },
+        "logo-horizontal-negative.svg": {
+          "name": "logo-horizontal-negative.svg",
+          "blob": "0b00f81f0314c3c126f987acb0818cc1",
+          "size": 1029,
+          "type": "image/svg+xml"
+        },
+        "favicon.svg": {
+          "name": "favicon.svg",
+          "blob": "88fdf4ee4be84906740096558cb8ecc3",
+          "size": 669,
+          "type": "image/svg+xml"
+        },
+        "favicon-yellow.svg": {
+          "name": "favicon-yellow.svg",
+          "blob": "53a5a4e0340369be38e4b84bf00d8723",
+          "size": 669,
+          "type": "image/svg+xml"
+        },
+        "app-icon.svg": {
+          "name": "app-icon.svg",
+          "blob": "68415766cc9845183199e10761dd848f",
+          "size": 679,
+          "type": "image/svg+xml"
+        }
+      }
+    }
+  },
+  "blobs": {},
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "lastChange": {
+    "by": "Julio",
+    "at": "2026-09-17T19:27:18Z",
+    "via": "Cowork · capturas do app Bubble em produção",
+    "note": "Regra de fidelidade de arranjo no topo do brand book."
+  }
+}

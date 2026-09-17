@@ -1,0 +1,32 @@
+<!-- @dsCard group="Dados" height=270 subtitle="Grupos da etapa, status do negócio e etapas do funil" -->
+<div id="root"></div>
+<script>
+  var L = window.LureCapital, h = React.createElement;
+  function Group(title, items) {
+    return h('div', null,
+      h('p', { style: { margin: '0 0 10px', fontSize: '11px', letterSpacing: '.06em',
+        textTransform: 'uppercase', color: 'var(--text-muted)' } }, title),
+      h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
+        items.map(function (it, i) {
+          return h(L.StatusChip, { key: i, token: it[0], label: it[1], loose: true });
+        })));
+  }
+  var app = h('div', { className: 'lc-root', style: { padding: '24px', background: 'var(--surface)',
+      display: 'flex', flexDirection: 'column', gap: '20px' } },
+    Group('Status da etapa da operação — proposta da §8', [
+      ['st-etapa-inicio', 'Teaser enviado'],
+      ['st-etapa-em-curso', 'Operação em análise'],
+      ['st-etapa-avanco', 'Contrato enviado'],
+      ['st-etapa-fechado', 'Contrato assinado'],
+      ['st-etapa-terminal-neutro', 'Já cliente do fundo'],
+      ['st-etapa-pausado', 'Paralisado'],
+      ['st-etapa-terminal-negativo', 'Declinado pelo fundo']]),
+    Group('Status do negócio', [
+      ['status-parado', 'Parado'], ['status-negociacao', 'Em negociação'],
+      ['status-ganho', 'Ganho'], ['status-perdido', 'Perdido']]),
+    Group('Etapas do funil de clientes', [
+      ['stage-1', 'Cold Lead'], ['stage-2', 'Hot Lead'], ['stage-3', 'Contato Realizado'],
+      ['stage-4', 'Apresentação Realizada'], ['stage-5', 'Proposta Enviada'],
+      ['stage-6', 'Aguardando Contrato']]));
+  ReactDOM.createRoot(document.getElementById('root')).render(app);
+</script>

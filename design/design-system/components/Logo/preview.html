@@ -1,0 +1,27 @@
+<!-- @dsCard group="Marca" height=300 subtitle="Símbolo, assinatura, tons e tamanho mínimo" -->
+<div id="root"></div>
+<script>
+  var L = window.LureCapital, h = React.createElement;
+  function Cell(label, node, dark) {
+    return h('div', { style: {
+      padding: '20px', borderRadius: 'var(--radius-lg)',
+      border: '1px solid var(--border)',
+      background: dark ? 'var(--neutral-950)' : 'var(--surface)',
+      display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'flex-start'
+    } },
+      node,
+      h('span', { style: { fontSize: '11px', letterSpacing: '.06em', textTransform: 'uppercase',
+        color: dark ? 'var(--neutral-400)' : 'var(--text-muted)' } }, label));
+  }
+  var app = h('div', { className: 'lc-root', style: { padding: '24px', background: 'var(--bg)' } },
+    h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' } },
+      Cell('Assinatura · fundo claro', h(L.Logo, null)),
+      Cell('Assinatura · fundo escuro', h(L.Logo, { tone: 'white' }), true),
+      Cell('Sem chip — como assina o Sistema Lure', h(L.Logo, { chip: null })),
+      Cell('Símbolo 48 / 34 / 24 / 16', h('div', { style: { display: 'flex', alignItems: 'flex-end', gap: '14px' } },
+        h(L.Symbol, { size: 48 }), h(L.Symbol, { size: 34 }),
+        h(L.Symbol, { size: 24 }), h(L.Symbol, { size: 16 }))),
+      Cell('Símbolo sobre escuro', h(L.Symbol, { size: 48, tone: 'white' }), true),
+      Cell('Mono — uma tinta só', h(L.Symbol, { size: 48, tone: 'mono' }))));
+  ReactDOM.createRoot(document.getElementById('root')).render(app);
+</script>

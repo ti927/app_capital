@@ -1,0 +1,20 @@
+<!-- @dsCard group="Controles" height=330 subtitle="Rótulo, placeholder, erro, calculado, multilinha e 40px" -->
+<div id="root"></div>
+<script>
+  var L = window.LureCapital, h = React.createElement;
+  var app = h('div', { className: 'lc-root', style: { padding: '24px', background: 'var(--surface)' } },
+    h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', maxWidth: '620px' } },
+      h(L.Field, { key: 1, label: 'Nome / razão social', placeholder: 'Razão social do cliente' }),
+      h(L.Field, { key: 2, label: 'CNPJ', value: '07.412.905/0001-32' }),
+      h(L.Field, { key: 3, label: 'E-mail', value: 'contato@', error: 'Informe um e-mail válido.' }),
+      h(L.Field, { key: 4, label: 'Faturamento anual', placeholder: 'R$ 2MM, 2.000.000, dois milhões…' }),
+      h(L.Field, { key: 5, label: 'Instituição Líder', value: 'Aurora Securitizadora', calc: true }),
+      h(L.Field, { key: 6, label: 'Declínios', placeholder: 'Escolha o parceiro', disabled: true }),
+      h('div', { key: 7, style: { gridColumn: '1 / -1' } },
+        h(L.Field, { label: 'Parecer', multiline: true, rows: 2,
+          placeholder: 'Parecer da operação…' })),
+      h('div', { key: 8, style: { gridColumn: '1 / -1' } },
+        h(L.Field, { label: 'E-mail (login, 40px)', size: 'lg',
+          placeholder: 'voce@lureconsultoria.com.br' }))));
+  ReactDOM.createRoot(document.getElementById('root')).render(app);
+</script>

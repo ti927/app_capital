@@ -1,0 +1,10 @@
+<!-- @dsCard group="Estados" height=200 subtitle="Blocos de 12px com larguras variadas" -->
+<div id="root"></div>
+<script>
+  var L = window.LureCapital, h = React.createElement;
+  var app = h('div', { className: 'lc-root', style: { padding: '20px', background: 'var(--bg)' } },
+    h('div', { style: { background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)', padding: '20px' } },
+      h(L.LoadingSkeleton, { rows: 6 })));
+  ReactDOM.createRoot(document.getElementById('root')).render(app);
+</script>

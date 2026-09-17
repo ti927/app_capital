@@ -1,0 +1,36 @@
+<!-- @dsCard group="Dados" height=330 subtitle="32px por linha, thead 36px, coluna numérica mono, célula vazia com -" -->
+<div id="root"></div>
+<script>
+  var L = window.LureCapital, h = React.createElement;
+  var cols = [
+    { key: 'nome', label: 'Nome', width: '26%' },
+    { key: 'tipos', label: 'Tipos de operação', width: '22%' },
+    { key: 'fatMin', label: 'Faturamento mínimo', width: '17%', num: true },
+    { key: 'opMin', label: 'Operação mínima', width: '15%', num: true },
+    { key: 'status', label: 'Status', width: '14%' },
+    { key: 'acoes', label: '', width: '86px' }
+  ];
+  function acoes() {
+    return h('span', { className: 'lc-table__actions' },
+      h(L.Button, { key: 1, size: 'row', variant: 'tertiary', title: 'Deletar', 'aria-label': 'Deletar' }, '✖'),
+      h(L.Button, { key: 2, size: 'row', variant: 'tertiary', title: 'Editar', 'aria-label': 'Editar' }, '✎'),
+      h(L.Button, { key: 3, size: 'row', variant: 'tertiary', title: 'Arquivar', 'aria-label': 'Arquivar' }, '⤓'));
+  }
+  function chip(t, l) { return h(L.StatusChip, { token: t, label: l }); }
+  var rows = [
+    { nome: 'Aurora FIDC', tipos: 'CRA, CRI', fatMin: '12.000.000,00', opMin: '2.000.000,00',
+      status: chip('st-etapa-fechado', 'Assinado'), acoes: acoes() },
+    { nome: 'Bandeirantes Sec.', tipos: 'Debêntures', fatMin: '30.000.000,00', opMin: '5.000.000,00',
+      status: chip('st-etapa-em-curso', 'Em análise'), acoes: acoes() },
+    { nome: 'Cordilheira Capital', tipos: 'FIDC Proprietário', fatMin: '', opMin: '1.500.000,00',
+      status: chip('st-etapa-pausado', 'Paralisado'), acoes: acoes() },
+    { nome: 'Delta Crédito', tipos: '', fatMin: '8.000.000,00', opMin: '',
+      status: chip('st-etapa-terminal-negativo', 'Declinado'), acoes: acoes() }
+  ];
+  var app = h('div', { className: 'lc-root', style: { padding: '20px', background: 'var(--bg)' } },
+    h('div', { style: { background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)', overflow: 'hidden' } },
+      h(L.DataTable, { columns: cols, rows: rows,
+        footer: { nome: '4 fundos', fatMin: '50.000.000,00', opMin: '8.500.000,00' } })));
+  ReactDOM.createRoot(document.getElementById('root')).render(app);
+</script>

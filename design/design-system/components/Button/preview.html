@@ -1,0 +1,31 @@
+<!-- @dsCard group="Controles" height=240 subtitle="5 variantes · 28 / 34 / 40px · ação de linha 24px" -->
+<div id="root"></div>
+<script>
+  var L = window.LureCapital, h = React.createElement;
+  function Row(label, nodes) {
+    return h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
+      h('span', { style: { width: '140px', flex: 'none', fontSize: '11px', letterSpacing: '.06em',
+        textTransform: 'uppercase', color: 'var(--text-muted)' } }, label),
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' } }, nodes));
+  }
+  var app = h('div', { className: 'lc-root', style: { padding: '24px', background: 'var(--surface)',
+      display: 'flex', flexDirection: 'column', gap: '16px' } },
+    Row('Variantes', [
+      h(L.Button, { key: 1 }, 'Nova Operação'),
+      h(L.Button, { key: 2, variant: 'secondary' }, 'Cancelar'),
+      h(L.Button, { key: 3, variant: 'tertiary' }, 'Limpar filtros'),
+      h(L.Button, { key: 4, variant: 'danger' }, 'Deletar'),
+      h(L.Button, { key: 5, variant: 'dangerOutline' }, 'Devolver mês')]),
+    Row('Tamanhos', [
+      h(L.Button, { key: 1, size: 'sm' }, 'sm 28'),
+      h(L.Button, { key: 2, size: 'md' }, 'md 34'),
+      h(L.Button, { key: 3, size: 'lg' }, 'lg 40')]),
+    Row('Em linha 24px', [
+      h(L.Button, { key: 1, size: 'row', variant: 'tertiary', title: 'Deletar', 'aria-label': 'Deletar' }, '✖'),
+      h(L.Button, { key: 2, size: 'row', variant: 'tertiary', title: 'Editar', 'aria-label': 'Editar' }, '✎'),
+      h(L.Button, { key: 3, size: 'row', variant: 'tertiary', title: 'Arquivar', 'aria-label': 'Arquivar' }, '⤓')]),
+    Row('Desabilitado', [
+      h(L.Button, { key: 1, disabled: true }, 'Salvar'),
+      h(L.Button, { key: 2, variant: 'secondary', disabled: true }, 'Escolha o parceiro')]));
+  ReactDOM.createRoot(document.getElementById('root')).render(app);
+</script>

@@ -53,12 +53,19 @@ pooler (`aws-0-sa-east-1.pooler.supabase.com`). Ver `.env.example`.
 
 ## Estado
 
-Fase 0 em andamento: banco criado, aplicacao ainda nao iniciada.
+Fase 0 (fundacao da aplicacao) ainda nao comecou. Banco e dados prontos:
 
-**Risco aberto:** a RLS esta desligada. Toda tabela e legivel e gravavel pela API
-REST com a `anon key`, que sai no bundle do navegador. Ligar antes da carga dos
-dados do Bubble ou do primeiro deploy — o que vier primeiro. Ver
-[docs/seguranca.md](docs/seguranca.md).
+| | |
+|---|---|
+| Esquema | 28 tabelas aplicadas |
+| Dados | migrados do Bubble — 73 fornecedores, 94 clientes, 71 operacoes, 383 etapas, 18 cartoes |
+| Acessos | 5 contas em auth.users, 5 perfis, 107 vinculos de "quem visualiza" |
 
-As specs `00-` a `07-` ainda nao foram escritas; ver
-[specs/LEIA-ME.md](specs/LEIA-ME.md).
+Plano por fase, com escopo e estimativas: [specs/04-fases.md](specs/04-fases.md).
+
+Fora do corte: a tela de respostas de pesquisa (`respforms1`), que tem zero
+registros. Em aberto: a Esteira de Estruturacao, usada em 1 das 388 etapas.
+
+**Risco aberto:** a RLS esta desligada e agora ha dado real de cliente no banco.
+A `anon key` sai para a internet no primeiro deploy da Vercel — ligar a RLS antes
+disso. Ver [docs/seguranca.md](docs/seguranca.md).

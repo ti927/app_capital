@@ -38,7 +38,6 @@ deles de propósito.
 | `01-estado-atual-bubble.md` | como o app funciona hoje |
 | `02-modelo-de-dados.md` | entidades, relações, de-para com o Bubble |
 | `03-acessos.md` | o que master e indicante veem em cada página |
-| `04-fases.md` | Fase 0 a N, escopo de cada uma |
 | `05-migracao.md` | extração, transformação, carga, corte |
 | `06-decisoes-pendentes.md` | o que ainda está em aberto |
 | `07-divida-herdada.md` | o que do Bubble **não** reproduzir |

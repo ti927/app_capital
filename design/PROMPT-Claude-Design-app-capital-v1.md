@@ -155,7 +155,7 @@ Botão "Salvar" quando é edição, "Criar" quando é novo — nunca os dois.
 
 ## 6. As telas
 
-Sete telas. Textos entre aspas são literais do original — reproduza, inclusive onde há erro de
+Seis telas. Textos entre aspas são literais do original — reproduza, inclusive onde há erro de
 grafia ou espaço sobrando.
 
 ### 6.1 Login (`index`)
@@ -364,10 +364,11 @@ Não invente lugar para elas: deixe fora, como está hoje.
 
 É a tela mais provável de ser aberta no celular, em reunião.
 
-### 6.7 Respostas de formulário (`respforms1`)
+### Fora de escopo — não desenhar
 
-Tabela de **15 colunas de layout** com as respostas da pesquisa (ESG, governança, crédito), 16
-perguntas. Leitura, sem edição. Densidade baixa.
+**`respforms1`, a tela de respostas de pesquisa.** Existe no Bubble, mas não está em uso: a tabela
+tem **zero registros**. Decisão do projeto em 17/09/2026 — fica fora deste corte. Não gaste
+artboard com ela.
 
 ---
 
@@ -497,7 +498,7 @@ Só visuais — nenhuma mexe em layout.
 
 1. **Canvas de artboards**, 1440px, claro e escuro:
    - página de **Design System**: o que foi herdado e o que é extensão deste produto;
-   - as **sete telas**, nos dois níveis de acesso onde diferem;
+   - as **seis telas**, nos dois níveis de acesso onde diferem;
    - os **diálogos**: cliente, fornecedor, operação, esteira, cartão do funil, usuário, troca de
      senha, exclusão;
    - o **app shell** e o **login**.
@@ -525,6 +526,5 @@ priorize componentes e tokens, não telas pixel-únicas.
 | clientes | 1105–1270 |
 | funil | 1271–1359 |
 | fornecedor | 1360–1521 |
-| respostas | 1522–1566 |
 | esteira | 1567–1807 |
 | operação | 1808+ |

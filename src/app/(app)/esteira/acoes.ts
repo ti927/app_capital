@@ -3,20 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { clienteServidor } from '@/lib/supabase/servidor';
 
-/** Os 11 itens do checklist, na ordem de produção. Os quatro últimos são livres. */
-export const ITENS_CHECKLIST = [
-  { chave: 'regulamento', rotulo: 'Regulamento:', livre: false },
-  { chave: 'contrato_cessao', rotulo: 'Contrato de Cessão', livre: false },
-  { chave: 'contrato_cobranca', rotulo: 'Contrato de Cobrança', livre: false },
-  { chave: 'arquivos', rotulo: 'Arquivos de Remessa e Retorno:', livre: false },
-  { chave: 'integralizacao_sub', rotulo: 'Integralização de cota sub:', livre: false },
-  { chave: 'int_senior', rotulo: 'Integralização de cotas senior e mezo:', livre: false },
-  { chave: 'inc_dc', rotulo: 'Inclusão de DC:', livre: false },
-  { chave: 'cmp1', rotulo: '', livre: true },
-  { chave: 'cmp2', rotulo: '', livre: true },
-  { chave: 'cmp3', rotulo: '', livre: true },
-  { chave: 'cmp4', rotulo: '', livre: true },
-] as const;
+import { ITENS_CHECKLIST } from './checklist';
 
 export async function gravarEtapaDaEsteira(_anterior: unknown, dados: FormData) {
   const supabase = await clienteServidor();

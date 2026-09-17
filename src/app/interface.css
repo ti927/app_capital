@@ -400,3 +400,152 @@ body {
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
+
+/* ---------------------------------------------------------------------------
+   Diálogo — correção de três lacunas do bundle.css do design system.
+
+   O bundle foi escrito para as páginas de preview, onde o diálogo é a única
+   coisa na tela. Em aplicação faltavam:
+
+   1. `.lc-overlay` sem `position: fixed` — o diálogo entrava no fluxo e ia
+      parar no fim da página, atrás do conteúdo.
+   2. `.lc-dialog--sm/md/lg` nunca definidos — o diálogo ficava com a largura
+      toda em vez de 620/880/1120px.
+   3. `.lc-dialog__head` sem `display: flex` — o botão de fechar caía embaixo
+      do título.
+
+   A correção mora aqui, e não em design-system.css, porque aquele arquivo é
+   cópia do bundle e é regravado por `npm run tokens`.
+   --------------------------------------------------------------------------- */
+
+.lc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  align-items: flex-start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-8) var(--space-6);
+}
+
+.lc-dialog {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  max-width: var(--dialog-w-sm);
+  max-height: calc(100dvh - var(--space-8) * 2);
+}
+
+.lc-dialog--sm {
+  max-width: var(--dialog-w-sm);
+}
+.lc-dialog--md {
+  max-width: var(--dialog-w-md);
+}
+.lc-dialog--lg {
+  max-width: var(--dialog-w-lg);
+}
+
+/* Cabeçalho e rodapé fixos; só o corpo rola. */
+.lc-dialog__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex: none;
+}
+
+.lc-dialog__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.lc-dialog__foot {
+  flex: none;
+}
+
+@media (max-width: 760px) {
+  .lc-overlay {
+    padding: var(--space-4);
+  }
+  .lc-dialog {
+    max-height: calc(100dvh - var(--space-4) * 2);
+  }
+  .lc-dialog__head,
+  .lc-dialog__body,
+  .lc-dialog__foot {
+    padding-left: var(--space-5);
+    padding-right: var(--space-5);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Vão entre a barra lateral e os cartões.
+
+   Eram 56px: 16px do padding do conteúdo mais **40px do
+   `padding-inline-start` que o navegador põe em `<ul>` por padrão** e que eu
+   nunca zerei. Medido no navegador, não estimado.
+   --------------------------------------------------------------------------- */
+
+.lista,
+.opcoes,
+.painel-status__itens,
+.funil__tags {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.casca__conteudo {
+  padding: var(--space-5) var(--space-5) var(--space-8);
+}
+
+/* --- campos de texto longo ------------------------------------------------- */
+
+/* Parecer e histórico são o corpo do cadastro: precisam de área de escrita,
+   não de uma faixa de três linhas. */
+.lc-field__input textarea,
+textarea.lc-field__input {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 20px;
+}
+
+.campo-alto textarea.lc-field__input {
+  min-height: 220px;
+}
+
+.campo-medio textarea.lc-field__input {
+  min-height: 150px;
+}
+
+/* ---------------------------------------------------------------------------
+   App bar no celular.
+
+   `.lc-appbar__brand` é `position: absolute` centrado na janela. Em 390px ele
+   passa por cima do grupo da direita e engole "Sair" e "Senha" — encontrado
+   na captura de QA, não no teste. No estreito a assinatura volta ao fluxo, à
+   esquerda, e fica só o símbolo.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .lc-appbar {
+    padding: 0 var(--space-4);
+    gap: var(--space-2);
+  }
+  .lc-appbar__brand {
+    position: static;
+    transform: none;
+    margin-right: auto;
+  }
+  .lc-appbar__brand .lc-logo__wm {
+    display: none;
+  }
+  .lc-appbar__right {
+    gap: var(--space-1);
+  }
+  .lc-appbar__right .lc-btn {
+    padding: 0 var(--space-2);
+  }
+}

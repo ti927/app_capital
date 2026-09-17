@@ -26,12 +26,18 @@ quem usa hoje; banco e lógica são refeitos.
    servidor, não existe service role em componente client.
 3. **Trigger de log em `evento`**, com `UPDATE` e `DELETE` revogados na tabela.
 4. **`npm run verify` (typecheck + lint + teste) passa antes de todo commit.**
-5. **Vertical slice**: migration → RLS → API → tela → teste. Nunca todas as
+5. **`npm run qa` roda antes de entregar tela, e as capturas se olham.**
+   `scripts/qa.mjs` percorre as telas exercitando as funcoes e grava uma
+   captura por passo em `qa/` (fora do git). Rode nas tres formas: padrao,
+   `-- --escuro` e `-- --celular`. Passar nao basta — **abra as imagens**: os
+   bugs que importam (dialogo fora da janela, botao coberto, acao desabilitada
+   sem explicacao) passam em teste e aparecem na captura.
+6. **Vertical slice**: migration → RLS → API → tela → teste. Nunca todas as
    migrations primeiro e as telas depois.
-6. **Segredo não entra no repositório nem no chat.** Vai para `.env` e se cita pelo
+7. **Segredo não entra no repositório nem no chat.** Vai para `.env` e se cita pelo
    nome da variável. `.env.example` lista os nomes, nunca os valores.
-7. **Decisão tomada vira arquivo em `specs/`.** Sessão não persiste; `specs/` persiste.
-8. **Regra de negócio não se inventa.** Se a spec não diz e o Bubble não deixa claro,
+8. **Decisão tomada vira arquivo em `specs/`.** Sessão não persiste; `specs/` persiste.
+9. **Regra de negócio não se inventa.** Se a spec não diz e o Bubble não deixa claro,
    pare e pergunte.
 
 ## Commits

@@ -40,3 +40,9 @@ npm-debug.log*
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+.vercel
+.env*
+
+# QA — capturas geradas por scripts/qa.mjs
+qa/

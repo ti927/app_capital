@@ -128,7 +128,7 @@ export function DialogoOperacao({
         <Campo rotulo="Faturamento anual" calculado valorInicial={operacao?.faturamento_anual ?? ''} />
         <Campo rotulo="Comissão" nome="comissao" valorInicial={operacao?.comissao ?? ''} placeholder="Digite aqui" />
 
-        <Campo className="grade__inteiro" rotulo="Parecer da operação" nome="parecer" multilinha linhas={5} valorInicial={operacao?.parecer ?? ''} placeholder="Digite aqui" />
+        <Campo className="grade__inteiro campo-alto" rotulo="Parecer da operação" nome="parecer" multilinha linhas={11} valorInicial={operacao?.parecer ?? ''} placeholder="Digite aqui" />
 
         <div className="grade__inteiro linha" style={{ gap: 'var(--space-6)', flexWrap: 'wrap' }}>
           <Interruptor nome="tem_fee" rotulo="Fee (yes/no)" inicial={operacao?.tem_fee} />

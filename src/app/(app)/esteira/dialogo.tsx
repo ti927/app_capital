@@ -1,10 +1,11 @@
 'use client';
 
 import { useActionState, useEffect, useMemo, useState, useTransition } from 'react';
-import { Botao, Campo } from '@/components/ui/base';
+import { Aviso, Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
 import type { Operacao, TabelaApoio } from '@/lib/dominio';
-import { ITENS_CHECKLIST, acrescentarEtapa, gravarEtapaDaEsteira } from './acoes';
+import { acrescentarEtapa, gravarEtapaDaEsteira } from './acoes';
+import { ITENS_CHECKLIST } from './checklist';
 import type { EtapaEsteira, ItemChecklist } from './page';
 
 type OperacaoResumo = Pick<Operacao, 'id' | 'identificador' | 'cliente_id'>;
@@ -117,6 +118,21 @@ export function DialogoEsteira({
     >
       <form id="forma-esteira" action={agir} className="pilha">
         <input type="hidden" name="etapa_id" value={etapaId} />
+
+        {/* Sem etapa não há o que gravar: a esteira pendura tudo numa etapa.
+            Sem este aviso o botão fica desabilitado e nada explica por quê. */}
+        {!etapa ? (
+          <Aviso
+            tom="neutral"
+            titulo="Esta operação ainda não tem etapa"
+            corpo={
+              <>
+                A esteira registra o andamento <strong>por fundo</strong>, e cada fundo é uma etapa.
+                Use &ldquo;Adicionar etapa&rdquo; abaixo para começar — até lá não há onde gravar.
+              </>
+            }
+          />
+        ) : null}
 
         {/* 1 — cabeçalho de leitura */}
         <p className="t-section-title" style={{ margin: 0 }}>

@@ -113,7 +113,7 @@ export function DialogoCliente({
           <Campo rotulo="Estimativa de faturamento" nome="estimativa_faturamento" valorInicial={cliente?.estimativa_faturamento ?? ''} placeholder="Digite aqui" />
 
           {/* 10 */}
-          <Campo className="grade__inteiro" rotulo="Parecer" nome="parecer" multilinha linhas={6} valorInicial={cliente?.parecer ?? ''} placeholder="Digite aqui" />
+          <Campo className="grade__inteiro campo-alto" rotulo="Parecer" nome="parecer" multilinha linhas={12} valorInicial={cliente?.parecer ?? ''} placeholder="Digite aqui" />
 
           {/* 11 */}
           <SeletorPopup

@@ -14,7 +14,8 @@
     "tokens": "node scripts/gerar-tokens-css.mjs",
     "migration": "node scripts/aplicar-migration.mjs",
     "extrair": "node scripts/extrair-bubble.mjs",
-    "carregar": "node scripts/carregar-supabase.mjs"
+    "carregar": "node scripts/carregar-supabase.mjs",
+    "qa": "node scripts/qa.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
@@ -31,6 +32,7 @@
     "@types/react-dom": "^19.0.2",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.3",
+    "playwright": "^1.63.0",
     "typescript": "^5.7.2"
   }
 }

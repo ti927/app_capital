@@ -91,7 +91,7 @@ export function DialogoFornecedor({
         <Campo className="grade__inteiro" rotulo="Fee" nome="fee" valorInicial={fornecedor?.fee ?? ''} placeholder="Digite aqui" />
 
         {/* 6 */}
-        <Campo className="grade__inteiro" rotulo="Parecer" nome="parecer" multilinha linhas={4} valorInicial={fornecedor?.parecer ?? ''} placeholder="Digite aqui" />
+        <Campo className="grade__inteiro campo-alto" rotulo="Parecer" nome="parecer" multilinha linhas={9} valorInicial={fornecedor?.parecer ?? ''} placeholder="Digite aqui" />
 
         {/* 7 */}
         <SeletorPopup

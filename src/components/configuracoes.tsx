@@ -93,11 +93,13 @@ export function BotaoConfiguracoes({
                 <div className="acessos__niveis">
                   {NIVEIS.map(({ chave, rotulo }) => {
                     const ve = pagina.niveis.includes(chave);
+                    const dito = `${rotulo}: ${ve ? 'vê esta página' : 'não vê esta página'}`;
                     return (
                       <span
                         key={chave}
                         className={`acessos__nivel${ve ? ' acessos__nivel--ve' : ''}`}
-                        title={`${rotulo}: ${ve ? 'vê esta página' : 'não vê esta página'}`}
+                        title={dito}
+                        aria-label={dito}
                       >
                         <span aria-hidden="true">{ve ? '✓' : '—'}</span>
                         {rotulo}

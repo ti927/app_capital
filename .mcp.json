@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "app-capital": {
+      "command": "node",
+      "args": ["mcp/servidor.mjs"]
+    }
+  }
+}

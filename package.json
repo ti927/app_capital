@@ -15,9 +15,11 @@
     "migration": "node scripts/aplicar-migration.mjs",
     "extrair": "node scripts/extrair-bubble.mjs",
     "carregar": "node scripts/carregar-supabase.mjs",
-    "qa": "node scripts/qa.mjs"
+    "qa": "node scripts/qa.mjs",
+    "mcp": "node mcp/servidor.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
     "next": "^15.1.3",

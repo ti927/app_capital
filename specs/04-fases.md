@@ -9,13 +9,14 @@ Estado em 17/09/2026. As estimativas vêm do tamanho medido de cada tela no Bubb
 |---|---|
 | Repositório | `ti927/app_capital`, privado |
 | Banco | Supabase, Postgres 17, 28 tabelas aplicadas |
-| Dados | migrados do Bubble: 73 fornecedores, 94 clientes, 71 operações, 383 etapas, 18 cartões de funil |
+| Dados | migrados do Bubble: 94 clientes, 73 fundos, 71 operações, 383 etapas, 18 cartões |
 | Acessos | 5 contas em `auth.users`, 5 perfis, 107 vínculos de "quem visualiza" |
-| Design | documento de handoff em `design/`, herdando o design system Lure |
+| Design | design system da Lure aplicado, com tokens gerados do `tokens.json` |
+| Aplicação | Fases 0 a 5 feitas — as cinco telas de pé, rodando com dado real |
+| QA | `npm run qa`: 28 passos em três formas (claro, escuro, celular 390px) |
+| MCP | servidor de só leitura com 8 ferramentas sobre o banco |
 
-Falta o aplicativo.
-
----
+**Falta a Fase 6.** E dentro dela, uma coisa bloqueia tudo: a RLS.
 
 ## Escopo
 

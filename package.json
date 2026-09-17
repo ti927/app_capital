@@ -1,0 +1,27 @@
+{
+  "name": "files",
+  "version": "1.0.0",
+  "description": "Migração do app Bubble para Next.js + Supabase.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ti927/app_capital.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ti927/app_capital/issues"
+  },
+  "homepage": "https://github.com/ti927/app_capital#readme",
+  "dependencies": {
+    "pg": "^8.23.0"
+  }
+}

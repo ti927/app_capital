@@ -549,3 +549,103 @@ textarea.lc-field__input {
     padding: 0 var(--space-2);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Barra de rolagem.
+
+   A nativa do Windows é grossa, tem botões de seta e não acompanha o tema.
+   Esta é fina, sem setas, com trilho transparente e polegar que só ganha
+   contraste quando o ponteiro está por perto. Usa os tokens, então vira clara
+   ou escura junto com o resto.
+
+   `scrollbar-width`/`scrollbar-color` é o padrão (Firefox e Chrome novo);
+   o bloco `::-webkit-scrollbar` cobre Chrome, Edge e Safari.
+   --------------------------------------------------------------------------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-muted) 45%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* A borda transparente afina o polegar sem tirar a área de clique. */
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--text-muted) 40%, transparent);
+  border-radius: var(--radius-pill);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 160ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--text-secondary);
+}
+
+/* Sem os botões de seta nas pontas. */
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* O corpo do diálogo reserva a calha, para o conteúdo não pular quando a
+   barra aparece e some. */
+.lc-dialog__body,
+.opcoes {
+  scrollbar-gutter: stable;
+}
+
+/* Áreas estreitas — coluna do funil, lista de fichas — levam uma barra ainda
+   mais discreta. */
+.funil__quadro,
+.funil__cartoes,
+.tipos__lista,
+.matriz__grade {
+  scrollbar-width: thin;
+}
+
+.funil__quadro::-webkit-scrollbar,
+.funil__cartoes::-webkit-scrollbar,
+.tipos__lista::-webkit-scrollbar,
+.matriz__grade::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.funil__quadro::-webkit-scrollbar-thumb,
+.funil__cartoes::-webkit-scrollbar-thumb,
+.tipos__lista::-webkit-scrollbar-thumb,
+.matriz__grade::-webkit-scrollbar-thumb {
+  border-width: 2px;
+}
+
+/* Textarea: a barra some enquanto o campo não tem foco nem ponteiro. */
+textarea.lc-field__input::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--text-muted) 22%, transparent);
+}
+
+textarea.lc-field__input:hover::-webkit-scrollbar-thumb,
+textarea.lc-field__input:focus::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--text-muted) 55%, transparent);
+}
+
+/* O canto de redimensionar do textarea também é feio no Windows. */
+textarea.lc-field__input {
+  resize: vertical;
+}

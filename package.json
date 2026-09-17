@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src middleware.ts",
+    "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "teste": "node --test",
     "verify": "npm run typecheck && npm run lint && npm run teste",

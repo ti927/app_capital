@@ -1,7 +1,8 @@
 'use client';
 
 import { useActionState, useEffect, useState, useTransition } from 'react';
-import { Botao, Campo, Seletor } from '@/components/ui/base';
+import { Botao, Campo } from '@/components/ui/base';
+import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import { Dialogo } from '@/components/ui/dialogo';
 import { data, type FunilCartao } from '@/lib/dominio';
 import { arquivarCartao, excluirCartao, gravarCartao } from './acoes';
@@ -115,32 +116,19 @@ export function DialogoCartao({
         <Campo className="grade__inteiro" rotulo="Histórico" nome="historico" multilinha linhas={4} valorInicial={cartao?.historico ?? ''} placeholder="Digite aqui" />
 
         {/* 5 */}
-        <Seletor
+        <SeletorPopup
           rotulo="Etapa"
           nome="etapa_id"
           valorInicial={cartao?.etapa_id ?? etapaInicial ?? ''}
           opcoes={etapas.map((e) => ({ valor: e.id, rotulo: e.nome }))}
         />
         <Campo rotulo="Indicante" nome="indicante" valorInicial={cartao?.indicante ?? ''} placeholder="Digite aqui" />
-        <div className="lc-field">
-          <label className="lc-field__label" htmlFor="usuarios-cartao">
-            Usuário
-          </label>
-          <select
-            id="usuarios-cartao"
-            name="usuarios"
-            multiple
-            defaultValue={usuariosDoCartao}
-            className="lc-field__input"
-            style={{ height: 'auto', minHeight: 'var(--control-h-md)', padding: 'var(--space-2)' }}
-          >
-            {perfis.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome}
-              </option>
-            ))}
-          </select>
-        </div>
+        <SeletorMultiploPopup
+          rotulo="Usuário"
+          nome="usuarios"
+          inicial={usuariosDoCartao}
+          opcoes={perfis.map((p) => ({ valor: p.id, rotulo: p.nome }))}
+        />
 
         {/* 6 — somente leitura */}
         <Campo rotulo="Data inicial" calculado valorInicial={data(cartao?.atualizado_em)} />

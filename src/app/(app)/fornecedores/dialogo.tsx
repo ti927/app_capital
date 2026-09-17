@@ -1,7 +1,8 @@
 'use client';
 
 import { useActionState, useEffect, useMemo, useState } from 'react';
-import { Botao, Campo, Seletor } from '@/components/ui/base';
+import { Botao, Campo } from '@/components/ui/base';
+import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import { Dialogo } from '@/components/ui/dialogo';
 import { STATUS_FORNECEDOR, type Fornecedor, type TabelaApoio } from '@/lib/dominio';
 import { gravarFornecedor } from './acoes';
@@ -57,7 +58,7 @@ export function DialogoFornecedor({
       largura="md"
       rodape={
         <Botao variante="primary" type="submit" form="forma-fornecedor" disabled={gravando}>
-          <span aria-hidden="true">➤</span> {editando ? 'Salvar' : 'Cadastrar'}
+          {editando ? 'Salvar' : 'Cadastrar'}
         </Botao>
       }
     >
@@ -93,7 +94,7 @@ export function DialogoFornecedor({
         <Campo className="grade__inteiro" rotulo="Parecer" nome="parecer" multilinha linhas={4} valorInicial={fornecedor?.parecer ?? ''} placeholder="Digite aqui" />
 
         {/* 7 */}
-        <Seletor
+        <SeletorPopup
           rotulo="Status"
           nome="status"
           placeholder="Escolha uma opção"
@@ -105,26 +106,38 @@ export function DialogoFornecedor({
         <hr className="grade__regua" />
 
         {/* 8 */}
-        <SeletorDeTipos
+        <SeletorMultiploPopup
           className="grade__inteiro"
           rotulo="Tipos de operações"
           nome="tipos_operacoes"
-          tipos={tipos}
           inicial={inicial('atende')}
+          opcoes={tipos.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
         />
 
         {/* 9 — só o que não está em "não atendidas" */}
-        <SeletorDeTipos rotulo="1º Linha" nome="linha_1" tipos={disponiveis} inicial={inicial('linha_1')} />
-        <SeletorDeTipos rotulo="2º Linha" nome="linha_2" tipos={disponiveis} inicial={inicial('linha_2')} />
+        <SeletorMultiploPopup
+          rotulo="1º Linha"
+          nome="linha_1"
+          inicial={inicial('linha_1')}
+          opcoes={disponiveis.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
+        />
+        <SeletorMultiploPopup
+          rotulo="2º Linha"
+          nome="linha_2"
+          inicial={inicial('linha_2')}
+          opcoes={disponiveis.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
+        />
 
         {/* 10 — tags em vermelho, como no original */}
-        <SeletorDeTipos
-          className="grade__inteiro negativo"
+        {/* Fichas em vermelho, como no original. */}
+        <SeletorMultiploPopup
+          className="grade__inteiro"
+          negativo
           rotulo="Tipos de operações não atendidas"
           nome="nao_atendidas"
-          tipos={tipos}
           inicial={naoAtendidas}
           aoMudar={setNaoAtendidas}
+          opcoes={tipos.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
         />
 
         {/* 11 */}
@@ -142,75 +155,5 @@ export function DialogoFornecedor({
         ) : null}
       </form>
     </Dialogo>
-  );
-}
-
-/**
- * Seletor múltiplo sobre os 31 tipos de operação. Aparece quatro vezes no mesmo
- * diálogo, então precisa ser compacto e ter busca.
- */
-function SeletorDeTipos({
-  rotulo,
-  nome,
-  tipos,
-  inicial,
-  aoMudar,
-  className,
-}: {
-  rotulo: string;
-  nome: string;
-  tipos: TabelaApoio[];
-  inicial: string[];
-  aoMudar?: (v: string[]) => void;
-  className?: string;
-}) {
-  const [escolhidos, setEscolhidos] = useState<string[]>(inicial);
-  const [filtro, setFiltro] = useState('');
-
-  useEffect(() => setEscolhidos(inicial), [inicial.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const alternar = (id: string) => {
-    const novo = escolhidos.includes(id) ? escolhidos.filter((x) => x !== id) : [...escolhidos, id];
-    setEscolhidos(novo);
-    aoMudar?.(novo);
-  };
-
-  const visiveis = filtro.trim()
-    ? tipos.filter((t) => t.rotulo.toLowerCase().includes(filtro.trim().toLowerCase()))
-    : tipos;
-
-  return (
-    <div className={['lc-field', 'tipos', className].filter(Boolean).join(' ')}>
-      <span className="lc-field__label">{rotulo}</span>
-
-      {escolhidos.map((id) => (
-        <input key={id} type="hidden" name={nome} value={id} />
-      ))}
-
-      <input
-        className="lc-field__input"
-        value={filtro}
-        onChange={(e) => setFiltro(e.target.value)}
-        placeholder={`Buscar entre ${tipos.length} tipos`}
-        aria-label={`Buscar em ${rotulo}`}
-      />
-
-      <div className="tipos__lista">
-        {visiveis.map((t) => {
-          const marcado = escolhidos.includes(String(t.id));
-          return (
-            <button
-              key={t.id}
-              type="button"
-              className={['tipos__tag', marcado && 'tipos__tag--marcado'].filter(Boolean).join(' ')}
-              aria-pressed={marcado}
-              onClick={() => alternar(String(t.id))}
-            >
-              {t.rotulo}
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }

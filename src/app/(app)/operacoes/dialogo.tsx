@@ -1,7 +1,15 @@
 'use client';
 
 import { useActionState, useEffect, useState, useTransition } from 'react';
-import { Botao, Campo, Seletor } from '@/components/ui/base';
+import { Botao, Campo } from '@/components/ui/base';
+import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
+import {
+  IconeDeletar,
+  IconeEditar,
+  IconeFechar,
+  IconeMais,
+  IconeSalvar,
+} from '@/components/ui/icones';
 import { Dialogo } from '@/components/ui/dialogo';
 import {
   dataCurta,
@@ -85,7 +93,7 @@ export function DialogoOperacao({
 
         {/* "Escolher cliente:" só aparece quando a operação é nova. */}
         {nova ? (
-          <Seletor
+          <SeletorPopup
             className="grade__inteiro"
             rotulo="Escolher cliente:"
             nome="cliente_id"
@@ -96,7 +104,7 @@ export function DialogoOperacao({
         )}
 
         <Campo rotulo="Identificador" nome="identificador" valorInicial={operacao?.identificador ?? ''} placeholder="Digite aqui" />
-        <Seletor
+        <SeletorPopup
           rotulo="Status Atual da Operação"
           nome="status_operacao_id"
           valorInicial={operacao?.status_operacao_id ? String(operacao.status_operacao_id) : ''}
@@ -184,25 +192,13 @@ function Interruptor({ nome, rotulo, inicial }: { nome: string; rotulo: string; 
 /** Quais fornecedores recusaram a operação. Desabilitado para indicante. */
 function Declinios({ fornecedores, escolhidos }: { fornecedores: Fundo[]; escolhidos: string[] }) {
   return (
-    <div className="lc-field grade__inteiro">
-      <label className="lc-field__label" htmlFor="declinios">
-        Declínios
-      </label>
-      <select
-        id="declinios"
-        name="declinios"
-        multiple
-        defaultValue={escolhidos}
-        className="lc-field__input"
-        style={{ height: 'auto', minHeight: 'var(--control-h-lg)', padding: 'var(--space-2)' }}
-      >
-        {fornecedores.map((f) => (
-          <option key={f.id} value={f.id}>
-            {f.nome_fundo}
-          </option>
-        ))}
-      </select>
-    </div>
+    <SeletorMultiploPopup
+      className="grade__inteiro"
+      rotulo="Declínios"
+      nome="declinios"
+      inicial={escolhidos}
+      opcoes={fornecedores.map((f) => ({ valor: f.id, rotulo: f.nome_fundo }))}
+    />
   );
 }
 
@@ -225,7 +221,7 @@ function BlocoObservacoes({ operacaoId, observacoes }: { operacaoId: string; obs
             setNova('');
           }}
         >
-          + Adicionar
+          <IconeMais tamanho={14} /> Adicionar
         </Botao>
       </div>
 
@@ -246,7 +242,7 @@ function BlocoObservacoes({ operacaoId, observacoes }: { operacaoId: string; obs
                 aria-label="Excluir observação"
                 onClick={() => transicao(() => void excluirObservacao(o.id))}
               >
-                <span aria-hidden="true">🗑</span>
+                <IconeDeletar tamanho={14} />
               </Botao>
             </li>
           ))}
@@ -339,18 +335,13 @@ function TabelaDeEtapas({
                 <tr key={e.id}>
                   <td style={{ fontWeight: 600 }}>
                     {emEdicao ? (
-                      <select
-                        className="lc-field__input"
-                        value={rascunho?.fornecedor_id ?? ''}
-                        onChange={(ev) => setRascunho((r) => r && { ...r, fornecedor_id: ev.target.value || null })}
-                      >
-                        <option value="">—</option>
-                        {fornecedores.map((f) => (
-                          <option key={f.id} value={f.id}>
-                            {f.nome_fundo}
-                          </option>
-                        ))}
-                      </select>
+                      <SeletorPopup
+                        key={`fundo-${e.id}`}
+                        valorInicial={rascunho?.fornecedor_id ?? ''}
+                        placeholder="Escolha o fundo"
+                        opcoes={fornecedores.map((f) => ({ valor: f.id, rotulo: f.nome_fundo }))}
+                        aoEscolher={(v) => setRascunho((r) => r && { ...r, fornecedor_id: v || null })}
+                      />
                     ) : (
                       (e.fornecedor_id && nomeFundo.get(e.fornecedor_id)) || '-'
                     )}
@@ -358,20 +349,13 @@ function TabelaDeEtapas({
 
                   <td>
                     {emEdicao ? (
-                      <select
-                        className="lc-field__input"
-                        value={rascunho?.tipo_operacao_id ?? ''}
-                        onChange={(ev) =>
-                          setRascunho((r) => r && { ...r, tipo_operacao_id: ev.target.value ? Number(ev.target.value) : null })
-                        }
-                      >
-                        <option value="">—</option>
-                        {tipos.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.rotulo}
-                          </option>
-                        ))}
-                      </select>
+                      <SeletorPopup
+                        key={`tipo-${e.id}`}
+                        valorInicial={rascunho?.tipo_operacao_id ? String(rascunho.tipo_operacao_id) : ''}
+                        placeholder="Escolha o tipo"
+                        opcoes={tipos.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
+                        aoEscolher={(v) => setRascunho((r) => r && { ...r, tipo_operacao_id: v ? Number(v) : null })}
+                      />
                     ) : (
                       (e.tipo_operacao_id && rotuloTipo.get(e.tipo_operacao_id)) || '-'
                     )}
@@ -391,20 +375,17 @@ function TabelaDeEtapas({
 
                   <td>
                     {emEdicao ? (
-                      <select
-                        className="lc-field__input"
-                        value={rascunho?.status_id ?? ''}
-                        onChange={(ev) =>
-                          setRascunho((r) => r && { ...r, status_id: ev.target.value ? Number(ev.target.value) : null })
-                        }
-                      >
-                        <option value="">—</option>
-                        {statusEtapa.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.rotulo}
-                          </option>
-                        ))}
-                      </select>
+                      <SeletorPopup
+                        key={`status-${e.id}`}
+                        valorInicial={rascunho?.status_id ? String(rascunho.status_id) : ''}
+                        placeholder="Escolha o status"
+                        opcoes={statusEtapa.map((s) => ({
+                          valor: String(s.id),
+                          rotulo: s.rotulo,
+                          cor: `var(--${tokenDoStatus(s.chave)})`,
+                        }))}
+                        aoEscolher={(v) => setRascunho((r) => r && { ...r, status_id: v ? Number(v) : null })}
+                      />
                     ) : (
                       <span style={{ color: st ? `var(--${tokenDoStatus(st.chave)}-ink)` : undefined, fontWeight: 600 }}>
                         {st?.rotulo || '-'}
@@ -416,7 +397,7 @@ function TabelaDeEtapas({
                     <span className="lc-table__actions">
                       {emEdicao ? (
                         <Botao variante="tertiary" tamanho="row" onClick={salvar} title="Salvar" aria-label="Salvar">
-                          <span aria-hidden="true">✓</span>
+                          <IconeSalvar />
                         </Botao>
                       ) : null}
                       <Botao
@@ -426,7 +407,7 @@ function TabelaDeEtapas({
                         title={emEdicao ? 'Cancelar' : 'Editar'}
                         aria-label={emEdicao ? 'Cancelar' : 'Editar'}
                       >
-                        <span aria-hidden="true">{emEdicao ? '✕' : '✎'}</span>
+                        {emEdicao ? <IconeFechar /> : <IconeEditar />}
                       </Botao>
                       <Botao
                         variante="tertiary"
@@ -435,7 +416,7 @@ function TabelaDeEtapas({
                         title="Deletar"
                         aria-label="Deletar"
                       >
-                        <span aria-hidden="true">🗑</span>
+                        <IconeDeletar />
                       </Botao>
                     </span>
                   </td>
@@ -450,47 +431,33 @@ function TabelaDeEtapas({
 
       {/* Linha de criação de etapa — só master. */}
       <div className="criar-etapa">
-        <select
-          className="lc-field__input"
-          aria-label="Tipo de operação sugerido"
-          value={nova.tipo_operacao_id ?? ''}
-          onChange={(e) => setNova((n) => ({ ...n, tipo_operacao_id: e.target.value ? Number(e.target.value) : null }))}
-        >
-          <option value="">Tipo de operação</option>
-          {tipos.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.rotulo}
-            </option>
-          ))}
-        </select>
+        <SeletorPopup
+          key={`novo-tipo-${nova.tipo_operacao_id ?? 'vazio'}`}
+          placeholder="Tipo de operação"
+          valorInicial={nova.tipo_operacao_id ? String(nova.tipo_operacao_id) : ''}
+          opcoes={tipos.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
+          aoEscolher={(v) => setNova((n) => ({ ...n, tipo_operacao_id: v ? Number(v) : null }))}
+        />
 
-        <select
-          className="lc-field__input"
-          aria-label="Fundo sugerido"
-          value={nova.fornecedor_id ?? ''}
-          onChange={(e) => setNova((n) => ({ ...n, fornecedor_id: e.target.value || null }))}
-        >
-          <option value="">Fundo</option>
-          {fornecedores.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.nome_fundo}
-            </option>
-          ))}
-        </select>
+        <SeletorPopup
+          key={`novo-fundo-${nova.fornecedor_id ?? 'vazio'}`}
+          placeholder="Fundo"
+          valorInicial={nova.fornecedor_id ?? ''}
+          opcoes={fornecedores.map((f) => ({ valor: f.id, rotulo: f.nome_fundo }))}
+          aoEscolher={(v) => setNova((n) => ({ ...n, fornecedor_id: v || null }))}
+        />
 
-        <select
-          className="lc-field__input"
-          aria-label="Status"
-          value={nova.status_id ?? ''}
-          onChange={(e) => setNova((n) => ({ ...n, status_id: e.target.value ? Number(e.target.value) : null }))}
-        >
-          <option value="">Status</option>
-          {statusEtapa.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.rotulo}
-            </option>
-          ))}
-        </select>
+        <SeletorPopup
+          key={`novo-status-${nova.status_id ?? 'vazio'}`}
+          placeholder="Status"
+          valorInicial={nova.status_id ? String(nova.status_id) : ''}
+          opcoes={statusEtapa.map((s) => ({
+            valor: String(s.id),
+            rotulo: s.rotulo,
+            cor: `var(--${tokenDoStatus(s.chave)})`,
+          }))}
+          aoEscolher={(v) => setNova((n) => ({ ...n, status_id: v ? Number(v) : null }))}
+        />
 
         <input
           className="lc-field__input"
@@ -510,7 +477,7 @@ function TabelaDeEtapas({
             setNova({ fornecedor_id: null, tipo_operacao_id: null, na_mao_de: null, status_id: null });
           }}
         >
-          +
+          <IconeMais tamanho={15} />
         </Botao>
       </div>
     </section>

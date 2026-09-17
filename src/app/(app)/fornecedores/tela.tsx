@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Botao, Vazio } from '@/components/ui/base';
+import { IconeMais } from '@/components/ui/icones';
 import { Tabela } from '@/components/ui/tabela';
 import { TopoDaTela } from '@/components/ui/casca';
 import { AcoesLinha, BlocoArquivados, Busca, ConfirmarExclusao } from '@/components/listas';
@@ -68,7 +69,11 @@ export function TelaFornecedores({
   const linhas = (lista: Fornecedor[], arquivado: boolean) =>
     lista.map((f) => ({
       id: f.id,
-      nome: f.nome_fundo,
+      nome: (
+        <button type="button" className="celula-abrir" onClick={() => setEmEdicao(f)}>
+          {f.nome_fundo}
+        </button>
+      ),
       tipos: <span className="apoio">{tiposDe(f.id)}</span>,
       faturamento: f.faturamento_minimo,
       operacao: f.operacao_minima,
@@ -110,7 +115,7 @@ export function TelaFornecedores({
       <TopoDaTela>
         <Busca valor={busca} aoMudar={setBusca} placeholder="Buscar fornecedores" />
         <Botao variante="primary" onClick={() => setCriando(true)}>
-          Novo Fundo
+          <IconeMais tamanho={15} /> Novo Fundo
         </Botao>
       </TopoDaTela>
 

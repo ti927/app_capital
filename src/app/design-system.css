@@ -10,7 +10,7 @@
 
 /* ---------- Assinatura ---------- */
 .lc-logo { display: inline-flex; align-items: center; gap: var(--space-5); text-decoration: none; }
-.lc-logo__wm { display: inline-flex; align-items: center; gap: 9px; }
+.lc-logo__wm { display: inline-flex; align-items: center; gap: 7px; }
 .lc-logo__name { font-weight: 800; letter-spacing: 0.015em; line-height: 1; }
 .lc-logo__wm--stacked { flex-direction: column; align-items: center; gap: 2px; }
 .lc-logo__sub {
@@ -18,8 +18,10 @@
   text-indent: 0.34em; line-height: 1;
 }
 .lc-logo__chip {
-  display: inline-flex; align-items: center; height: var(--chip-h); padding: 0 7px;
-  font-weight: 700; font-size: 11px; letter-spacing: 0.14em; border-radius: var(--radius-md);
+  display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
+  background: var(--text); color: var(--surface);
+  font-weight: 700; font-size: 10px; line-height: 1;
+  letter-spacing: 0.14em; text-indent: 0.14em; border-radius: var(--radius-sm);
 }
 
 /* ---------- Botão ---------- */

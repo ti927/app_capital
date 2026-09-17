@@ -134,62 +134,6 @@ export function Campo({
   );
 }
 
-/* --------------------------------------------------------------- Seletor --- */
-
-export interface SeletorProps {
-  rotulo?: React.ReactNode;
-  nome?: string;
-  placeholder?: string;
-  opcoes: Array<{ valor: string; rotulo: string }>;
-  valorInicial?: string;
-  valor?: string;
-  aoMudar?: (valor: string) => void;
-  desabilitado?: boolean;
-  className?: string;
-  id?: string;
-}
-
-/** Não está no bundle do design system: reusa `lc-field` para ficar igual. */
-export function Seletor({
-  rotulo,
-  nome,
-  placeholder = 'Escolha aqui',
-  opcoes,
-  valorInicial,
-  valor,
-  aoMudar,
-  desabilitado,
-  className,
-  id,
-}: SeletorProps) {
-  const idCampo = id ?? nome;
-  return (
-    <div className={cx('lc-field', className)}>
-      {rotulo ? (
-        <label className="lc-field__label" htmlFor={idCampo}>
-          {rotulo}
-        </label>
-      ) : null}
-      <select
-        id={idCampo}
-        name={nome}
-        disabled={desabilitado}
-        className="lc-field__input"
-        {...(valor !== undefined
-          ? { value: valor, onChange: (e: React.ChangeEvent<HTMLSelectElement>) => aoMudar?.(e.target.value) }
-          : { defaultValue: valorInicial ?? '' })}
-      >
-        <option value="">{placeholder}</option>
-        {opcoes.map((o) => (
-          <option key={o.valor} value={o.valor}>
-            {o.rotulo}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------ EmptyState --- */
 
 export interface VazioProps {

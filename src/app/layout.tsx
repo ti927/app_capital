@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Archivo, IBM_Plex_Mono } from 'next/font/google';
+import { SCRIPT_TEMA } from '@/components/ui/tema';
 import './globals.css';
+import './interface.css';
 
 // Archivo é a substituição web de Akkurat/FLAMA, já decidida no design system.
 const archivo = Archivo({
@@ -31,7 +33,11 @@ export const viewport: Viewport = {
 
 export default function LayoutRaiz({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${archivo.variable} ${mono.variable}`}>
+    <html lang="pt-BR" className={`${archivo.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Antes da primeira pintura, para a pagina nao piscar no tema errado. */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+      </head>
       <body>{children}</body>
     </html>
   );

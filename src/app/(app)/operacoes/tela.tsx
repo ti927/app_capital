@@ -3,7 +3,9 @@
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Botao, Vazio } from '@/components/ui/base';
 import { TopoDaTela } from '@/components/ui/casca';
-import { AcoesLinha, BlocoArquivados, ConfirmarExclusao } from '@/components/listas';
+import { AcoesLinha, BlocoArquivados, ConfirmarExclusao, ItemDaLista } from '@/components/listas';
+import { IconeMais } from '@/components/ui/icones';
+import { SeletorPopup } from '@/components/ui/seletor-popup';
 import { tokenDoStatus, type EtapaOperacao, type Fornecedor, type Operacao, type TabelaApoio } from '@/lib/dominio';
 import { arquivarOperacao, excluirOperacao } from './acoes';
 import { DialogoOperacao } from './dialogo';
@@ -73,19 +75,23 @@ export function TelaOperacoes(props: {
   );
 
   const itemDaLista = (op: Operacao, arquivado: boolean) => (
-    <li key={op.id} className="lista__item">
-      <span className="lista__texto">
-        <span className="lista__nome">{op.cliente_id ? nomeCliente.get(op.cliente_id) : op.identificador}</span>
-        {tipoDaOperacao(op) ? <span className="lista__apoio"> - {tipoDaOperacao(op)}</span> : null}
-        {quemVisualiza(op) ? <span className="lista__meta">{quemVisualiza(op)}</span> : null}
-      </span>
-      <AcoesLinha
-        rotuloArquivar={arquivado ? 'Desarquivar' : 'Arquivar'}
-        aoArquivar={() => transicao(() => void arquivarOperacao(op.id, !arquivado))}
-        aoExcluir={() => setAExcluir(op)}
-        aoEditar={() => setEmEdicao(op)}
-      />
-    </li>
+    <ItemDaLista
+      key={op.id}
+      aoAbrir={() => setEmEdicao(op)}
+      rotuloAbrir="Editar operacao"
+      acoes={
+        <AcoesLinha
+          rotuloArquivar={arquivado ? 'Desarquivar' : 'Arquivar'}
+          aoArquivar={() => transicao(() => void arquivarOperacao(op.id, !arquivado))}
+          aoExcluir={() => setAExcluir(op)}
+          aoEditar={() => setEmEdicao(op)}
+        />
+      }
+    >
+      <span className="lista__nome">{op.cliente_id ? nomeCliente.get(op.cliente_id) : op.identificador}</span>
+      {tipoDaOperacao(op) ? <span className="lista__apoio"> - {tipoDaOperacao(op)}</span> : null}
+      {quemVisualiza(op) ? <span className="lista__meta">{quemVisualiza(op)}</span> : null}
+    </ItemDaLista>
   );
 
   return (
@@ -104,7 +110,7 @@ export function TelaOperacoes(props: {
         </button>
         <div className="abas__acoes">
           <Botao variante="primary" onClick={() => setCriando(true)}>
-            Nova Operação
+            <IconeMais tamanho={15} /> Nova Operação
           </Botao>
         </div>
       </div>
@@ -207,23 +213,12 @@ function AbaFornecedor({
 
   return (
     <>
-      <div className="lc-field" style={{ marginBottom: 'var(--space-5)' }}>
-        <label className="lc-field__label" htmlFor="fundo-parceiro">
-          Fundo parceiro:
-        </label>
-        <select
-          id="fundo-parceiro"
-          className="lc-field__input"
-          value={fundo}
-          onChange={(e) => setFundo(e.target.value)}
-        >
-          <option value="">Escolha aqui</option>
-          {fornecedores.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.nome_fundo}
-            </option>
-          ))}
-        </select>
+      <div style={{ marginBottom: 'var(--space-5)' }}>
+        <SeletorPopup
+          rotulo="Fundo parceiro:"
+          opcoes={fornecedores.map((f) => ({ valor: f.id, rotulo: f.nome_fundo }))}
+          aoEscolher={setFundo}
+        />
       </div>
 
       {!fundo ? null : (

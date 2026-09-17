@@ -1,0 +1,402 @@
+/* ===========================================================================
+   Ajustes de interface.
+
+   Separado do globals.css de propósito: aqui mora o que responde ao retorno
+   de uso — casca em altura cheia, alvo de clique da lista, animação de hover,
+   seletor em pop-up e os cortes responsivos.
+   =========================================================================== */
+
+/* --- a casca ocupa a janela inteira e a barra lateral vai até o rodapé ----- */
+
+html,
+body {
+  height: 100%;
+}
+
+.casca {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: var(--app-bar-h) 1fr;
+}
+
+.casca__corpo {
+  display: grid;
+  grid-template-columns: var(--sidenav-w) minmax(0, 1fr);
+  align-items: stretch;
+  min-height: 0;
+}
+
+/* A barra lateral estica até o fim e rola sozinha quando não cabe. */
+.casca__corpo > .lc-sidenav {
+  height: 100%;
+  align-self: stretch;
+  position: sticky;
+  top: var(--app-bar-h);
+  max-height: calc(100dvh - var(--app-bar-h));
+  overflow-y: auto;
+}
+
+/* Sem vão entre a barra e o conteúdo: a borda da barra já é a separação. */
+.casca__conteudo {
+  padding: var(--space-6);
+  min-width: 0;
+}
+
+/* --- ações da app bar ------------------------------------------------------ */
+
+.casca__acao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+/* --- lista: o nome abre a edição ------------------------------------------ */
+
+.lista__item {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+/* Salta de leve no hover, para anunciar que abre. */
+.lista__item:hover,
+.lista__item:focus-within {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+}
+
+.lista__abrir {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: var(--space-2) 0;
+  margin: calc(var(--space-2) * -1) 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.lista__abrir:focus-visible {
+  outline: var(--border-w-focus, 2px) solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Cartão do funil ganha o mesmo salto. */
+.funil__cartao {
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease;
+}
+
+.funil__cartao:hover,
+.funil__cartao:focus-within {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.12);
+}
+
+/* Quem prefere menos movimento não recebe movimento nenhum. */
+@media (prefers-reduced-motion: reduce) {
+  .lista__item,
+  .funil__cartao,
+  .gatilho,
+  .opcoes__item {
+    transition: none;
+  }
+  .lista__item:hover,
+  .funil__cartao:hover {
+    transform: none;
+  }
+}
+
+/* --- gatilho do seletor em pop-up ------------------------------------------ */
+
+.gatilho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--control-h-md);
+  padding: 0 var(--space-3);
+  background: var(--surface);
+  border: var(--border-w) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.gatilho:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--text-muted);
+}
+
+.gatilho:disabled {
+  opacity: var(--opacity-disabled, 0.5);
+  cursor: default;
+}
+
+.gatilho__valor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gatilho__vazio {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gatilho__ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  flex: none;
+}
+
+.gatilho__fichas {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+  padding: var(--space-2) 0;
+  flex-wrap: wrap;
+}
+
+.ficha {
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  padding: 1px var(--space-3);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ficha--negativa {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  color: var(--danger-ink);
+}
+
+/* --- lista de opções dentro do pop-up -------------------------------------- */
+
+.filtro-opcoes {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  height: var(--control-h-md);
+  border: var(--border-w) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  margin-bottom: var(--space-4);
+}
+
+.filtro-opcoes__campo {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+}
+
+.filtro-opcoes__campo:focus {
+  outline: none;
+}
+
+.filtro-opcoes:focus-within {
+  border-color: var(--focus-ring);
+}
+
+.filtro-opcoes__limpar {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+}
+
+.opcoes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 44vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opcoes__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--control-h-md);
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 120ms ease;
+}
+
+.opcoes__item:hover {
+  background: var(--surface-hover);
+}
+
+.opcoes__item--ativo {
+  background: var(--surface-sunken);
+  font-weight: 600;
+}
+
+.opcoes__rotulo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.opcoes__vazio {
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.caixa {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border: var(--border-w) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-on);
+}
+
+.caixa--marcada {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* --- responsivo ------------------------------------------------------------ */
+
+@media (max-width: 1100px) {
+  /* Barra lateral encolhe para só os ícones; o rótulo vira title. */
+  .casca__corpo {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .casca__corpo > .lc-sidenav {
+    padding: var(--space-4) var(--space-2);
+    align-items: center;
+  }
+  .lc-navitem {
+    justify-content: center;
+    padding: var(--space-3);
+  }
+  .lc-navitem__label {
+    display: none;
+  }
+  .casca__acao-rotulo {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Vira uma faixa de ícones rolável sob a app bar. */
+  .casca__corpo {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+  .casca__corpo > .lc-sidenav {
+    position: static;
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    max-height: none;
+    height: auto;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: var(--border-w) solid var(--border);
+    gap: var(--space-2);
+  }
+  .casca__conteudo {
+    padding: var(--space-4);
+  }
+  .tela__acoes {
+    margin-left: 0;
+    width: 100%;
+  }
+  .busca {
+    min-width: 0;
+    flex: 1;
+  }
+  .grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .funil__coluna {
+    width: 84vw;
+  }
+  .painel-status {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .abas {
+    overflow-x: auto;
+  }
+  .checklist__item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- célula de tabela que abre a edição ------------------------------------ */
+
+.celula-abrir {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.celula-abrir:hover {
+  color: var(--focus-ring);
+  text-decoration: underline;
+}
+
+.celula-abrir:focus-visible {
+  outline: var(--border-w-focus, 2px) solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

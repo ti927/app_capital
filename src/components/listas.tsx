@@ -3,6 +3,15 @@
 import { useState, type ReactNode } from 'react';
 import { Botao } from './ui/base';
 import { Dialogo } from './ui/dialogo';
+import {
+  IconeArquivar,
+  IconeBuscar,
+  IconeChevronBaixo,
+  IconeChevronCima,
+  IconeDeletar,
+  IconeDesarquivar,
+  IconeEditar,
+} from './ui/icones';
 
 /* -------------------------------------------------------------- busca ----- */
 
@@ -27,8 +36,8 @@ export function Busca({
         placeholder={placeholder}
         onChange={(e) => aoMudar(e.target.value)}
       />
-      <span className="busca__lupa" aria-hidden="true">
-        ⌕
+      <span className="busca__lupa">
+        <IconeBuscar tamanho={16} />
       </span>
     </label>
   );
@@ -56,17 +65,17 @@ export function AcoesLinha({
     <span className="lc-table__actions">
       {aoArquivar ? (
         <Botao variante="tertiary" tamanho="row" onClick={aoArquivar} title={rotuloArquivar} aria-label={rotuloArquivar}>
-          <span aria-hidden="true">🗄</span>
+          {rotuloArquivar === 'Desarquivar' ? <IconeDesarquivar /> : <IconeArquivar />}
         </Botao>
       ) : null}
       {aoExcluir ? (
         <Botao variante="tertiary" tamanho="row" onClick={aoExcluir} title="Deletar" aria-label="Deletar">
-          <span aria-hidden="true">🗑</span>
+          <IconeDeletar />
         </Botao>
       ) : null}
       {aoEditar ? (
         <Botao variante="tertiary" tamanho="row" onClick={aoEditar} title="Editar" aria-label="Editar">
-          <span aria-hidden="true">✎</span>
+          <IconeEditar />
         </Botao>
       ) : null}
     </span>
@@ -94,10 +103,10 @@ export function BlocoArquivados({
         aria-expanded={aberto}
         onClick={() => setAberto((v) => !v)}
       >
-        <span aria-hidden="true">🗄</span>
+        <IconeArquivar tamanho={15} />
         <span>Arquivados</span>
-        <span aria-hidden="true">{aberto ? '⌃⌃' : '⌄⌄'}</span>
         <span className="apoio">({quantidade})</span>
+        {aberto ? <IconeChevronCima tamanho={15} /> : <IconeChevronBaixo tamanho={15} />}
       </button>
       {aberto ? <div className="arquivados__corpo">{children}</div> : null}
     </section>
@@ -154,5 +163,33 @@ export function ConfirmarExclusao({
       </p>
       <p className="apoio">Essa ação é permanente e não pode ser revertida.</p>
     </Dialogo>
+  );
+}
+
+/* --------------------------------------------------------- item da lista -- */
+
+/**
+ * Linha de lista clicável: o nome inteiro abre a edição, não só o lápis.
+ * O botão cobre toda a área de texto, então o alvo é grande; as ações ficam
+ * fora dele para o clique não se confundir.
+ */
+export function ItemDaLista({
+  aoAbrir,
+  children,
+  acoes,
+  rotuloAbrir,
+}: {
+  aoAbrir: () => void;
+  children: ReactNode;
+  acoes?: ReactNode;
+  rotuloAbrir?: string;
+}) {
+  return (
+    <li className="lista__item">
+      <button type="button" className="lista__abrir" onClick={aoAbrir} aria-label={rotuloAbrir}>
+        {children}
+      </button>
+      {acoes}
+    </li>
   );
 }

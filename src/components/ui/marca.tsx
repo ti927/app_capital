@@ -21,9 +21,15 @@ export interface SimboloProps {
   titulo?: string;
 }
 
-/** O "+" de 5 blocos com o miolo em `accent`. Braços nunca coloridos. */
+/**
+ * O "+" de 5 blocos com o miolo em `accent`. Braços nunca coloridos.
+ *
+ * `ink` e `mono` seguem `--text`, não o preto fixo: o app troca de tema em
+ * tempo de execução e a assinatura tem de continuar legível nos dois. `white`
+ * continua fixo, para fundo escuro que não muda com o tema.
+ */
 export function Simbolo({ tamanho = 34, tom = 'ink', titulo }: SimboloProps) {
-  const braco = tom === 'white' ? 'var(--neutral-0)' : 'var(--neutral-900)';
+  const braco = tom === 'white' ? 'var(--neutral-0)' : 'var(--text)';
   const miolo = tom === 'mono' ? braco : 'var(--accent)';
 
   return (
@@ -68,8 +74,7 @@ export function Logo({
   rotulo,
   className,
 }: LogoProps) {
-  const noEscuro = tom === 'white';
-  const cor = noEscuro ? 'var(--neutral-0)' : 'var(--neutral-900)';
+  const cor = tom === 'white' ? 'var(--neutral-0)' : 'var(--text)';
   const conteudo = (
     <>
       <Simbolo tamanho={tamanho} tom={tom} />

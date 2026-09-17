@@ -3,6 +3,14 @@
 import { useMemo, useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
+import {
+  IconeArquivar,
+  IconeBuscar,
+  IconeChevronDireita,
+  IconeChevronEsquerda,
+  IconeFechar,
+  IconeMais,
+} from '@/components/ui/icones';
 import { data, type FunilCartao } from '@/lib/dominio';
 import { arquivarCartao, criarColuna, excluirColuna, moverCartao, moverColuna } from './acoes';
 import { DialogoCartao } from './dialogo';
@@ -71,7 +79,7 @@ export function TelaFunil({
           <Botao variante="secondary">Colunas no fluxo</Botao>
           <Botao variante="secondary">Tags</Botao>
           <Botao variante="primary" onClick={() => setNovaColuna(true)}>
-            Nova coluna
+            <IconeMais tamanho={15} /> Nova coluna
           </Botao>
         </div>
       </div>
@@ -89,8 +97,8 @@ export function TelaFunil({
             placeholder="Buscar empresa, contato, indicante.."
             onChange={(e) => setBusca(e.target.value)}
           />
-          <span className="busca__lupa" aria-hidden="true">
-            ⌕
+          <span className="busca__lupa">
+            <IconeBuscar tamanho={16} />
           </span>
         </label>
 
@@ -132,7 +140,7 @@ export function TelaFunil({
                     disabled={i === 0}
                     onClick={() => transicao(() => void moverColuna(coluna.id, coluna.ordem - 1.5))}
                   >
-                    ‹
+                    <IconeChevronEsquerda tamanho={15} />
                   </button>
                   <button
                     type="button"
@@ -140,13 +148,13 @@ export function TelaFunil({
                     disabled={i === colunas.length - 1}
                     onClick={() => transicao(() => void moverColuna(coluna.id, coluna.ordem + 1.5))}
                   >
-                    ›
+                    <IconeChevronDireita tamanho={15} />
                   </button>
                 </div>
                 <h2 className="funil__coluna-nome">{coluna.nome}</h2>
                 <div className="funil__coluna-acoes">
                   <button type="button" aria-label="Arquivar coluna" title="Arquivar">
-                    🗄
+                    <IconeArquivar tamanho={15} />
                   </button>
                   <button
                     type="button"
@@ -154,7 +162,7 @@ export function TelaFunil({
                     title="Excluir"
                     onClick={() => transicao(() => void excluirColuna(coluna.id))}
                   >
-                    ✕
+                    <IconeFechar tamanho={15} />
                   </button>
                 </div>
               </header>
@@ -177,7 +185,7 @@ export function TelaFunil({
               </div>
 
               <button type="button" className="funil__novo" onClick={() => setCriandoEm(coluna.id)}>
-                + Novo cartão
+                <IconeMais tamanho={14} /> Novo cartão
               </button>
             </section>
           );
@@ -250,7 +258,7 @@ function Cartao({
           <span className="apoio funil__sem-tags">sem tags</span>
         )}
         <button type="button" className="funil__cartao-arquivar" onClick={aoArquivar} aria-label="Arquivar cartão">
-          🗄
+          <IconeArquivar tamanho={14} />
         </button>
       </div>
 

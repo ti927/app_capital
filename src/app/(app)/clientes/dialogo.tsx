@@ -1,7 +1,9 @@
 'use client';
 
 import { useActionState, useEffect, useState, useTransition } from 'react';
-import { Botao, Campo, Seletor } from '@/components/ui/base';
+import { Botao, Campo } from '@/components/ui/base';
+import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
+import { IconeFechar, IconeMais } from '@/components/ui/icones';
 import { Dialogo } from '@/components/ui/dialogo';
 import { STATUS_CLIENTE, type Cliente } from '@/lib/dominio';
 import { adicionarEmail, gravarCliente, removerEmail } from './acoes';
@@ -74,7 +76,7 @@ export function DialogoCliente({
                 disabled={!cliente}
                 title={cliente ? 'Adicionar e-mail' : 'Cadastre o cliente primeiro'}
               >
-                + Adicionar
+                <IconeMais tamanho={14} /> Adicionar
               </Botao>
             </div>
             {emails.length > 0 ? <ListaDeEmails emails={emails} /> : null}
@@ -114,7 +116,7 @@ export function DialogoCliente({
           <Campo className="grade__inteiro" rotulo="Parecer" nome="parecer" multilinha linhas={6} valorInicial={cliente?.parecer ?? ''} placeholder="Digite aqui" />
 
           {/* 11 */}
-          <Seletor
+          <SeletorPopup
             className="grade__inteiro"
             rotulo="Status cliente"
             nome="status"
@@ -155,7 +157,7 @@ function ListaDeEmails({ emails }: { emails: EmailCliente[] }) {
             aria-label={`Remover ${e.email}`}
             onClick={() => transicao(() => void removerEmail(e.id))}
           >
-            <span aria-hidden="true">✕</span>
+            <IconeFechar tamanho={14} />
           </Botao>
         </li>
       ))}
@@ -173,26 +175,14 @@ function QuemVisualiza({
   desabilitado: boolean;
 }) {
   return (
-    <div className="lc-field">
-      <label className="lc-field__label" htmlFor="quem_visualiza">
-        Quem visualiza:
-      </label>
-      <select
-        id="quem_visualiza"
-        name="quem_visualiza"
-        multiple
-        defaultValue={escolhidos}
-        disabled={desabilitado}
-        className="lc-field__input"
-        style={{ height: 'auto', minHeight: 'var(--control-h-md)', padding: 'var(--space-2)' }}
-      >
-        {usuarios.map((u) => (
-          <option key={u.id} value={u.id}>
-            {u.nome}
-          </option>
-        ))}
-      </select>
-    </div>
+    <SeletorMultiploPopup
+      rotulo="Quem visualiza:"
+      nome="quem_visualiza"
+      placeholder="Escolha aqui"
+      desabilitado={desabilitado}
+      inicial={escolhidos}
+      opcoes={usuarios.map((u) => ({ valor: u.id, rotulo: u.nome }))}
+    />
   );
 }
 

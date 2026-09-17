@@ -3,7 +3,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Botao, Vazio } from '@/components/ui/base';
 import { TopoDaTela } from '@/components/ui/casca';
-import { Busca } from '@/components/listas';
+import { Busca, ItemDaLista } from '@/components/listas';
+import { IconeEditar } from '@/components/ui/icones';
 import type { Operacao, TabelaApoio } from '@/lib/dominio';
 import { DialogoEsteira } from './dialogo';
 import type { EtapaEsteira, ItemChecklist } from './page';
@@ -79,22 +80,26 @@ export function TelaEsteira({
       ) : (
         <ul className="lista">
           {visiveis.map((op) => (
-            <li key={op.id} className="lista__item">
-              <span className="lista__texto">
-                {tipoDe(op) ? <span className="lista__apoio">{tipoDe(op)} - </span> : null}
-                <span className="lista__nome">{clienteDe(op)}</span>
-              </span>
-              {/* Um único ícone: o lápis. Não há lixeira nem arquivar aqui. */}
-              <Botao
-                variante="tertiary"
-                tamanho="row"
-                title="Abrir esteira"
-                aria-label={`Abrir esteira de ${clienteDe(op)}`}
-                onClick={() => setAberta(op)}
-              >
-                <span aria-hidden="true">✎</span>
-              </Botao>
-            </li>
+            <ItemDaLista
+              key={op.id}
+              aoAbrir={() => setAberta(op)}
+              rotuloAbrir={`Abrir esteira de ${clienteDe(op)}`}
+              acoes={
+                /* Um único ícone: o lápis. Não há lixeira nem arquivar aqui. */
+                <Botao
+                  variante="tertiary"
+                  tamanho="row"
+                  title="Abrir esteira"
+                  aria-label={`Abrir esteira de ${clienteDe(op)}`}
+                  onClick={() => setAberta(op)}
+                >
+                  <IconeEditar />
+                </Botao>
+              }
+            >
+              {tipoDe(op) ? <span className="lista__apoio">{tipoDe(op)} - </span> : null}
+              <span className="lista__nome">{clienteDe(op)}</span>
+            </ItemDaLista>
           ))}
         </ul>
       )}

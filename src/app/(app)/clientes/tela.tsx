@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Botao } from '@/components/ui/base';
 import { Vazio } from '@/components/ui/base';
 import { TopoDaTela } from '@/components/ui/casca';
-import { AcoesLinha, BlocoArquivados, Busca, ConfirmarExclusao } from '@/components/listas';
+import { AcoesLinha, BlocoArquivados, Busca, ConfirmarExclusao, ItemDaLista } from '@/components/listas';
 import type { Cliente, NivelAcesso } from '@/lib/dominio';
 import { arquivarCliente, excluirCliente } from './acoes';
 import { DialogoCliente } from './dialogo';
@@ -74,15 +74,21 @@ export function TelaClientes({
       ) : (
         <ul className="lista">
           {visiveis.map((c) => (
-            <li key={c.id} className="lista__item">
-              {/* Cada linha mostra só o nome/razão. */}
-              <span className="lista__texto lista__nome">{c.nome_razao}</span>
-              <AcoesLinha
-                aoArquivar={() => transicao(() => void arquivarCliente(c.id, true))}
-                aoExcluir={() => setAExcluir(c)}
-                aoEditar={() => setEmEdicao(c)}
-              />
-            </li>
+            <ItemDaLista
+              key={c.id}
+              aoAbrir={() => setEmEdicao(c)}
+              rotuloAbrir={`Editar ${c.nome_razao}`}
+              acoes={
+                <AcoesLinha
+                  aoArquivar={() => transicao(() => void arquivarCliente(c.id, true))}
+                  aoExcluir={() => setAExcluir(c)}
+                  aoEditar={() => setEmEdicao(c)}
+                />
+              }
+            >
+              {/* Cada linha mostra só o nome/razão. O nome inteiro abre a edição. */}
+              <span className="lista__nome">{c.nome_razao}</span>
+            </ItemDaLista>
           ))}
         </ul>
       )}
@@ -91,15 +97,21 @@ export function TelaClientes({
         <BlocoArquivados quantidade={arquivadosVisiveis.length}>
           <ul className="lista">
             {arquivadosVisiveis.map((c) => (
-              <li key={c.id} className="lista__item">
-                <span className="lista__texto lista__nome">{c.nome_razao}</span>
-                <AcoesLinha
-                  rotuloArquivar="Desarquivar"
-                  aoArquivar={() => transicao(() => void arquivarCliente(c.id, false))}
-                  aoExcluir={() => setAExcluir(c)}
-                  aoEditar={() => setEmEdicao(c)}
-                />
-              </li>
+              <ItemDaLista
+                key={c.id}
+                aoAbrir={() => setEmEdicao(c)}
+                rotuloAbrir={`Editar ${c.nome_razao}`}
+                acoes={
+                  <AcoesLinha
+                    rotuloArquivar="Desarquivar"
+                    aoArquivar={() => transicao(() => void arquivarCliente(c.id, false))}
+                    aoExcluir={() => setAExcluir(c)}
+                    aoEditar={() => setEmEdicao(c)}
+                  />
+                }
+              >
+                <span className="lista__nome">{c.nome_razao}</span>
+              </ItemDaLista>
             ))}
           </ul>
         </BlocoArquivados>

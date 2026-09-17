@@ -1,0 +1,393 @@
+@import "./tokens.css";
+@import "./design-system.css";
+
+/* ---------------------------------------------------------------------------
+   Reset curto. O design system cuida dos componentes; aqui fica só o que ele
+   não cobre: normalização do documento e o esqueleto de layout das telas.
+   --------------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: var(--border-w-focus, 2px) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* ---------------------------------------------------------------------------
+   Casca: app bar fixa no topo, navegação lateral de 220px, conteúdo à direita.
+   O arranjo vem de design/design-system/10-telas.md.
+   --------------------------------------------------------------------------- */
+
+.casca {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: var(--app-bar-h) 1fr;
+}
+
+.casca__corpo {
+  display: grid;
+  grid-template-columns: var(--sidenav-w) 1fr;
+  align-items: start;
+  min-height: 0;
+}
+
+.casca__conteudo {
+  padding: var(--space-6) var(--space-7);
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .casca__corpo {
+    grid-template-columns: 1fr;
+  }
+  .casca__corpo > .lc-sidenav {
+    display: none;
+  }
+  .casca__conteudo {
+    padding: var(--space-5) var(--space-4);
+  }
+}
+
+/* --- cabeçalho de tela ---------------------------------------------------- */
+
+.tela__topo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.tela__topo--entre {
+  justify-content: space-between;
+}
+
+.tela__titulo {
+  margin: 0;
+}
+
+.tela__acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+  flex: none;
+}
+
+/* --- busca sublinhada, como no original ----------------------------------- */
+
+.busca {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 260px;
+}
+
+.busca__campo {
+  width: 100%;
+  height: var(--control-h-md);
+  padding: 0 var(--space-6) 0 var(--space-1);
+  background: transparent;
+  border: 0;
+  border-bottom: var(--border-w) solid var(--border-strong);
+  color: var(--text);
+}
+
+.busca__campo::placeholder {
+  color: var(--text-muted);
+}
+
+.busca__campo:focus {
+  outline: none;
+  border-bottom-color: var(--focus-ring);
+  border-bottom-width: var(--border-w-focus, 2px);
+}
+
+.busca__lupa {
+  position: absolute;
+  right: var(--space-1);
+  color: var(--text-muted);
+  pointer-events: none;
+  display: flex;
+}
+
+/* --- lista de cartões de linha (Cliente, Operação, Esteira) ---------------- */
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.lista__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--row-h-cozy);
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.lista__item:hover {
+  background: var(--surface-hover);
+}
+
+.lista__texto {
+  min-width: 0;
+  flex: 1;
+}
+
+.lista__nome {
+  font-weight: 700;
+}
+
+.lista__apoio {
+  color: var(--text-secondary);
+}
+
+.lista__meta {
+  display: block;
+  font-size: 11px;
+  line-height: 16px;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* --- bloco recolhível "Arquivados" ---------------------------------------- */
+
+.arquivados {
+  margin-top: var(--space-6);
+  border-top: var(--border-w) solid var(--border);
+  padding-top: var(--space-4);
+}
+
+.arquivados__cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: none;
+  border: 0;
+  padding: var(--space-2) 0;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.arquivados__cabecalho:hover {
+  color: var(--text);
+}
+
+.arquivados__corpo {
+  margin-top: var(--space-3);
+}
+
+/* --- abas ----------------------------------------------------------------- */
+
+.abas {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  border-bottom: var(--border-w) solid var(--border);
+  margin-bottom: var(--space-5);
+}
+
+.abas__item {
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: var(--space-2) var(--space-1) var(--space-3);
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.abas__item:hover {
+  color: var(--text);
+}
+
+.abas__item[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.abas__acoes {
+  margin-left: auto;
+  padding-bottom: var(--space-2);
+}
+
+/* --- grade de formulário de diálogo --------------------------------------- */
+
+.grade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+}
+
+.grade__inteiro {
+  grid-column: 1 / -1;
+}
+
+.grade__regua {
+  grid-column: 1 / -1;
+  height: var(--border-w);
+  background: var(--border);
+  border: 0;
+  margin: var(--space-2) 0;
+}
+
+/* --- utilitários mínimos -------------------------------------------------- */
+
+.pilha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.linha {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.apoio {
+  color: var(--text-secondary);
+}
+
+.vazio-tela {
+  padding: var(--space-8) 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Entrada — split: painel escuro com a marca à esquerda, formulário à direita.
+   --------------------------------------------------------------------------- */
+
+.entrada {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.entrada__marca {
+  background: var(--neutral-950);
+  color: var(--neutral-0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+}
+
+.entrada__marca-conteudo {
+  max-width: 340px;
+}
+
+.entrada__assinatura {
+  margin: var(--space-6) 0 0;
+  font-size: 34px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 0.015em;
+}
+
+.entrada__chip {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: var(--space-2);
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--neutral-0);
+  color: var(--neutral-950);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+.entrada__tagline {
+  margin: var(--space-5) 0 0;
+  color: var(--neutral-300);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.entrada__forma {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-7);
+  background: var(--surface);
+}
+
+.entrada__caixa {
+  width: 100%;
+  max-width: 360px;
+}
+
+.entrada__campos {
+  margin-top: var(--space-7);
+}
+
+.entrada__google {
+  width: 100%;
+  margin-top: var(--space-4);
+}
+
+.entrada__link {
+  display: block;
+  margin: var(--space-5) auto 0;
+  background: none;
+  border: 0;
+  padding: var(--space-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.entrada__link:hover {
+  color: var(--text);
+}
+
+@media (max-width: 860px) {
+  .entrada {
+    grid-template-columns: 1fr;
+  }
+  .entrada__marca {
+    display: none;
+  }
+}

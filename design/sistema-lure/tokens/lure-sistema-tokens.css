@@ -1,0 +1,71 @@
+/* ============================================================
+   LURE SISTEMA — Extensão de tokens
+   Complementa lure-crm-tokens.css (que permanece a base, intocado).
+   Incorpora as duas correções já em vigor no app/tokens.css do CRM:
+   warning = âmbar (não amarelo) e surface-hover mais visível.
+   Só o que o CRM não tinha: status por domínio do sistema de gestão.
+   ============================================================ */
+
+:root {
+  /* Correções herdadas do CRM em produção (Doc 08 §3.1) */
+  --warning:      #d99000;  --warning-ink: #8a5a00;  --warning-bg: #fdf3e0;
+  --surface-hover:#efefef;
+  --skeleton:     #e2e2e2;
+
+  /* ---------- Papel do Clifor ---------- */
+  --st-cliente:      #171717;  --st-cliente-ink:      #171717;
+  --st-fornecedor:   #5c2482;  --st-fornecedor-ink:   #5c2482;
+
+  /* ---------- Projeto ---------- */
+  --st-ativo:        #118937;  --st-ativo-ink:        #0e7530;
+  --st-inativo:      #9e9e9e;  --st-inativo-ink:      #5c5c5c;
+  --st-consultoria:  #0abaee;  --st-consultoria-ink:  #0a6f8c;   /* tipo de projeto */
+  --st-selecao:      #e5007d;  --st-selecao-ink:      #c40069;
+
+  /* ---------- Fatura (Contas a Receber) ---------- */
+  --st-aberto:       #d99000;  --st-aberto-ink:       #8a5a00;   /* em aberto, no prazo */
+  --st-vencido:      #c0104f;  --st-vencido-ink:      #a70e45;
+  --st-baixado:      #118937;  --st-baixado-ink:      #0e7530;
+  --st-cancelado:    #9e9e9e;  --st-cancelado-ink:    #5c5c5c;
+
+  /* ---------- Boleto (situação no banco) ---------- */
+  --st-registrado:   #0abaee;  --st-registrado-ink:   #0a6f8c;
+  --st-liquidado:    #118937;  --st-liquidado-ink:    #0e7530;
+  --st-rejeitado:    #6f163a;  --st-rejeitado-ink:    #6f163a;
+
+  /* ---------- Tipo de lançamento (Contas a Pagar / Financeiro) ---------- */
+  --st-lanc-consultoria: #0abaee;  --st-lanc-consultoria-ink: #0a6f8c;
+  --st-lanc-comissao:    #5c2482;  --st-lanc-comissao-ink:    #5c2482;
+  --st-lanc-bonus:       #e5007d;  --st-lanc-bonus-ink:       #c40069;
+  --st-lanc-reembolso:   #7aa42c;  --st-lanc-reembolso-ink:   #55741b;
+
+  /* ---------- Identidade da organização (white-label) ---------- */
+  /* Fallback = Lure. Cada organização pode sobrescrever só estes três. */
+  --org-accent:      var(--accent);
+  --org-accent-on:   var(--accent-on);
+  --org-accent-ink:  var(--accent-ink);
+}
+
+.dark {
+  --warning: #e8a52b;  --warning-ink: #f0bc5c;  --warning-bg: #332600;
+  --surface-hover: #2d2d2d;
+  --skeleton: #333333;
+
+  --st-cliente-ink:      #f5f5f5;
+  --st-fornecedor:       #7c34ab;  --st-fornecedor-ink:   #b98ad6;
+  --st-ativo:            #2ea85a;  --st-ativo-ink:        #4cc271;
+  --st-inativo:          #6b6b6b;  --st-inativo-ink:      #a3a3a3;
+  --st-consultoria-ink:  #5ad2f5;
+  --st-selecao-ink:      #ff5aa8;
+  --st-aberto:           #e8a52b;  --st-aberto-ink:       #f0bc5c;
+  --st-vencido:          #e0356e;  --st-vencido-ink:      #ff7aa4;
+  --st-baixado:          #2ea85a;  --st-baixado-ink:      #4cc271;
+  --st-cancelado:        #6b6b6b;  --st-cancelado-ink:    #a3a3a3;
+  --st-registrado-ink:   #5ad2f5;
+  --st-liquidado:        #2ea85a;  --st-liquidado-ink:    #4cc271;
+  --st-rejeitado:        #93314f;  --st-rejeitado-ink:    #d98aa6;
+  --st-lanc-consultoria-ink: #5ad2f5;
+  --st-lanc-comissao:    #7c34ab;  --st-lanc-comissao-ink: #b98ad6;
+  --st-lanc-bonus-ink:   #ff5aa8;
+  --st-lanc-reembolso-ink: #a9cb63;
+}

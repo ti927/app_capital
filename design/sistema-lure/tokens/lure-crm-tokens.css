@@ -1,0 +1,200 @@
+/* ============================================================
+   LURE CRM — Design Tokens
+   Base preto e branco, cor pontuando (manual de marca Lure).
+   Tema claro em :root, tema escuro em .dark
+   ============================================================ */
+
+:root {
+  /* ---------- Neutros (espinha dorsal) ---------- */
+  --neutral-0:    #ffffff;
+  --neutral-25:   #fafafa;
+  --neutral-50:   #f5f5f5;
+  --neutral-100:  #ebebeb;
+  --neutral-200:  #dcdcdc;
+  --neutral-300:  #c4c4c4;
+  --neutral-400:  #9e9e9e;
+  --neutral-500:  #757575;
+  --neutral-600:  #5c5c5c;
+  --neutral-700:  #424242;
+  --neutral-800:  #292929;
+  --neutral-900:  #171717;
+  --neutral-950:  #0d0d0d;
+  --neutral-1000: #000000;
+
+  /* ---------- Paleta de marca (valores oficiais, imutáveis) ---------- */
+  --brand-yellow:      #ffdd00;
+  --brand-cyan:        #0abaee;
+  --brand-magenta:     #e5007d;
+  --brand-green:       #00973a;
+  --brand-olive:       #7aa42c;
+  --brand-purple:      #5c2482;
+  --brand-wine:        #6f163a;
+  --brand-green-dark:  #118937;
+
+  /* Variantes escurecidas — para TEXTO, ÍCONE e BORDA (AA >= 4.5:1 sobre branco).
+     #ffdd00 nunca é cor de texto: use --brand-yellow-ink. */
+  --brand-yellow-ink:   #7a6600;
+  --brand-cyan-ink:     #0a6f8c;
+  --brand-magenta-ink:  #c40069;
+  --brand-green-ink:    #0a7a30;
+  --brand-olive-ink:    #55741b;
+  --brand-purple-ink:   #5c2482;
+  --brand-wine-ink:     #6f163a;
+  --brand-green-dark-ink: #0e7530;
+
+  /* Variantes clareadas — para texto/ícone sobre superfícies escuras (AA sobre #1c1c1c) */
+  --brand-yellow-on-dark:  #ffdd00;
+  --brand-cyan-on-dark:    #5ad2f5;
+  --brand-magenta-on-dark: #ff5aa8;
+  --brand-green-on-dark:   #4cc271;
+  --brand-olive-on-dark:   #a9cb63;
+  --brand-purple-on-dark:  #b98ad6;
+  --brand-wine-on-dark:    #d98aa6;
+
+  /* ---------- Superfícies e texto ---------- */
+  --bg:            #f5f5f5;
+  --surface:       #ffffff;
+  --surface-sunken:#ebebeb;
+  --surface-hover: #f5f5f5;
+  --border:        #dcdcdc;
+  --border-strong: #c4c4c4;
+  --text:          #171717;
+  --text-secondary:#5c5c5c;
+  --text-muted:    #757575;
+  --text-inverse:  #ffffff;
+
+  /* ---------- Ação (amarelo = fundo com texto preto) ---------- */
+  --accent:            #ffdd00;
+  --accent-hover:      #f0d000;
+  --accent-active:     #dbbe00;
+  --accent-on:         #000000;   /* texto sobre amarelo */
+  --accent-ink:        #7a6600;   /* amarelo utilizável como texto/borda */
+  --focus-ring:        #0abaee;   /* azul-claro pontua o foco */
+
+  /* ---------- Semânticas ---------- */
+  --success:      #118937;
+  --success-ink:  #0e7530;
+  --success-bg:   #e8f5ec;
+  --danger:       #c0104f;   /* derivado magenta -> vinho */
+  --danger-ink:   #a70e45;
+  --danger-bg:    #fdeaf1;
+  --warning:      #ffdd00;
+  --warning-ink:  #7a6600;
+  --warning-bg:   #fff8d1;
+  --info:         #0abaee;
+  --info-ink:     #0a6f8c;
+  --info-bg:      #e5f7fd;
+
+  /* ---------- Etapas do funil (progressão de avanço) ---------- */
+  --stage-1: #0abaee;  --stage-1-ink: #0a6f8c;  /* Cold Lead */
+  --stage-2: #e5007d;  --stage-2-ink: #c40069;  /* Hot Lead */
+  --stage-3: #5c2482;  --stage-3-ink: #5c2482;  /* Contato Realizado */
+  --stage-4: #00973a;  --stage-4-ink: #0a7a30;  /* Apresentação Realizada */
+  --stage-5: #7aa42c;  --stage-5-ink: #55741b;  /* Proposta Enviada */
+  --stage-6: #ffdd00;  --stage-6-ink: #7a6600;  /* Aguardando Contrato */
+
+  /* ---------- Status do negócio ---------- */
+  --status-parado:      #9e9e9e;  --status-parado-ink:      #5c5c5c;
+  --status-negociacao:  #0abaee;  --status-negociacao-ink:  #0a6f8c;
+  --status-ganho:       #118937;  --status-ganho-ink:       #0e7530;
+  --status-perdido:     #6f163a;  --status-perdido-ink:     #6f163a;
+
+  /* ---------- Tipografia ---------- */
+  --font-sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --text-2xs: 10px;  --lh-2xs: 14px;
+  --text-xs:  11px;  --lh-xs:  16px;
+  --text-sm:  12px;  --lh-sm:  16px;
+  --text-base:13px;  --lh-base:18px;   /* corpo de tabela / UI densa */
+  --text-md:  14px;  --lh-md:  20px;   /* corpo padrão de formulário */
+  --text-lg:  16px;  --lh-lg:  22px;
+  --text-xl:  18px;  --lh-xl:  24px;
+  --text-2xl: 22px;  --lh-2xl: 28px;
+  --text-3xl: 28px;  --lh-3xl: 34px;
+
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+  --tracking-caps: 0.06em;
+
+  /* ---------- Espaçamento (base 4px) ---------- */
+  --space-0:0px; --space-1:2px; --space-2:4px;  --space-3:6px;  --space-4:8px;
+  --space-5:12px; --space-6:16px; --space-7:20px; --space-8:24px; --space-9:32px;
+  --space-10:40px; --space-12:56px;
+
+  /* Densidade: altura de linha de tabela e de controle */
+  --row-h-compact: 32px;
+  --row-h-cozy:    44px;
+  --control-h-sm:  28px;
+  --control-h-md:  34px;
+  --control-h-lg:  40px;
+
+  /* ---------- Raio, borda, sombra ---------- */
+  --radius-none: 0px;
+  --radius-sm:   2px;
+  --radius-md:   4px;
+  --radius-lg:   6px;
+  --radius-pill: 999px;
+
+  --border-w:        1px;
+  --border-w-strong: 2px;
+  --border-w-accent: 3px;   /* faixa de etapa no cartão */
+
+  --shadow-none: none;
+  --shadow-xs: 0 1px 0 rgba(0,0,0,.06);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.10);
+  --shadow-md: 0 2px 6px rgba(0,0,0,.12);
+  --shadow-overlay: 0 8px 24px rgba(0,0,0,.18);
+
+  --z-dropdown: 20; --z-sticky: 30; --z-modal: 50; --z-toast: 60;
+}
+
+.dark {
+  --bg:            #0d0d0d;
+  --surface:       #1c1c1c;
+  --surface-sunken:#141414;
+  --surface-hover: #242424;
+  --border:        #333333;
+  --border-strong: #4a4a4a;
+  --text:          #f5f5f5;
+  --text-secondary:#b8b8b8;
+  --text-muted:    #8f8f8f;
+  --text-inverse:  #0d0d0d;
+
+  --accent:        #ffdd00;
+  --accent-hover:  #ffe740;
+  --accent-active: #e6c700;
+  --accent-on:     #000000;
+  --accent-ink:    #ffdd00;   /* sobre escuro o amarelo puro já é acessível */
+  --focus-ring:    #5ad2f5;
+
+  --success:      #2ea85a;  --success-ink: #4cc271;  --success-bg: #12301c;
+  --danger:       #e0356e;  --danger-ink:  #ff7aa4;  --danger-bg:  #33101f;
+  --warning:      #ffdd00;  --warning-ink: #ffdd00;  --warning-bg: #332d00;
+  --info:         #0abaee;  --info-ink:    #5ad2f5;  --info-bg:    #06283a;
+
+  --stage-1: #0abaee;  --stage-1-ink: #5ad2f5;
+  --stage-2: #e5007d;  --stage-2-ink: #ff5aa8;
+  --stage-3: #7c34ab;  --stage-3-ink: #b98ad6;
+  --stage-4: #00973a;  --stage-4-ink: #4cc271;
+  --stage-5: #7aa42c;  --stage-5-ink: #a9cb63;
+  --stage-6: #ffdd00;  --stage-6-ink: #ffdd00;
+
+  --status-parado:     #6b6b6b;  --status-parado-ink:     #a3a3a3;
+  --status-negociacao: #0abaee;  --status-negociacao-ink: #5ad2f5;
+  --status-ganho:      #2ea85a;  --status-ganho-ink:      #4cc271;
+  --status-perdido:    #93314f;  --status-perdido-ink:    #d98aa6;
+
+  --shadow-xs: 0 1px 0 rgba(0,0,0,.5);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.6);
+  --shadow-md: 0 2px 6px rgba(0,0,0,.7);
+  --shadow-overlay: 0 8px 24px rgba(0,0,0,.8);
+}
+
+/* Foco visível único para todo o sistema */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}

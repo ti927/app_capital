@@ -1,9 +1,13 @@
-import { Suspense } from 'react';
 import { FormularioDeEntrada } from './formulario';
 
 export const metadata = { title: 'Entrar · Lure Capital' };
 
-export default function PaginaEntrar() {
+export default async function PaginaEntrar({
+  searchParams,
+}: {
+  searchParams: Promise<{ de?: string }>;
+}) {
+  const { de } = await searchParams;
   return (
     <main className="entrada">
       <section className="entrada__marca" aria-hidden="true">
@@ -23,9 +27,7 @@ export default function PaginaEntrar() {
       </section>
 
       <section className="entrada__forma">
-        <Suspense fallback={null}>
-          <FormularioDeEntrada />
-        </Suspense>
+        <FormularioDeEntrada de={de ?? '/clientes'} />
       </section>
     </main>
   );

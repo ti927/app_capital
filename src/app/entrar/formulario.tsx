@@ -1,15 +1,12 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
 import { clienteNavegador } from '@/lib/supabase/navegador';
 import { entrarComSenha, pedirTrocaDeSenha } from './actions';
 
-export function FormularioDeEntrada() {
-  const parametros = useSearchParams();
-  const de = parametros.get('de') ?? '/clientes';
+export function FormularioDeEntrada({ de }: { de: string }) {
 
   const [estado, agir, enviando] = useActionState(entrarComSenha, null as { erro?: string } | null);
   const [trocaAberta, setTrocaAberta] = useState(false);

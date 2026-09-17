@@ -391,3 +391,524 @@ textarea {
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Fornecedor — matriz de tipos e os seletores de tipo de operação.
+   --------------------------------------------------------------------------- */
+
+.matriz__grade {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  max-height: 96px;
+  overflow: auto;
+}
+
+.matriz__fundo {
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+/* Nome do fundo como título editável do corpo do diálogo. */
+.titulo-editavel {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: var(--border-w) solid var(--border);
+  padding: var(--space-2) 0;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.titulo-editavel::placeholder {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.titulo-editavel:focus {
+  outline: none;
+  border-bottom-color: var(--focus-ring);
+  border-bottom-width: var(--border-w-focus, 2px);
+}
+
+/* Seletor múltiplo de tipo de operação: 31 opções, quatro vezes no diálogo. */
+.tipos__lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  max-height: 128px;
+  overflow: auto;
+  padding: var(--space-1);
+}
+
+.tipos__tag {
+  border: var(--border-w) solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-secondary);
+  padding: 2px var(--space-3);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tipos__tag:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.tipos__tag--marcado {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--text-inverse);
+}
+
+/* "Tipos de operações não atendidas": tags em vermelho, como no original. */
+.negativo .tipos__tag--marcado {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--neutral-0);
+}
+
+/* ---------------------------------------------------------------------------
+   Operação — painel de status, interruptores e a linha de criar etapa.
+   --------------------------------------------------------------------------- */
+
+.painel-status {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.painel-status__coluna {
+  background: var(--surface);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.painel-status__faixa {
+  height: 4px;
+}
+
+.painel-status__titulo {
+  margin: var(--space-4) var(--space-4) var(--space-3);
+  text-align: center;
+}
+
+.painel-status__rotulos {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-2);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: var(--border-w) solid var(--border);
+}
+
+.painel-status__itens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.painel-status__item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--space-3);
+  align-items: baseline;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px dashed var(--border);
+}
+
+.painel-status__cliente {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.painel-status__cliente .lista__nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.painel-status__tipo {
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.painel-status__vazio {
+  padding: var(--space-4);
+  text-align: center;
+}
+
+.painel-status__soma {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: var(--border-w) solid var(--border);
+  background: var(--surface-sunken);
+}
+
+.painel-status__soma .lc-field__label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .painel-status {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* --- interruptor ---------------------------------------------------------- */
+
+.interruptor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* --- linha de criar etapa -------------------------------------------------- */
+
+.criar-etapa {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: var(--border-w) solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .criar-etapa {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Esteira — o checklist de 11 itens.
+   Cada item é rótulo + slider de 0 a 100 + "%" + observação multilinha, e a
+   coluna de observações tem cabeçalho próprio.
+   --------------------------------------------------------------------------- */
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.checklist__cabecalho,
+.checklist__item {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.1fr) minmax(200px, 1fr) minmax(220px, 1.4fr);
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.checklist__cabecalho {
+  color: var(--text-muted);
+  padding-bottom: var(--space-1);
+  border-bottom: var(--border-w) solid var(--border);
+}
+
+.checklist__item {
+  align-items: start;
+}
+
+.checklist__rotulo {
+  padding-top: var(--space-2);
+  font-weight: 600;
+}
+
+.checklist__slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+.checklist__slider input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.checklist__pct {
+  min-width: 42px;
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 900px) {
+  .checklist__cabecalho {
+    display: none;
+  }
+  .checklist__item {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+    padding-bottom: var(--space-4);
+    border-bottom: var(--border-w) solid var(--border);
+  }
+}
+
+.prefixo-moeda {
+  align-self: end;
+  padding-bottom: var(--space-2);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.cresce {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Funil — quadro kanban de colunas roláveis na horizontal.
+   --------------------------------------------------------------------------- */
+
+.funil__filtros {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+
+.funil__tags {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.funil__tag {
+  cursor: pointer;
+  background: var(--surface);
+}
+
+.funil__tag--ativa {
+  background: var(--text);
+  color: var(--text-inverse);
+  border-color: var(--text);
+}
+
+.funil__quadro {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  padding-bottom: var(--space-4);
+  align-items: flex-start;
+}
+
+.funil__coluna {
+  flex: none;
+  width: 280px;
+  background: var(--surface-sunken);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.funil__coluna-topo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.funil__coluna-nome {
+  flex: 1;
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.funil__coluna-acoes {
+  display: flex;
+  gap: 2px;
+}
+
+.funil__coluna-acoes button {
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.funil__coluna-acoes button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.funil__coluna-acoes button:disabled {
+  opacity: var(--opacity-disabled, 0.5);
+  cursor: default;
+}
+
+.funil__coluna-contagem {
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  margin: 0;
+}
+
+.funil__cartoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 24px;
+}
+
+.funil__cartao {
+  background: var(--surface);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  cursor: grab;
+}
+
+.funil__cartao:active {
+  cursor: grabbing;
+}
+
+.funil__cartao-tags {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.funil__sem-tags {
+  font-size: 11px;
+  font-style: italic;
+}
+
+.funil__cartao-arquivar {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0 2px;
+}
+
+.funil__cartao-corpo {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+.funil__empresa {
+  margin: 0;
+  font-weight: 700;
+}
+
+.funil__linha-apoio {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.funil__parecer {
+  margin: var(--space-2) 0 0;
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.funil__pilulas {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.funil__pilula {
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  border: var(--border-w) solid var(--border);
+  padding: 1px var(--space-3);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.funil__pilula--fraca {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.funil__rodape {
+  margin: var(--space-3) 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* "+ Novo cartão" em botão tracejado, no fim de cada coluna. */
+.funil__novo {
+  margin-top: var(--space-2);
+  width: 100%;
+  background: none;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.funil__novo:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.funil__rodape-dialogo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  flex-wrap: wrap;
+}

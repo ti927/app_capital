@@ -24,15 +24,41 @@ npm run verify            # typecheck + lint + teste
 ## Estrutura
 
 ```
-.claude/settings.json   permissões do Claude Code neste projeto
-db/                     esquema e migrations
-docs/                   handoff, fluxo, segurança
-scripts/                bootstrap do repo, extração do Bubble
-specs/                  especificação por assunto — a fonte de verdade
-specs/bubble/           mapeamento do app atual
+.claude/settings.json   permissoes do Claude Code neste projeto
+db/                     migrations
+design/                 marca, tokens e o brief para o Claude Design
+docs/                   handoff, fluxo, seguranca
+scripts/                bootstrap, aplicar migration, extracao do Bubble
+specs/bubble/           mapeamento do app atual (fonte de verdade do comportamento)
 ```
+
+## Banco
+
+Supabase, Postgres 17. As migrations em `db/` ja estao aplicadas:
+
+| Arquivo | Estado |
+|---|---|
+| `001_fundacao.sql` | aplicado — tipos, `perfil`, `acesso_pagina`, `evento` + trigger de auditoria |
+| `002_dominio.sql` | aplicado — 24 tabelas de dominio, seeds dos option sets |
+| `003_rls.sql` | **nao aplicado** — policies prontas, por decisao do projeto |
+
+Para aplicar um arquivo:
+
+```bash
+node scripts/aplicar-migration.mjs db/003_rls.sql
+```
+
+O host direto `db.<ref>.supabase.co` nao resolve neste projeto; a conexao e pelo
+pooler (`aws-0-sa-east-1.pooler.supabase.com`). Ver `.env.example`.
 
 ## Estado
 
-Fase 0 (fundação) ainda não começou. Ver `specs/LEIA-ME.md` para o que falta entrar
-no repositório.
+Fase 0 em andamento: banco criado, aplicacao ainda nao iniciada.
+
+**Risco aberto:** a RLS esta desligada. Toda tabela e legivel e gravavel pela API
+REST com a `anon key`, que sai no bundle do navegador. Ligar antes da carga dos
+dados do Bubble ou do primeiro deploy — o que vier primeiro. Ver
+[docs/seguranca.md](docs/seguranca.md).
+
+As specs `00-` a `07-` ainda nao foram escritas; ver
+[specs/LEIA-ME.md](specs/LEIA-ME.md).

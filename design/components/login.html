@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login — Lure CRM</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Archivo","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#171717;background:#f5f5f5}
+  a{color:#0a6f8c;text-decoration:none}
+  a:hover{color:#0abaee}
+  .lockup{display:flex;align-items:center;gap:12px}
+  .lockup .wm{display:flex;align-items:center;gap:9px}
+  .lockup .name{font-weight:800;font-size:22px;letter-spacing:0.015em;line-height:1}
+  .lockup .chip{display:inline-flex;align-items:center;height:20px;padding:0 7px;background:#171717;color:#fff;font-weight:700;font-size:11px;letter-spacing:0.14em;border-radius:4px}
+</style></head>
+<body>
+<!-- LOGIN — split: painel escuro à esquerda (marca), formulário à direita -->
+<div style="min-height:100vh;display:grid;grid-template-columns:1fr 1fr">
+  <div style="background:#0d0d0d;color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:48px">
+    <div class="lockup">
+      <svg width="34" height="34" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <rect x="18.5" y="3" width="11" height="12.5" rx="1.5" fill="#ffffff"/>
+        <rect x="18.5" y="32.5" width="11" height="12.5" rx="1.5" fill="#ffffff"/>
+        <rect x="3" y="18.5" width="12.5" height="11" rx="1.5" fill="#ffffff"/>
+        <rect x="32.5" y="18.5" width="12.5" height="11" rx="1.5" fill="#ffffff"/>
+        <rect x="18.5" y="18.5" width="11" height="11" rx="1.5" fill="#ffdd00"/>
+      </svg>
+      <span class="wm"><span class="name" style="color:#fff">LURE</span><span class="chip" style="background:#fff;color:#171717">CRM</span></span>
+    </div>
+    <div>
+      <svg width="120" height="120" viewBox="0 0 48 48" fill="none" style="margin-bottom:28px">
+        <rect x="18.5" y="3" width="11" height="12.5" rx="1.5" fill="#fff"/>
+        <rect x="18.5" y="32.5" width="11" height="12.5" rx="1.5" fill="#fff"/>
+        <rect x="3" y="18.5" width="12.5" height="11" rx="1.5" fill="#fff"/>
+        <rect x="32.5" y="18.5" width="12.5" height="11" rx="1.5" fill="#fff"/>
+        <rect x="18.5" y="18.5" width="11" height="11" rx="1.5" fill="#ffdd00"/>
+      </svg>
+      <h1 style="margin:0 0 10px;font-size:32px;font-weight:800;letter-spacing:-0.02em;line-height:1.1">Organize potencial<br>em resultados.</h1>
+      <p style="margin:0;font-size:14px;color:#b8b8b8;max-width:340px;line-height:1.6">Seu funil de vendas, do lead frio ao contrato assinado.</p>
+    </div>
+    <span style="font-size:11px;color:#5c5c5c;font-family:'IBM Plex Mono',monospace">Lucro + Rentabilidade</span>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:center;padding:48px">
+    <form style="width:100%;max-width:340px">
+      <h2 style="margin:0 0 6px;font-size:24px;font-weight:800;letter-spacing:-0.01em">Entrar</h2>
+      <p style="margin:0 0 28px;font-size:13px;color:#5c5c5c">Acesse com sua conta Lure.</p>
+      <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">E-mail</label>
+      <input type="email" placeholder="voce@lureconsultoria.com.br" style="width:100%;height:40px;border:1px solid #dcdcdc;border-radius:4px;padding:0 12px;font-size:14px;font-family:inherit;margin-bottom:18px">
+      <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">Senha</label>
+      <input type="password" placeholder="••••••••" style="width:100%;height:40px;border:1px solid #dcdcdc;border-radius:4px;padding:0 12px;font-size:14px;font-family:inherit;margin-bottom:8px">
+      <a href="#" style="display:inline-block;font-size:12px;margin-bottom:22px">Esqueci minha senha</a>
+      <button type="submit" style="width:100%;height:44px;background:#ffdd00;color:#000;border:none;border-radius:4px;font-weight:700;font-size:15px;font-family:inherit;cursor:pointer">Entrar</button>
+    </form>
+  </div>
+</div>
+</body></html>

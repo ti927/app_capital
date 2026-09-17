@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logo — uso</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Archivo","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#171717;background:#f5f5f5}
+  a{color:#0a6f8c;text-decoration:none}
+  a:hover{color:#0abaee}
+  .lockup{display:flex;align-items:center;gap:12px}
+  .lockup .wm{display:flex;align-items:center;gap:9px}
+  .lockup .name{font-weight:800;font-size:22px;letter-spacing:0.015em;line-height:1}
+  .lockup .chip{display:inline-flex;align-items:center;height:20px;padding:0 7px;background:#171717;color:#fff;font-weight:700;font-size:11px;letter-spacing:0.14em;border-radius:4px}
+</style></head>
+<body style="padding:40px">
+<h1 style="font-size:20px">Assinatura em HTML/CSS (recomendado no app)</h1>
+<p style="font-size:13px;color:#5c5c5c;max-width:640px">O símbolo é vetor puro (SVG, independente de fonte). O nome "LURE" e o chip "CRM" são <b>texto vivo</b> em Archivo — mantenha como texto no app (acessível, nítido em qualquer tela). Para impressão/terceiros, use os SVGs de <code>assets/</code> com a fonte convertida em contornos.</p>
+<div class="lockup" style="margin:24px 0">
+  <svg width="34" height="34" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <rect x="18.5" y="3" width="11" height="12.5" rx="1.5" fill="#171717"/>
+        <rect x="18.5" y="32.5" width="11" height="12.5" rx="1.5" fill="#171717"/>
+        <rect x="3" y="18.5" width="12.5" height="11" rx="1.5" fill="#171717"/>
+        <rect x="32.5" y="18.5" width="12.5" height="11" rx="1.5" fill="#171717"/>
+        <rect x="18.5" y="18.5" width="11" height="11" rx="1.5" fill="#ffdd00"/>
+      </svg>
+  <span class="wm"><span class="name">LURE</span><span class="chip">CRM</span></span>
+</div>
+<pre style="background:#171717;color:#f5f5f5;padding:18px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;overflow:auto">&lt;a class="lockup" href="/" aria-label="Lure CRM"&gt;
+  &lt;!-- assets/symbol.svg inline (34px) --&gt;
+  &lt;span class="wm"&gt;
+    &lt;span class="name"&gt;LURE&lt;/span&gt;
+    &lt;span class="chip"&gt;CRM&lt;/span&gt;
+  &lt;/span&gt;
+&lt;/a&gt;
+
+.lockup .name{font:800 22px/1 Archivo;letter-spacing:.015em}
+.lockup .chip{background:#171717;color:#fff;font:700 11px/1 Archivo;
+  letter-spacing:.14em;padding:0 7px;height:20px;border-radius:4px;
+  display:inline-flex;align-items:center}</pre>
+</body></html>

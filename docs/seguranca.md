@@ -35,3 +35,35 @@ Rotacionar sem apagar deixa a pista; apagar sem rotacionar não invalida nada.
 - `dados/` está no `.gitignore`: a extração do Bubble contém dado de cliente.
 - A chave do Bubble usada na migração deve ser revogada — não só rotacionada —
   depois do corte, quando o app antigo sair do ar.
+
+## RLS desligada — risco aberto desde 17/09/2026
+
+Decisão do projeto: seguir sem RLS por enquanto, para não travar o
+desenvolvimento. As policies estão escritas e versionadas em `db/003_rls.sql`;
+aplicar é rodar o arquivo, não precisa mexer em tabela.
+
+O que isso significa na prática, enquanto estiver assim: o Supabase publica toda
+tabela sem RLS pela API REST, e a `anon key` que autentica essa API é embutida no
+bundle do navegador — ou seja, é pública por construção. Com ela:
+
+```
+GET    /rest/v1/cliente            lista todos os clientes
+POST   /rest/v1/operacao           cria operação
+PATCH  /rest/v1/fornecedor?id=eq.X altera fornecedor
+DELETE /rest/v1/cliente?id=eq.X    apaga cliente
+```
+
+sem login nenhum.
+
+Enquanto o banco estiver vazio e a aplicação não estiver publicada, o risco é
+teórico. Ele deixa de ser teórico em dois momentos, o que vier primeiro:
+
+1. **a carga dos dados do Bubble** — aí passa a haver dado real de cliente;
+2. **o primeiro deploy na Vercel** — aí a `anon key` sai para a internet.
+
+Ligar a RLS antes de qualquer um dos dois.
+
+Vale notar que é a mesma classe de problema que a documentação do Bubble
+registrou como "Ponto crítico" em `fornecedor`, `operação` e `funiltarefa`
+(seções 2.3, 2.4 e 2.7): a regra `everyone` permitia criar, modificar e apagar
+via API sem login. A migração é a oportunidade de não levar isso adiante.

@@ -17,7 +17,11 @@ quem usa hoje; banco e lógica são refeitos.
 
 ## Regras não negociáveis
 
-1. **RLS ligada em toda tabela.** Tabela nova sem policy é bug, não pendência.
+1. **RLS está DESLIGADA** — decisão do projeto em 17/09/2026, para não travar o
+   desenvolvimento. As policies estão escritas em `db/003_rls.sql`, prontas para
+   aplicar. Enquanto não rodarem, toda tabela é legível e gravável pela API REST
+   com a `anon key`, que sai no bundle do navegador. Isso precisa ser resolvido
+   antes de qualquer dado real de cliente entrar. Ver `docs/seguranca.md`.
 2. **`service_role` nunca sai do servidor.** Não existe `NEXT_PUBLIC_` em chave de
    servidor, não existe service role em componente client.
 3. **Trigger de log em `evento`**, com `UPDATE` e `DELETE` revogados na tabela.
@@ -47,11 +51,13 @@ docs: decisão sobre o de-para de status
 
 | Caminho | Conteúdo |
 |---|---|
-| `specs/00-` … `07-` | especificação por assunto — leia na ordem na primeira vez |
-| `specs/07-divida-herdada.md` | o que do Bubble **não** reproduzir |
-| `specs/06-decisoes-pendentes.md` | o que ainda está em aberto |
-| `specs/bubble/documentacao-completa.md` | mapeamento do app atual (~2.500 linhas) |
-| `db/001_schema.sql` | esquema alvo |
+| `specs/bubble/documentacao-completa.md` | mapeamento do app atual (2.540 linhas) |
+| `specs/bubble/fase1-inventario.md` | inventário de páginas, data types e plugins |
+| `specs/00-` … `07-` | especificação por assunto — **ainda não escritas**, ver `specs/LEIA-ME.md` |
+| `db/001_fundacao.sql` | tipos, perfil, acesso, evento — **aplicado** |
+| `db/002_dominio.sql` | as 24 tabelas de domínio — **aplicado** |
+| `db/003_rls.sql` | policies — **não aplicado**, por decisão |
+| `design/` | marca, tokens e o brief para o Claude Design |
 | `docs/` | handoff, fluxo de trabalho, primeiro prompt, segurança |
 | `scripts/` | bootstrap do repo e extração do Bubble |
 

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Header — Lure CRM</title>
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Archivo","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#171717;background:#f5f5f5}
+  a{color:#0a6f8c;text-decoration:none}
+  a:hover{color:#0abaee}
+  .lockup{display:flex;align-items:center;gap:12px}
+  .lockup .wm{display:flex;align-items:center;gap:9px}
+  .lockup .name{font-weight:800;font-size:22px;letter-spacing:0.015em;line-height:1}
+  .lockup .chip{display:inline-flex;align-items:center;height:20px;padding:0 7px;background:#171717;color:#fff;font-weight:700;font-size:11px;letter-spacing:0.14em;border-radius:4px}
+</style></head>
+<body>
+<!-- HEADER / APP BAR — altura 56px, fundo branco, borda inferior 1px #dcdcdc -->
+<header style="height:56px;background:#fff;border-bottom:1px solid #dcdcdc;display:flex;align-items:center;gap:24px;padding:0 20px">
+  <a href="#" class="lockup" aria-label="Lure CRM — início">
+    <svg width="34" height="34" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+        <rect x="18.5" y="3" width="11" height="12.5" rx="1.5" fill="#171717"/>
+        <rect x="18.5" y="32.5" width="11" height="12.5" rx="1.5" fill="#171717"/>
+        <rect x="3" y="18.5" width="12.5" height="11" rx="1.5" fill="#171717"/>
+        <rect x="32.5" y="18.5" width="12.5" height="11" rx="1.5" fill="#171717"/>
+        <rect x="18.5" y="18.5" width="11" height="11" rx="1.5" fill="#ffdd00"/>
+      </svg>
+    <span class="wm"><span class="name">LURE</span><span class="chip">CRM</span></span>
+  </a>
+  <nav style="display:flex;align-items:center;gap:4px;margin-left:8px">
+    <a href="#" style="padding:8px 12px;border-radius:4px;font-size:13px;font-weight:600;color:#171717;background:#f5f5f5">Funil</a>
+    <a href="#" style="padding:8px 12px;border-radius:4px;font-size:13px;font-weight:500;color:#5c5c5c">Negócios</a>
+    <a href="#" style="padding:8px 12px;border-radius:4px;font-size:13px;font-weight:500;color:#5c5c5c">Contatos</a>
+    <a href="#" style="padding:8px 12px;border-radius:4px;font-size:13px;font-weight:500;color:#5c5c5c">Relatórios</a>
+  </nav>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:12px;min-width:0">
+    <input placeholder="Buscar…" style="height:34px;flex:1;min-width:0;max-width:220px;border:1px solid #dcdcdc;border-radius:4px;padding:0 12px;font-size:13px;font-family:inherit">
+    <button style="height:34px;padding:0 14px;background:#ffdd00;color:#000;border:none;border-radius:4px;font-weight:700;font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap;flex:none">+ Novo negócio</button>
+    <div style="width:34px;height:34px;border-radius:999px;background:#171717;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none">JS</div>
+  </div>
+</header>
+</body></html>

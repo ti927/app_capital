@@ -1,0 +1,42 @@
+# Dependências
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# Ambiente — nunca versionar
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+!.env.example
+
+# Dados extraídos do Bubble — contém dado de cliente
+dados/
+*.bubble
+
+# Claude Code — configuração pessoal de cada dev
+.claude/settings.local.json
+
+# Supabase / Vercel
+.vercel
+supabase/.branches
+supabase/.temp
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# Editor
+.idea/
+.vscode/*
+!.vscode/extensions.json

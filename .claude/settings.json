@@ -1,0 +1,71 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch",
+      "WebSearch",
+
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git checkout *)",
+      "Bash(git switch *)",
+      "Bash(git branch *)",
+      "Bash(git merge *)",
+      "Bash(git rebase *)",
+      "Bash(git remote *)",
+      "Bash(git fetch *)",
+      "Bash(git restore *)",
+      "Bash(git init *)",
+      "Bash(gh repo *)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)",
+
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(npm ci *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(pnpm *)",
+
+      "Bash(mkdir *)",
+      "Bash(touch *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+
+      "Edit(src/**)",
+      "Edit(app/**)",
+      "Edit(db/**)",
+      "Edit(specs/**)",
+      "Edit(docs/**)",
+      "Edit(scripts/**)",
+      "Edit(supabase/**)",
+      "Edit(CLAUDE.md)",
+      "Edit(package.json)"
+    ],
+
+    "ask": [
+      "Bash(npx supabase db push *)",
+      "Bash(npx supabase db reset *)",
+      "Bash(npx vercel deploy *)",
+      "Bash(npx vercel --prod *)",
+      "Bash(gh repo delete *)"
+    ],
+
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(!.env.example)",
+      "Read(dados/bruto/**)",
+      "Read(**/*.pem)",
+      "Read(**/id_rsa*)",
+
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard *)",
+      "Bash(rm -rf *)",
+      "Bash(curl *)",
+      "Bash(wget *)"
+    ]
+  }
+}

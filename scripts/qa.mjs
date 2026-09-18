@@ -57,7 +57,10 @@ async function passo(pagina, nome, acao) {
   const rotulo = `${String(n).padStart(2, '0')}-${nome}`;
   try {
     if (acao) await acao();
-    await pagina.waitForTimeout(350);
+    // 180ms cobre a animacao mais longa do sistema (saida de dialogo,
+    // 140ms) com folga. Eram 350ms, de antes de a animacao existir e ser
+    // medida: 170ms x 42 passos x 3 formas de espera a toa.
+    await pagina.waitForTimeout(180);
     await pagina.screenshot({ path: path.join(SAIDA, `${rotulo}.png`), fullPage: false });
     resultados.push({ rotulo, ok: true });
     console.log(`  ok    ${rotulo}`);
@@ -392,7 +395,12 @@ function hojeISO() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-const TITULO_QA = 'QA — tarefa de teste';
+/**
+ * O título leva a forma no fim porque as três corridas rodam em paralelo
+ * (`npm run qa:tudo`) contra o MESMO banco: com título igual, uma corrida
+ * enxergava a tarefa da outra e o clique batia em dois elementos.
+ */
+const TITULO_QA = `QA — tarefa de teste ${CELULAR ? 'celular' : ESCURO ? 'escuro' : 'claro'}`;
 let tarefaCriada = false;
 
 await passo(pagina, 'funil-tarefa-nova', async () => {

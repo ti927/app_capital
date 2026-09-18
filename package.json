@@ -16,7 +16,8 @@
     "extrair": "node scripts/extrair-bubble.mjs",
     "carregar": "node scripts/carregar-supabase.mjs",
     "qa": "node scripts/qa.mjs",
-    "mcp": "node mcp/servidor.mjs"
+    "mcp": "node mcp/servidor.mjs",
+    "qa:tudo": "node scripts/qa-tudo.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

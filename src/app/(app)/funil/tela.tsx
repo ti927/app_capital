@@ -282,9 +282,11 @@ export function TelaFunil({
           tags={tags}
           tagsDoCartao={aberto ? (tagsDe.get(aberto.id) ?? []).map((t) => t.id) : []}
           perfis={perfis}
+          perfilId={perfilId}
           usuariosDoCartao={
             aberto ? cartaoUsuarios.filter((u) => u.cartao_id === aberto.id).map((u) => u.perfil_id) : []
           }
+          tarefas={aberto ? tarefas.filter((t) => t.cartao_id === aberto.id) : []}
           aoFechar={() => {
             setAberto(null);
             setCriandoEm(null);

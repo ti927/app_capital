@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { BarraApp, ITENS_NAV, niveisQueVeem } from '@/components/ui/casca';
 import { NavLateral } from '@/components/ui/navlateral';
 import { BotaoDeTema } from '@/components/ui/tema';
@@ -39,10 +40,10 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
                 <span className="casca__acao-rotulo">Sair</span>
               </button>
             </form>
-            <a className="lc-btn lc-btn--tertiary lc-btn--sm casca__acao" href="/conta/senha" title="Trocar senha">
+            <Link className="lc-btn lc-btn--tertiary lc-btn--sm casca__acao" href="/conta/senha" title="Trocar senha">
               <IconeSenha tamanho={16} />
               <span className="casca__acao-rotulo">Senha</span>
-            </a>
+            </Link>
             <BotaoDeTema />
             {/* Configurações só para master: abre em pop-up, não tem rota. */}
             {perfil.nivel_acesso === 'master' ? (

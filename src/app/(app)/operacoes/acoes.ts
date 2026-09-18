@@ -30,6 +30,7 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
     demanda_inicial: texto(dados, 'demanda_inicial'),
     demanda_final: texto(dados, 'demanda_final'),
     destino_recurso: texto(dados, 'destino_recurso'),
+    faturamento_anual: texto(dados, 'faturamento_anual'),
     comissao: texto(dados, 'comissao'),
     parecer: texto(dados, 'parecer'),
     tem_fee: marcado(dados, 'tem_fee'),

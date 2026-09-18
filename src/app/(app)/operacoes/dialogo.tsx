@@ -141,8 +141,8 @@ export function DialogoOperacao({
         <Campo rotulo="Demanda em R$" nome="demanda_inicial" valorInicial={operacao?.demanda_inicial ?? ''} placeholder="Digite aqui" />
         <Campo rotulo="Demanda final" nome="demanda_final" valorInicial={operacao?.demanda_final ?? ''} placeholder="Digite aqui" />
 
-        {/* Faturamento anual vem do cliente: calculado, não editável aqui. */}
-        <Campo rotulo="Faturamento anual" calculado valorInicial={operacao?.faturamento_anual ?? ''} />
+        {/* Texto livre: veio do cliente na migração, mas edita-se aqui. */}
+        <Campo rotulo="Faturamento anual" nome="faturamento_anual" valorInicial={operacao?.faturamento_anual ?? ''} placeholder="Digite aqui" />
         <Campo rotulo="Comissão" nome="comissao" valorInicial={operacao?.comissao ?? ''} placeholder="Digite aqui" />
 
         {/* Group VZ do Bubble: Comissão e Destino do recurso lado a lado. */}

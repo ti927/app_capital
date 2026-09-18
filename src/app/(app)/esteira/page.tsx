@@ -52,17 +52,53 @@ export default async function PaginaEsteira() {
 
   const supabase = await clienteServidor();
 
+  /*
+    A esteira tem DOIS filtros, ambos da mesma expressão do Bubble
+    (documentacao-completa.md:1605):
+
+      Do a search for operação where arquivado = false
+                                 AND Estruturação em Andamento = true
+        :filtered( nome cliente txt is in
+                   Do a search for tbl.etapas operação
+                     where status etapa = "contrato assinado" 's qual cliente txt )
+
+    Conferido contra a base em 18/09/2026: o toggle sozinho deixa 3 operações
+    (Garcia "CRA", Garcia "Giro com Barter" e Trigobel "Giro Estruturado") e
+    produção mostra 2. O segundo filtro tira a Trigobel, que não tem nenhuma
+    etapa em "contrato assinado" — e aí bate. Decisão em
+    specs/08-melhorias-qol.md.
+
+    O segundo filtro é por CLIENTE, não por operação: "Giro com Barter" entra
+    porque é a outra operação do mesmo cliente que tem o contrato assinado.
+  */
+  const { data: statusAssinado } = await supabase
+    .from('status_etapa')
+    .select('id')
+    .eq('chave', 'contrato_assinado')
+    .maybeSingle();
+
+  const { data: etapasAssinadas } = statusAssinado
+    ? await supabase.from('etapa_operacao').select('cliente_id').eq('status_id', statusAssinado.id)
+    : { data: [] as Array<{ cliente_id: string | null }> };
+
+  const clientesComContrato = [
+    ...new Set(
+      ((etapasAssinadas ?? []) as Array<{ cliente_id: string | null }>)
+        .map((e) => e.cliente_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
   const [operacoes, clientes, fornecedores, tipos, etapas, checklist, instrumentos] = await Promise.all([
-    /**
-     * A esteira é só o que está em estruturação — o toggle da operação manda
-     * (documentacao-completa.md:1611). Sem ele a tela listava toda operação
-     * não arquivada.
-     */
-    supabase
-      .from('operacao')
-      .select('id, identificador, cliente_id')
-      .eq('arquivado', false)
-      .eq('estruturacao_em_andamento', true),
+    // Sem cliente elegível não há esteira — nem vale ir ao banco.
+    clientesComContrato.length
+      ? supabase
+          .from('operacao')
+          .select('id, identificador, cliente_id')
+          .eq('arquivado', false)
+          .eq('estruturacao_em_andamento', true)
+          .in('cliente_id', clientesComContrato)
+      : Promise.resolve({ data: [] as OperacaoResumo[] }),
     supabase.from('cliente').select('id, nome_razao'),
     supabase.from('fornecedor').select('id, nome_fundo'),
     supabase.from('tipo_operacao').select('id, chave, rotulo, ordem').order('ordem'),

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
 import {
@@ -11,10 +11,14 @@ import {
   IconeFechar,
   IconeMais,
 } from '@/components/ui/icones';
-import { data, type FunilCartao } from '@/lib/dominio';
+import { data } from '@/lib/dominio';
 import { arquivarCartao, criarColuna, excluirColuna, moverCartao, moverColuna } from './acoes';
 import { DialogoCartao } from './dialogo';
-import type { EtapaFunil, TagFunil } from './page';
+import { PainelTarefas } from './tarefas';
+import type { CartaoDoFunil, EtapaFunil, TagFunil, Tarefa } from './page';
+import './funil.css';
+
+type Aba = 'quadro' | 'tarefas';
 
 export function TelaFunil({
   quadro,
@@ -24,22 +28,45 @@ export function TelaFunil({
   cartaoTags,
   cartaoUsuarios,
   perfis,
+  tarefas,
+  perfilId,
+  ehMaster,
 }: {
   quadro: { id: string; nome: string } | null;
   etapas: EtapaFunil[];
   tags: TagFunil[];
-  cartoes: FunilCartao[];
+  cartoes: CartaoDoFunil[];
   cartaoTags: Array<{ cartao_id: string; tag_id: string }>;
   cartaoUsuarios: Array<{ cartao_id: string; perfil_id: string }>;
   perfis: Array<{ id: string; nome: string }>;
+  tarefas: Tarefa[];
+  perfilId: string;
+  ehMaster: boolean;
 }) {
+  const [aba, setAba] = useState<Aba>('quadro');
   const [busca, setBusca] = useState('');
   const [tagFiltro, setTagFiltro] = useState<string | null>(null);
-  const [aberto, setAberto] = useState<FunilCartao | null>(null);
+  const [aberto, setAberto] = useState<CartaoDoFunil | null>(null);
   const [criandoEm, setCriandoEm] = useState<string | null>(null);
   const [novaColuna, setNovaColuna] = useState(false);
   const [arrastado, setArrastado] = useState<string | null>(null);
   const [, transicao] = useTransition();
+
+  // `?aba=tarefas` deixa o link compartilhável. Lido uma vez, na montagem:
+  // depois quem manda é o estado local, para a troca de aba não recarregar.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('aba') === 'tarefas') setAba('tarefas');
+  }, []);
+
+  const trocarAba = (nova: Aba) => {
+    setAba(nova);
+    const url = new URL(window.location.href);
+    if (nova === 'tarefas') url.searchParams.set('aba', 'tarefas');
+    else url.searchParams.delete('aba');
+    // `replaceState` e não `router.push`: trocar de aba não é navegação, e o
+    // quadro não pode remontar nem perder busca e filtro de tag.
+    window.history.replaceState(null, '', url.toString());
+  };
 
   const tagsDe = useMemo(() => {
     const mapa = new Map<string, TagFunil[]>();
@@ -62,7 +89,13 @@ export function TelaFunil({
     });
   }, [cartoes, busca, tagFiltro, tagsDe]);
 
-  const colunas = useMemo(() => etapas.filter((e) => e.no_fluxo).sort((a, b) => a.ordem - b.ordem), [etapas]);
+  const colunas = useMemo(
+    () => etapas.filter((e) => e.no_fluxo).sort((a, b) => a.ordem - b.ordem),
+    [etapas],
+  );
+
+  /** Cartões que a aba de tarefas oferece: os não arquivados, sem filtro de tela. */
+  const cartoesParaTarefa = useMemo(() => cartoes.filter((c) => !c.arquivado), [cartoes]);
 
   const soltarEm = (etapaId: string | null) => {
     if (!arrastado) return;
@@ -70,6 +103,13 @@ export function TelaFunil({
     transicao(() => void moverCartao(arrastado, etapaId, naColuna));
     setArrastado(null);
   };
+
+  const abrirCartaoPorId = (cartaoId: string) => {
+    const alvo = cartoes.find((c) => c.id === cartaoId);
+    if (alvo) setAberto(alvo);
+  };
+
+  const emAberto = tarefas.filter((t) => !t.concluida).length;
 
   return (
     <>
@@ -84,112 +124,152 @@ export function TelaFunil({
         </div>
       </div>
 
-      {/* Barra de filtro: busca e as cinco tags como pílulas com ponto colorido. */}
-      <div className="funil__filtros">
-        <label className="busca">
-          <span className="lc-field__label" style={{ position: 'absolute', left: -9999 }}>
-            Buscar
-          </span>
-          <input
-            className="busca__campo"
-            type="search"
-            value={busca}
-            placeholder="Buscar empresa, contato, indicante.."
-            onChange={(e) => setBusca(e.target.value)}
-          />
-          <span className="busca__lupa">
-            <IconeBuscar tamanho={16} />
-          </span>
-        </label>
+      <div className="abas" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          className="abas__item"
+          aria-selected={aba === 'quadro'}
+          onClick={() => trocarAba('quadro')}
+        >
+          Quadro
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className="abas__item"
+          aria-selected={aba === 'tarefas'}
+          onClick={() => trocarAba('tarefas')}
+        >
+          Tarefas {emAberto ? <span className="abas__conta">{emAberto}</span> : null}
+        </button>
+      </div>
 
-        <span className="apoio">Filtrar por tag:</span>
-        <div className="funil__tags">
-          {tags.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              className={['lc-chip', 'funil__tag', tagFiltro === t.id && 'funil__tag--ativa'].filter(Boolean).join(' ')}
-              aria-pressed={tagFiltro === t.id}
-              onClick={() => setTagFiltro((v) => (v === t.id ? null : t.id))}
-            >
-              <span className="lc-chip__dot" style={{ background: t.cor ?? 'var(--border-strong)' }} />
-              {t.nome}
-            </button>
-          ))}
+      {/* As duas abas ficam montadas: trocar de aba não pode remontar o quadro
+          nem perder busca e filtro de tag. `hidden` esconde sem desmontar. */}
+      <div hidden={aba !== 'quadro'}>
+        {/* Barra de filtro: busca e as cinco tags como pílulas com ponto colorido. */}
+        <div className="funil__filtros">
+          <label className="busca">
+            <span className="lc-field__label" style={{ position: 'absolute', left: -9999 }}>
+              Buscar
+            </span>
+            <input
+              className="busca__campo"
+              type="search"
+              value={busca}
+              placeholder="Buscar empresa, contato, indicante.."
+              onChange={(e) => setBusca(e.target.value)}
+            />
+            <span className="busca__lupa">
+              <IconeBuscar tamanho={16} />
+            </span>
+          </label>
+
+          <span className="apoio">Filtrar por tag:</span>
+          <div className="funil__tags">
+            {tags.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={['lc-chip', 'funil__tag', tagFiltro === t.id && 'funil__tag--ativa']
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-pressed={tagFiltro === t.id}
+                onClick={() => setTagFiltro((v) => (v === t.id ? null : t.id))}
+              >
+                <span className="lc-chip__dot" style={{ background: t.cor ?? 'var(--border-strong)' }} />
+                {t.nome}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Quadro: colunas roláveis na horizontal. */}
+        <div className="funil__quadro">
+          {colunas.map((coluna, i) => {
+            const daColuna = visiveis.filter((c) => c.etapa_id === coluna.id);
+            const arquivadosAqui = cartoes.filter((c) => c.etapa_id === coluna.id && c.arquivado).length;
+
+            return (
+              <section
+                key={coluna.id}
+                className="funil__coluna"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => soltarEm(coluna.id)}
+              >
+                <header className="funil__coluna-topo">
+                  <div className="funil__coluna-acoes">
+                    <button
+                      type="button"
+                      aria-label="Mover coluna para a esquerda"
+                      disabled={i === 0}
+                      onClick={() => transicao(() => void moverColuna(coluna.id, coluna.ordem - 1.5))}
+                    >
+                      <IconeChevronEsquerda tamanho={15} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Mover coluna para a direita"
+                      disabled={i === colunas.length - 1}
+                      onClick={() => transicao(() => void moverColuna(coluna.id, coluna.ordem + 1.5))}
+                    >
+                      <IconeChevronDireita tamanho={15} />
+                    </button>
+                  </div>
+                  <h2 className="funil__coluna-nome">{coluna.nome}</h2>
+                  <div className="funil__coluna-acoes">
+                    <button type="button" aria-label="Arquivar coluna" title="Arquivar">
+                      <IconeArquivar tamanho={15} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Excluir coluna"
+                      title="Excluir"
+                      onClick={() => transicao(() => void excluirColuna(coluna.id))}
+                    >
+                      <IconeFechar tamanho={15} />
+                    </button>
+                  </div>
+                </header>
+
+                <p className="funil__coluna-contagem apoio">
+                  {daColuna.length} {daColuna.length === 1 ? 'cartão' : 'cartões'} / {arquivadosAqui} arquivados
+                </p>
+
+                <div className="funil__cartoes">
+                  {daColuna.map((c) => (
+                    <Cartao
+                      key={c.id}
+                      cartao={c}
+                      tags={tagsDe.get(c.id) ?? []}
+                      tarefasEmAberto={tarefas.filter((t) => t.cartao_id === c.id && !t.concluida).length}
+                      aoAbrir={() => setAberto(c)}
+                      aoArquivar={() => transicao(() => void arquivarCartao(c.id, true))}
+                      aoArrastar={() => setArrastado(c.id)}
+                    />
+                  ))}
+                </div>
+
+                <button type="button" className="funil__novo" onClick={() => setCriandoEm(coluna.id)}>
+                  <IconeMais tamanho={14} /> Novo cartão
+                </button>
+              </section>
+            );
+          })}
         </div>
       </div>
 
-      {/* Quadro: colunas roláveis na horizontal. */}
-      <div className="funil__quadro">
-        {colunas.map((coluna, i) => {
-          const daColuna = visiveis.filter((c) => c.etapa_id === coluna.id);
-          const arquivadosAqui = cartoes.filter((c) => c.etapa_id === coluna.id && c.arquivado).length;
-
-          return (
-            <section
-              key={coluna.id}
-              className="funil__coluna"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => soltarEm(coluna.id)}
-            >
-              <header className="funil__coluna-topo">
-                <div className="funil__coluna-acoes">
-                  <button
-                    type="button"
-                    aria-label="Mover coluna para a esquerda"
-                    disabled={i === 0}
-                    onClick={() => transicao(() => void moverColuna(coluna.id, coluna.ordem - 1.5))}
-                  >
-                    <IconeChevronEsquerda tamanho={15} />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Mover coluna para a direita"
-                    disabled={i === colunas.length - 1}
-                    onClick={() => transicao(() => void moverColuna(coluna.id, coluna.ordem + 1.5))}
-                  >
-                    <IconeChevronDireita tamanho={15} />
-                  </button>
-                </div>
-                <h2 className="funil__coluna-nome">{coluna.nome}</h2>
-                <div className="funil__coluna-acoes">
-                  <button type="button" aria-label="Arquivar coluna" title="Arquivar">
-                    <IconeArquivar tamanho={15} />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Excluir coluna"
-                    title="Excluir"
-                    onClick={() => transicao(() => void excluirColuna(coluna.id))}
-                  >
-                    <IconeFechar tamanho={15} />
-                  </button>
-                </div>
-              </header>
-
-              <p className="funil__coluna-contagem apoio">
-                {daColuna.length} {daColuna.length === 1 ? 'cartão' : 'cartões'} / {arquivadosAqui} arquivados
-              </p>
-
-              <div className="funil__cartoes">
-                {daColuna.map((c) => (
-                  <Cartao
-                    key={c.id}
-                    cartao={c}
-                    tags={tagsDe.get(c.id) ?? []}
-                    aoAbrir={() => setAberto(c)}
-                    aoArquivar={() => transicao(() => void arquivarCartao(c.id, true))}
-                    aoArrastar={() => setArrastado(c.id)}
-                  />
-                ))}
-              </div>
-
-              <button type="button" className="funil__novo" onClick={() => setCriandoEm(coluna.id)}>
-                <IconeMais tamanho={14} /> Novo cartão
-              </button>
-            </section>
-          );
-        })}
+      <div hidden={aba !== 'tarefas'}>
+        <PainelTarefas
+          tarefas={tarefas}
+          cartoes={cartoesParaTarefa}
+          perfis={perfis}
+          perfilId={perfilId}
+          ehMaster={ehMaster}
+          quadroId={quadro?.id ?? null}
+          aoAbrirCartao={abrirCartaoPorId}
+        />
       </div>
 
       {(aberto || criandoEm) && quadro ? (
@@ -234,12 +314,14 @@ export function TelaFunil({
 function Cartao({
   cartao,
   tags,
+  tarefasEmAberto,
   aoAbrir,
   aoArquivar,
   aoArrastar,
 }: {
-  cartao: FunilCartao;
+  cartao: CartaoDoFunil;
   tags: TagFunil[];
+  tarefasEmAberto: number;
   aoAbrir: () => void;
   aoArquivar: () => void;
   aoArrastar: () => void;
@@ -257,7 +339,12 @@ function Cartao({
         ) : (
           <span className="apoio funil__sem-tags">sem tags</span>
         )}
-        <button type="button" className="funil__cartao-arquivar" onClick={aoArquivar} aria-label="Arquivar cartão">
+        <button
+          type="button"
+          className="funil__cartao-arquivar"
+          onClick={aoArquivar}
+          aria-label="Arquivar cartão"
+        >
           <IconeArquivar tamanho={14} />
         </button>
       </div>
@@ -275,6 +362,11 @@ function Cartao({
           {cartao.faturamento ? <span className="funil__pilula">{cartao.faturamento}</span> : null}
           {cartao.indicante ? (
             <span className="funil__pilula funil__pilula--fraca">indicado por {cartao.indicante}</span>
+          ) : null}
+          {tarefasEmAberto ? (
+            <span className="funil__pilula funil__pilula--tarefa">
+              {tarefasEmAberto} {tarefasEmAberto === 1 ? 'tarefa' : 'tarefas'}
+            </span>
           ) : null}
         </div>
 

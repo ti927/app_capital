@@ -22,7 +22,7 @@ alter table public.funil_tarefa
   add column tipo      text,   -- reuniao | ligacao | follow_up | documento | outro
   add column hora      time;   -- opcional: "reuniao as 15h"
 
--- `tipo` fica text com a lista fixa em `funil/tarefas.ts` (TIPOS_TAREFA), como
+-- `tipo` fica text com a lista fixa em `funil/tarefas-apoio.ts` (TIPOS_TAREFA), como
 -- `cliente.status` ja faz. Option table para cinco valores nao se paga.
 
 -- Toda tarefa pertence a um cartao: nao existe tarefa solta no quadro.

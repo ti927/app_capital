@@ -103,3 +103,74 @@ export async function excluirColuna(id: string) {
   await supabase.from('funil_etapa').delete().eq('id', id);
   revalidatePath('/funil');
 }
+
+/* ---------------------------------------------------------------- tarefas */
+
+/**
+ * Toda tarefa pertence a um cartão (decisão de 18/09/2026, `cartao_id not
+ * null` desde a migration 006). A tela já não deixa salvar sem cartão; aqui
+ * a regra é conferida de novo, porque a action é uma porta de entrada.
+ */
+function camposDaTarefa(dados: FormData) {
+  return {
+    titulo: texto(dados, 'titulo') ?? 'Sem título',
+    descricao: texto(dados, 'descricao'),
+    tipo: texto(dados, 'tipo'),
+    prazo: texto(dados, 'prazo'),
+    hora: texto(dados, 'hora'),
+    responsavel_id: texto(dados, 'responsavel_id'),
+  };
+}
+
+export async function criarTarefa(_anterior: unknown, dados: FormData) {
+  const supabase = await clienteServidor();
+
+  const cartaoId = texto(dados, 'cartao_id');
+  const quadroId = texto(dados, 'quadro_id');
+  if (!cartaoId) return { erro: 'Escolha o cartão a que a tarefa pertence.' };
+  if (!quadroId) return { erro: 'Não consegui identificar o quadro.' };
+
+  const { error } = await supabase
+    .from('funil_tarefa')
+    .insert({ ...camposDaTarefa(dados), cartao_id: cartaoId, quadro_id: quadroId });
+  if (error) return { erro: 'Não consegui criar a tarefa.' };
+
+  revalidatePath('/funil');
+  return { ok: true };
+}
+
+export async function gravarTarefa(_anterior: unknown, dados: FormData) {
+  const supabase = await clienteServidor();
+
+  const id = texto(dados, 'id');
+  if (!id) return { erro: 'Tarefa sem identificador.' };
+
+  const campos = camposDaTarefa(dados);
+  const cartaoId = texto(dados, 'cartao_id');
+  // O cartão só muda quando o formulário manda um — o diálogo de dentro do
+  // cartão não oferece trocar, e mandar `null` aqui quebraria o not null.
+  const { error } = await supabase
+    .from('funil_tarefa')
+    .update(cartaoId ? { ...campos, cartao_id: cartaoId } : campos)
+    .eq('id', id);
+  if (error) return { erro: 'Não consegui salvar a tarefa.' };
+
+  revalidatePath('/funil');
+  return { ok: true };
+}
+
+/** Concluir e reabrir. `data_conclusao` anda junto com `concluida`. */
+export async function alternarTarefa(id: string, concluida: boolean) {
+  const supabase = await clienteServidor();
+  await supabase
+    .from('funil_tarefa')
+    .update({ concluida, data_conclusao: concluida ? new Date().toISOString() : null })
+    .eq('id', id);
+  revalidatePath('/funil');
+}
+
+export async function excluirTarefa(id: string) {
+  const supabase = await clienteServidor();
+  await supabase.from('funil_tarefa').delete().eq('id', id);
+  revalidatePath('/funil');
+}

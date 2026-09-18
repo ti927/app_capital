@@ -469,69 +469,82 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Cartão em tela cheia.
+   Cartão do funil: caixa 4:3, conteúdo em colunas.
 
-   Pedido de uso: o cartão é o que se olha durante a reunião, e rolar para ver
-   o parecer enquanto se fala com o cliente não serve. Em tela cheia os campos
-   curtos ficam numa coluna, e parecer e histórico ganham uma coluna cada,
-   altos, lado a lado.
+   A caixa é ~70% da janela em 4:3 (`.lc-dialog--ampla`, em interface.css) e a
+   promessa é mostrar o cartão inteiro sem barra de rolagem. Por isso o
+   conteúdo é feito de colunas explícitas, e não de uma grade que se arruma
+   sozinha: assim a altura é a da coluna mais alta, e os dois campos de texto —
+   que são elásticos — absorvem a sobra em vez de empurrar o resto para baixo.
    --------------------------------------------------------------------------- */
 
-.funil__grade-cheia {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-content: start;
-  /* Respiro menor que o do diálogo comum: são 15 campos numa tela só, e a
-     promessa aqui é caber tudo sem rolagem. */
+.funil__cartao-forma {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-4);
-}
-
-/* Parecer e histórico: uma coluna cada, altura que puxa o resto para cima. */
-.funil__texto {
-  grid-row: span 4;
-}
-
-/* 232px é a medida que faz o cartão inteiro caber em 900px de janela sem
-   barra de rolagem — conferido com o corpo do diálogo medido, não no olho. */
-.funil__texto textarea.lc-field__input {
-  min-height: 232px;
   height: 100%;
+  min-height: 0;
 }
 
-/* Tela baixa (notebook de 768px) cabe do mesmo jeito: quem encolhe é o campo
-   de texto, que tem rolagem própria, e não o cartão inteiro. */
-@media (max-height: 860px) {
-  .funil__texto textarea.lc-field__input {
-    min-height: 118px;
-  }
+.funil__cartao-colunas {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+  flex: 1;
+  min-height: 0;
 }
 
-/* Notebook de 768px: quatro colunas em vez de três. Mesmos campos, uma fileira
-   a menos — é o que faltava para o cartão caber inteiro sem rolagem. */
-@media (max-height: 800px) and (min-width: 1280px) {
-  .funil__grade-cheia {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--space-3);
-  }
-  .funil__texto textarea.lc-field__input {
-    min-height: 104px;
-  }
+.funil__col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  min-height: 0;
 }
 
-@media (max-width: 1100px) {
-  .funil__grade-cheia {
+/* A coluna de texto estica o campo até o fim da coluna. */
+.funil__col--texto .lc-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.funil__col--texto textarea.lc-field__input {
+  flex: 1;
+  height: auto;
+  min-height: 90px;
+}
+
+/* Embaixo, o que é lista: tags à esquerda, tarefas à direita. */
+.funil__cartao-abaixo {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--space-5);
+  flex: none;
+}
+
+/* A lista de tarefas rola sozinha em vez de esticar o cartão. */
+.funil__cartao-abaixo .tarefas__do-cartao {
+  max-height: 128px;
+  overflow-y: auto;
+}
+
+@media (max-width: 1000px) {
+  .funil__cartao-colunas {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .funil__texto {
-    grid-row: auto;
-  }
-  .funil__texto textarea.lc-field__input {
-    min-height: 180px;
+  .funil__cartao-abaixo {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 720px) {
-  .funil__grade-cheia {
+  .funil__cartao-colunas {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .funil__col--texto textarea.lc-field__input {
+    min-height: 140px;
   }
 }
 
@@ -566,23 +579,32 @@
   border-top: var(--border-w) solid var(--border);
 }
 
-.gestao__paleta {
-  display: flex;
-  gap: 2px;
-  flex: none;
-}
-
+/* O quadradinho da cor. O `<input type="color">` fica por cima, invisível: o
+   que se vê é o fundo do `<span>`, que mostra a cor de verdade — inclusive
+   quando ela vem do Bubble em formato que o seletor não entende. Clicar abre o
+   seletor do navegador, com todas as cores. */
 .gestao__cor {
-  width: 16px;
-  height: 16px;
-  border-radius: var(--radius-pill);
-  border: 2px solid transparent;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  border: var(--border-w) solid var(--border-strong);
+  overflow: hidden;
   cursor: pointer;
-  padding: 0;
+  display: block;
 }
 
-.gestao__cor--ativa {
-  border-color: var(--text);
+.gestao__cor input {
+  position: absolute;
+  inset: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  opacity: 0;
 }
 
 /* ---------------------------------------------------------------------------
@@ -624,4 +646,37 @@
 
 .funil__quadro .funil__novo {
   border-color: var(--funil-borda);
+}
+
+/* ---------------------------------------------------------------------------
+   Coluna mostrando os arquivados.
+
+   O mesmo botão alterna as duas vistas, então a coluna precisa dizer em qual
+   está — senão a pessoa acha que os cartões sumiram.
+   --------------------------------------------------------------------------- */
+
+.funil__coluna--arquivados {
+  background: var(--surface-sunken);
+  border-style: dashed;
+}
+
+.funil__coluna--arquivados .funil__cartao {
+  border-style: dashed;
+  opacity: 0.92;
+}
+
+.funil__coluna-acao--ativa {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.funil__coluna-acoes button.funil__coluna-acao--ativa:hover {
+  background: var(--accent-hover);
+  color: var(--accent-on);
+}
+
+/* Na contagem "3 cartões / 2 arquivados", o lado que está à vista é o forte. */
+.funil__contagem--forte {
+  color: var(--text-secondary);
+  font-weight: 600;
 }

@@ -446,12 +446,23 @@ body {
   max-width: var(--dialog-w-lg);
 }
 
-/* A janela inteira, menos a margem do overlay. Para o cartão do funil, que é
-   o que fica aberto durante a reunião. */
-.lc-dialog--cheia {
+/* Caixa ampla do cartão do funil: ~70% da largura da janela, em 4:3 — mais
+   horizontal que vertical. A largura é o menor entre 70vw e o que a altura
+   disponível permite manter na proporção, para a caixa nunca passar da janela
+   (num notebook de 768px é a altura que manda). */
+.lc-dialog--ampla {
   max-width: none;
-  width: 100%;
-  min-height: calc(100dvh - var(--space-8) * 2);
+  width: min(70vw, calc((100dvh - var(--space-8) * 2) * 4 / 3));
+  aspect-ratio: 4 / 3;
+  max-height: calc(100dvh - var(--space-8) * 2);
+}
+
+/* No estreito a proporção não ajuda ninguém: vale a largura toda. */
+@media (max-width: 860px) {
+  .lc-dialog--ampla {
+    width: 100%;
+    aspect-ratio: auto;
+  }
 }
 
 /* Cabeçalho e rodapé fixos; só o corpo rola. */
@@ -848,4 +859,13 @@ textarea.lc-field__input {
   font-style: italic;
   color: var(--text-muted);
   opacity: 0.75;
+}
+
+/* Telas de conta: uma coluna estreita, que é tudo o que um formulário de
+   senha precisa. */
+.conta__caixa {
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }

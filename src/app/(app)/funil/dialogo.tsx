@@ -66,7 +66,7 @@ export function DialogoCartao({
         aberto={aberto}
         aoFechar={aoFechar}
         titulo={novo ? 'Cartão criado' : 'Editar cartão'}
-        largura="cheia"
+        largura="ampla"
         rodape={
           <div className="funil__rodape-dialogo">
             <div className="linha">
@@ -112,87 +112,98 @@ export function DialogoCartao({
           </div>
         }
       >
-        <form id="forma-cartao" action={agir} className="grade funil__grade-cheia">
+        {/*
+          Quatro colunas, e não uma grade que se arruma sozinha: a caixa do
+          cartão é 4:3 e a promessa é mostrar tudo sem barra de rolagem. Com
+          colunas explícitas, a altura é a da coluna mais alta — e os campos de
+          texto, que são elásticos, absorvem a sobra.
+        */}
+        <form id="forma-cartao" action={agir} className="funil__cartao-forma">
           <input type="hidden" name="id" value={cartao?.id ?? ''} />
           <input type="hidden" name="quadro_id" value={quadroId} />
           {escolhidas.map((t) => (
             <input key={t} type="hidden" name="tags" value={t} />
           ))}
 
-          {/* 1 */}
-          <Campo rotulo="Empresa" nome="empresa" valorInicial={cartao?.empresa ?? ''} placeholder="Digite aqui" />
-          <Campo rotulo="Nome do contato" nome="contato" valorInicial={cartao?.contato ?? ''} placeholder="Digite aqui" />
+          <div className="funil__cartao-colunas">
+            {/* 1 — quem é o cliente */}
+            <div className="funil__col">
+              <Campo rotulo="Empresa" nome="empresa" valorInicial={cartao?.empresa ?? ''} placeholder="Digite aqui" />
+              <Campo rotulo="Nome do contato" nome="contato" valorInicial={cartao?.contato ?? ''} placeholder="Digite aqui" />
+              <Campo rotulo="Segmento / atividade" nome="segmento" valorInicial={cartao?.segmento ?? ''} placeholder="Digite aqui" />
+              <Campo
+                rotulo="Faturamento anual"
+                nome="faturamento"
+                valorInicial={cartao?.faturamento ?? ''}
+                placeholder="Ex.: 20 milhões ou 20000000"
+              />
+              <Campo rotulo="Indicante" nome="indicante" valorInicial={cartao?.indicante ?? ''} placeholder="Digite aqui" />
+            </div>
 
-          {/* 2 */}
-          <Campo rotulo="Segmento / atividade" nome="segmento" valorInicial={cartao?.segmento ?? ''} placeholder="Digite aqui" />
-          <Campo
-            rotulo="Faturamento anual"
-            nome="faturamento"
-            valorInicial={cartao?.faturamento ?? ''}
-            placeholder="Ex.: 20 milhões ou 20000000"
-          />
+            {/* 2 — onde ele está */}
+            <div className="funil__col">
+              <SeletorPopup
+                rotulo="Etapa"
+                nome="etapa_id"
+                valorInicial={cartao?.etapa_id ?? etapaInicial ?? ''}
+                opcoes={etapas.map((e) => ({ valor: e.id, rotulo: e.nome }))}
+              />
+              <SeletorMultiploPopup
+                rotulo="Usuário"
+                nome="usuarios"
+                inicial={usuariosDoCartao}
+                opcoes={perfis.map((p) => ({ valor: p.id, rotulo: p.nome }))}
+              />
+              <Campo rotulo="Data do call realizado" nome="data_call" tipo="date" valorInicial={cartao?.data_call ?? ''} />
+              <Campo rotulo="Data do envio do KB" nome="data_kb" tipo="date" valorInicial={cartao?.data_kb ?? ''} />
+              <Campo rotulo="Data inicial" calculado valorInicial={data(cartao?.atualizado_em)} />
+              <Campo rotulo="Última atualização" calculado valorInicial={data(cartao?.atualizado_em)} />
+            </div>
 
-          {/* 3, 4 */}
-          <Campo className="funil__texto" rotulo="Parecer" nome="parecer" multilinha linhas={9} valorInicial={cartao?.parecer ?? ''} placeholder="Digite aqui" />
-          <Campo className="funil__texto" rotulo="Histórico" nome="historico" multilinha linhas={9} valorInicial={cartao?.historico ?? ''} placeholder="Digite aqui" />
-
-          {/* 4b — as tarefas do cartão, logo abaixo do histórico */}
-          <BlocoTarefas
-            tarefas={tarefas}
-            perfis={perfis}
-            temCartao={Boolean(cartao)}
-            aoAdicionar={() => setTarefaNova(true)}
-            aoEditar={setTarefaEmEdicao}
-          />
-
-          {/* 5 */}
-          <SeletorPopup
-            rotulo="Etapa"
-            nome="etapa_id"
-            valorInicial={cartao?.etapa_id ?? etapaInicial ?? ''}
-            opcoes={etapas.map((e) => ({ valor: e.id, rotulo: e.nome }))}
-          />
-          <Campo rotulo="Indicante" nome="indicante" valorInicial={cartao?.indicante ?? ''} placeholder="Digite aqui" />
-          <SeletorMultiploPopup
-            rotulo="Usuário"
-            nome="usuarios"
-            inicial={usuariosDoCartao}
-            opcoes={perfis.map((p) => ({ valor: p.id, rotulo: p.nome }))}
-          />
-
-          {/* 6 — somente leitura */}
-          <Campo rotulo="Data inicial" calculado valorInicial={data(cartao?.atualizado_em)} />
-          <Campo rotulo="Última atualização" calculado valorInicial={data(cartao?.atualizado_em)} />
-
-          {/* 7 */}
-          <Campo rotulo="Data do call realizado" nome="data_call" tipo="date" valorInicial={cartao?.data_call ?? ''} />
-          <Campo rotulo="Data do envio do KB" nome="data_kb" tipo="date" valorInicial={cartao?.data_kb ?? ''} />
-
-          {/* 8 — cinco pílulas alternáveis */}
-          <div className="lc-field grade__inteiro">
-            <span className="lc-field__label">Tags</span>
-            <div className="tipos__lista">
-              {tags.map((t) => {
-                const marcada = escolhidas.includes(t.id);
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={['tipos__tag', marcada && 'tipos__tag--marcado'].filter(Boolean).join(' ')}
-                    aria-pressed={marcada}
-                    onClick={() =>
-                      setEscolhidas((v) => (v.includes(t.id) ? v.filter((x) => x !== t.id) : [...v, t.id]))
-                    }
-                  >
-                    {t.nome}
-                  </button>
-                );
-              })}
+            {/* 3 e 4 — os dois textos longos, um em cada coluna */}
+            <div className="funil__col funil__col--texto">
+              <Campo rotulo="Parecer" nome="parecer" multilinha valorInicial={cartao?.parecer ?? ''} placeholder="Digite aqui" />
+            </div>
+            <div className="funil__col funil__col--texto">
+              <Campo rotulo="Histórico" nome="historico" multilinha valorInicial={cartao?.historico ?? ''} placeholder="Digite aqui" />
             </div>
           </div>
 
+          {/* 5 — embaixo, o que é lista: tags e tarefas */}
+          <div className="funil__cartao-abaixo">
+            <div className="lc-field">
+              <span className="lc-field__label">Tags</span>
+              <div className="tipos__lista">
+                {tags.map((t) => {
+                  const marcada = escolhidas.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={['tipos__tag', marcada && 'tipos__tag--marcado'].filter(Boolean).join(' ')}
+                      aria-pressed={marcada}
+                      onClick={() =>
+                        setEscolhidas((v) => (v.includes(t.id) ? v.filter((x) => x !== t.id) : [...v, t.id]))
+                      }
+                    >
+                      {t.nome}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <BlocoTarefas
+              tarefas={tarefas}
+              perfis={perfis}
+              temCartao={Boolean(cartao)}
+              aoAdicionar={() => setTarefaNova(true)}
+              aoEditar={setTarefaEmEdicao}
+            />
+          </div>
+
           {emBranco ? (
-            <div className="lc-notice lc-notice--neutral grade__inteiro" style={{ background: 'var(--warning-bg)' }}>
+            <div className="lc-notice lc-notice--neutral" style={{ background: 'var(--warning-bg)' }}>
               <p className="lc-notice__title">Cartão em branco</p>
               <div className="lc-notice__body">
                 Este cartão está salvo, mas ainda não tem empresa nem contato — ele aparece no quadro

@@ -12,11 +12,13 @@ avisam; não fazem merge.
 
 ## Estado agora
 
-| Branch | Worktree | Commits | O que toca |
-|---|---|---|---|
-| `qol-funil-tarefas` (A) | `Downloads/files` | 4 | `db/006`, `funil/**`, `clientes/**`, `tsconfig.json` |
-| `qol-operacao-esteira` (B) | `Downloads/app-capital-B` | 5 | `db/007`, `operacoes/**`, `esteira/**`, `fornecedores/**` |
-| `qol-polimento` (C) | `Downloads/app-capital-C` | 6 | `components/**`, CSS global, layouts, `loading.tsx`, `perfil.ts`, `scripts/**` |
+| Branch | Worktree | O que toca |
+|---|---|---|
+| `qol-funil-tarefas` (A) | `Downloads/files` | `db/006`, `funil/**`, `clientes/**`, `tsconfig.json` |
+| `qol-operacao-esteira` (B) | `Downloads/app-capital-B` | `db/007`, `operacoes/**`, `esteira/**`, `fornecedores/**` |
+| `qol-polimento` (C) | `Downloads/app-capital-C` | `components/**`, CSS global, layouts, `loading.tsx`, `perfil.ts`, `scripts/**` |
+
+A contagem de commits muda a cada hora: confira com `git log --oneline main..<branch>`.
 
 `git diff --name-only main...<branch>` nas três: **nenhum arquivo aparece em
 duas branches**. O merge não vai ter conflito de texto. O que existe é
@@ -29,9 +31,14 @@ conflito de *comportamento*, na tabela mais abaixo.
 1. `npm run verify` passa.
 2. `npm run qa` nas três formas (padrão, `-- --escuro`, `-- --celular`) e as
    **capturas foram abertas**. Passar não basta — regra 5 do CLAUDE.md.
-3. A migration da frente já foi aplicada no Supabase. O banco é **um só**, e é
-   o de produção: código que espera coluna nova quebra em `main` se a migration
-   não subiu antes.
+3. A migration da frente já foi aplicada no Supabase — **quando ela mexe no
+   esquema**. O banco é **um só**, e é o de produção: código que espera coluna
+   nova quebra em `main` se a migration não subiu antes.
+   - `006` (A) **é bloqueio**: cria colunas em `funil_tarefa` e fecha
+     `cartao_id` em `not null`.
+   - `007` (B) **não é bloqueio**: é só um índice parcial sobre
+     `estruturacao_em_andamento`, coluna que existe desde a `002`. O índice é
+     desempenho — com 14 operações na base, nem se mede.
 4. Avisar a frente C por mensagem, com o hash do último commit.
 
 ---
@@ -113,7 +120,13 @@ O que ficou de fora desta e já tem dono sugerido:
 
 **Frente B — operação, esteira e fornecedor**
 - Confirmar o segundo filtro da esteira contra dado real (`specs/08-melhorias-qol.md`,
-  "A confirmar", ponto 1).
+  "A confirmar", ponto 1). **Atenção ao que o dado diz antes de mexer no
+  filtro**: a esteira listava 7 operações não arquivadas, e o toggle
+  "Estruturação em Andamento" nunca teve como ser marcado pela tela — ele não
+  existia no diálogo de operação até esta rodada. Se a lista vier **vazia**, a
+  resposta não é somar filtro: é marcar o toggle nas operações certas, e isso é
+  decisão do negócio, não de código (regra 9). Como referência do que o segundo
+  filtro do Bubble pegaria: a base tem 13 etapas em "contrato assinado".
 - "Soma:" no painel de status é um `input` sem efeito nenhum.
 - "Enviar Email" existe no Bubble (`documentacao-completa.md:1997`) e não existe
   no app. É escopo, não bug — precisa de decisão antes de virar tarefa.

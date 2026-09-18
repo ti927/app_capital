@@ -35,6 +35,8 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
     tem_fee: marcado(dados, 'tem_fee'),
     nda_assinado: marcado(dados, 'nda_assinado'),
     mandato_assinado: marcado(dados, 'mandato_assinado'),
+    mandato_assinado_fornecedor: marcado(dados, 'mandato_assinado_fornecedor'),
+    estruturacao_em_andamento: marcado(dados, 'estruturacao_em_andamento'),
   };
 
   let alvo = id;

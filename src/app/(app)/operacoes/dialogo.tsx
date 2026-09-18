@@ -83,9 +83,26 @@ export function DialogoOperacao({
       contexto={operacao?.identificador ?? undefined}
       largura="lg"
       rodape={
-        <Botao variante="primary" type="submit" form="forma-operacao" disabled={gravando}>
-          {nova ? 'Cadastrar' : 'Salvar'}
-        </Botao>
+        <>
+          {/*
+            Group X do Bubble (:2001): o toggle fica no pé do diálogo, ao lado
+            do botão Cadastrar/Salvar. Lá ele **exibe** `fee (yes/no)` e
+            **grava** `Estruturação em Andamento` (dívida documentada em
+            :2271) — aqui exibe e grava o mesmo campo.
+
+            O `form=` é o que faz o checkbox viajar no submit estando fora
+            da <form>.
+          */}
+          <Interruptor
+            nome="estruturacao_em_andamento"
+            rotulo="Estruturação em Andamento"
+            inicial={operacao?.estruturacao_em_andamento}
+            form="forma-operacao"
+          />
+          <Botao variante="primary" type="submit" form="forma-operacao" disabled={gravando}>
+            {nova ? 'Cadastrar' : 'Salvar'}
+          </Botao>
+        </>
       }
     >
       <form id="forma-operacao" action={agir} className="grade">
@@ -128,12 +145,21 @@ export function DialogoOperacao({
         <Campo rotulo="Faturamento anual" calculado valorInicial={operacao?.faturamento_anual ?? ''} />
         <Campo rotulo="Comissão" nome="comissao" valorInicial={operacao?.comissao ?? ''} placeholder="Digite aqui" />
 
+        {/* Group VZ do Bubble: Comissão e Destino do recurso lado a lado. */}
+        <Campo rotulo="Destino do recurso" nome="destino_recurso" valorInicial={operacao?.destino_recurso ?? ''} placeholder="Digite aqui" />
+
         <Campo className="grade__inteiro campo-alto" rotulo="Parecer da operação" nome="parecer" multilinha linhas={11} valorInicial={operacao?.parecer ?? ''} placeholder="Digite aqui" />
 
+        {/* Rótulos como no Bubble (Group S / JZZ, documentacao-completa.md:2011–2016). */}
         <div className="grade__inteiro linha" style={{ gap: 'var(--space-6)', flexWrap: 'wrap' }}>
-          <Interruptor nome="tem_fee" rotulo="Fee (yes/no)" inicial={operacao?.tem_fee} />
-          <Interruptor nome="nda_assinado" rotulo="NDA assinado" inicial={operacao?.nda_assinado} />
-          <Interruptor nome="mandato_assinado" rotulo="Mandato assinado" inicial={operacao?.mandato_assinado} />
+          <Interruptor nome="tem_fee" rotulo="Com fee" inicial={operacao?.tem_fee} />
+          <Interruptor nome="nda_assinado" rotulo="NDA assinado com o Cliente" inicial={operacao?.nda_assinado} />
+          <Interruptor nome="mandato_assinado" rotulo="Mandato assinado pelo cliente" inicial={operacao?.mandato_assinado} />
+          <Interruptor
+            nome="mandato_assinado_fornecedor"
+            rotulo="Mandato assinado com o fundo"
+            inicial={operacao?.mandato_assinado_fornecedor}
+          />
         </div>
 
         {estado?.erro ? (
@@ -178,10 +204,21 @@ export function DialogoOperacao({
 
 /* ------------------------------------------------------------ interruptor -- */
 
-function Interruptor({ nome, rotulo, inicial }: { nome: string; rotulo: string; inicial?: boolean }) {
+function Interruptor({
+  nome,
+  rotulo,
+  inicial,
+  form,
+}: {
+  nome: string;
+  rotulo: string;
+  inicial?: boolean;
+  /** Id da <form> quando o interruptor fica fora dela (rodapé do diálogo). */
+  form?: string;
+}) {
   return (
     <label className="interruptor">
-      <input type="checkbox" name={nome} defaultChecked={inicial} />
+      <input type="checkbox" name={nome} defaultChecked={inicial} form={form} />
       <span>{rotulo}</span>
     </label>
   );

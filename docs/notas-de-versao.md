@@ -4,6 +4,36 @@ Uma seção por rodada, a mais recente no topo. Escrito para quem usa o sistema.
 
 ---
 
+## 18/09/2026 — rodada QOL, parte 4
+
+### A casca do sistema
+
+- **Quem está usando foi para a barra de cima**, à esquerda: bolinha com as
+  iniciais, nome e cargo. Saiu da barra lateral, onde disputava espaço com os
+  itens do menu.
+- **A barra lateral não corta mais.** Antes a janela inteira rolava e a lateral
+  ficava presa no meio do caminho, com um vão branco em cima. Agora ela vai de
+  ponta a ponta em qualquer tela, rolada ou não — quem rola é só a área de
+  conteúdo.
+
+### Funil de Clientes
+
+- **A barra de rolagem do quadro fica na base da janela**, à mão. Antes o quadro
+  crescia com a coluna mais alta e era preciso descer até o fim de tudo para
+  achar a barra. Cada coluna rola por dentro quando tem cartão demais.
+- No celular nada disso vale: lá a página rola como sempre rolou, porque prender
+  o quadro numa faixa de 400px seria pior.
+
+### Esteira de Estruturação
+
+- Confirmado na tela: escolher **CRA** abre Securitizadora, DTVM, Agente
+  Fiduciário e Custodiante; **Debêntures** abre Emissor, Estruturador, Agente
+  Fiduciário e DTVM; **FIDC/FIAGRO/FII/SLB** abre Gestor, Administrador, DTVM e
+  Assessoria Legal — e a lista de instrumentos mostra só os oito que vão para a
+  esteira.
+
+---
+
 ## 18/09/2026 — rodada QOL, parte 3
 
 ### Funil de Clientes

@@ -33,3 +33,27 @@
   margin-top: var(--space-2);
   font-style: italic;
 }
+
+/* ------------------------------------------- toggle no rodapé do diálogo -- */
+
+/*
+  No Bubble o "Estruturação em Andamento" fica no pé do diálogo, à esquerda
+  do botão Cadastrar/Salvar (Group X, :2001). O `.lc-dialog__foot` é
+  `justify-content: flex-end` com altura fixa — então o toggle empurra o resto
+  com `margin-right: auto` em vez de o rodapé virar `space-between`. O rodapé
+  é da frente C; assim não há conflito de merge.
+
+  `.interruptor` já é `nowrap`, então o rótulo nunca quebra em duas linhas e a
+  altura fixa do rodapé está a salvo. O que falta é o aperto horizontal: em
+  390px o rótulo longo e o botão disputam a mesma linha, e aqui o rótulo cede
+  com reticências em vez de empurrar o botão para fora.
+*/
+.lc-dialog__foot .rodape-toggle {
+  margin-right: auto;
+  min-width: 0;
+}
+
+.lc-dialog__foot .rodape-toggle span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

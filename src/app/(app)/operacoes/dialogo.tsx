@@ -98,6 +98,7 @@ export function DialogoOperacao({
             rotulo="Estruturação em Andamento"
             inicial={operacao?.estruturacao_em_andamento}
             form="forma-operacao"
+            className="rodape-toggle"
           />
           <Botao variante="primary" type="submit" form="forma-operacao" disabled={gravando}>
             {nova ? 'Cadastrar' : 'Salvar'}
@@ -209,15 +210,17 @@ function Interruptor({
   rotulo,
   inicial,
   form,
+  className,
 }: {
   nome: string;
   rotulo: string;
   inicial?: boolean;
   /** Id da <form> quando o interruptor fica fora dela (rodapé do diálogo). */
   form?: string;
+  className?: string;
 }) {
   return (
-    <label className="interruptor">
+    <label className={className ? `interruptor ${className}` : 'interruptor'}>
       <input type="checkbox" name={nome} defaultChecked={inicial} form={form} />
       <span>{rotulo}</span>
     </label>

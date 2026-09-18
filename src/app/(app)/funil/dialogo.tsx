@@ -85,10 +85,13 @@ export function DialogoCartao({
               ) : null}
             </div>
             <div className="linha">
-              {/* Vira "Ver cliente" depois que o cartão já tem `cliente_id`. */}
+              {/* Vira "Ver cliente" depois que o cartão já tem `cliente_id`.
+                  Rótulo curto: com quatro botões, "Cadastrar como cliente" por
+                  extenso empurra o rodapé para fora da tela no celular. O nome
+                  inteiro está no título da confirmação. */}
               {cartao ? (
                 <Botao variante="secondary" onClick={aoVirarCliente}>
-                  {cartao.cliente_id ? 'Ver cliente' : 'Cadastrar como cliente'}
+                  {cartao.cliente_id ? 'Ver cliente' : 'Virar cliente'}
                 </Botao>
               ) : null}
               {cartao ? (

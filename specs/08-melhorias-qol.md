@@ -141,10 +141,21 @@ Regras de convivência:
 - **Toda tarefa pertence a um cartão.** Não existe tarefa solta no quadro. A
   migration 006 fecha isso no banco (`funil_tarefa.cartao_id not null`) e a tela
   nunca oferece criar tarefa sem escolher o cartão.
+- **Prazo de tarefa é data + hora opcional** (fecha o ponto 2 de "a confirmar").
+  `funil_tarefa.hora` é `time` e fica nulo quando não interessa; a lista mostra
+  `dd/mm` e só acrescenta ` às HH:MM` quando há hora. Implementado na frente A.
+- **A lista de tarefas tem dois grupos além dos cinco do roteiro**: `Depois`
+  (prazo além do próximo mês) e `Sem prazo`. O desenho de `08a` listava só
+  vencidas / hoje / esta semana / este mês / próximo mês / concluídas — com
+  esses seis, a tarefa marcada para daqui a três meses e a tarefa sem prazo
+  sumiriam da tela sem aviso nenhum. Decisão da frente A ao implementar.
+- **Nome de cliente repetido não bloqueia nem cria em silêncio.** Ao cadastrar
+  cliente a partir do cartão, se já existe um `cliente.nome_razao` igual
+  (ignorando caixa), a tela avisa e oferece duas saídas: ligar o cartão ao
+  cliente que já existe, ou criar um segundo cadastro. Duas empresas podem ter
+  o mesmo nome; quem decide é quem conhece a carteira. Decisão da frente A.
 
 ## A confirmar com o negócio
 
 1. **Esteira**: só o toggle, ou toggle + cliente com etapa "contrato assinado"?
    (item 2 acima)
-2. **Tarefa**: prazo com hora ou só data? O desenho assume **data + hora
-   opcional**, porque "reunião com o cliente tal" tem hora.

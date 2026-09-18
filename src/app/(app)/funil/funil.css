@@ -437,3 +437,33 @@
     text-align: left;
   }
 }
+
+/* --------------------------------------------------- rodapé do cartão ----- */
+
+/**
+ * O rodapé do cartão ganhou um quarto botão ("Virar cliente"). No celular os
+ * quatro não cabem numa linha: as duas fileiras empilham e os botões quebram.
+ * O recuo à esquerda tira a primeira fileira de baixo do avatar flutuante da
+ * casca, que é `position: fixed` no canto inferior esquerdo.
+ */
+@media (max-width: 640px) {
+  .funil__rodape-dialogo {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  .funil__rodape-dialogo .linha {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .funil__rodape-dialogo .linha:first-child {
+    padding-left: 56px;
+  }
+}
+
+/* Espaço no fim do painel para o avatar flutuante não cobrir a legenda. */
+@media (max-width: 900px) {
+  .tarefas {
+    padding-bottom: 56px;
+  }
+}

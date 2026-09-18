@@ -150,7 +150,8 @@ export function PainelTarefas({
               <Vazio
                 titulo={tarefas.length ? 'Nenhuma tarefa com esse filtro' : 'Nenhuma tarefa ainda'}
                 escondidos={escondidos || undefined}
-                aoLimpar={temFiltro ? limpar : undefined}
+                // Sem tarefa nenhuma, limpar filtro não traz nada: seria um beco.
+                aoLimpar={temFiltro && tarefas.length > 0 ? limpar : undefined}
               />
             </div>
           ) : (

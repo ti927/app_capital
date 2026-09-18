@@ -504,10 +504,18 @@ body {
 /* --- campos de texto longo ------------------------------------------------- */
 
 /* Parecer e histórico são o corpo do cadastro: precisam de área de escrita,
-   não de uma faixa de três linhas. */
+   não de uma faixa de três linhas.
+
+   O `.lc-field__input` do design system é `height: var(--control-h-md)` com
+   `padding: 0 var(--space-5)`: medida de campo de uma linha, onde a altura
+   fixa centraliza o texto sozinha. Num `<textarea>` isso vira padding vertical
+   **zero** — o texto encosta na borda de cima e a última linha some por baixo.
+   Aqui a altura solta e o padding vertical volta. */
 .lc-field__input textarea,
 textarea.lc-field__input {
+  height: auto;
   min-height: 92px;
+  padding: var(--space-4) var(--space-5);
   resize: vertical;
   line-height: 20px;
 }

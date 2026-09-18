@@ -13,11 +13,24 @@ body {
   height: 100%;
 }
 
+/* ---------------------------------------------------------------------------
+   A casca não rola; o conteúdo rola por dentro.
+
+   Antes a janela inteira rolava, e a barra lateral era `sticky`: ao rolar, a
+   app bar subia e a lateral ficava "cortada", com um vão branco em cima.
+   Agora a casca tem a altura da janela e quem rola é a área de conteúdo — a
+   lateral preenche sempre, de ponta a ponta, e a barra de cima não sai do
+   lugar.
+
+   Consequência boa para o quadro do funil: a barra de rolagem horizontal fica
+   na base da JANELA, à mão, em vez de no fim de um quadro que descia sem fim.
+   --------------------------------------------------------------------------- */
+
 .casca {
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100dvh;
   display: grid;
   grid-template-rows: var(--app-bar-h) 1fr;
+  overflow: hidden;
 }
 
 .casca__corpo {
@@ -27,20 +40,44 @@ body {
   min-height: 0;
 }
 
-/* A barra lateral estica até o fim e rola sozinha quando não cabe. */
 .casca__corpo > .lc-sidenav {
   height: 100%;
-  align-self: stretch;
-  position: sticky;
-  top: var(--app-bar-h);
-  max-height: calc(100dvh - var(--app-bar-h));
   overflow-y: auto;
 }
 
-/* Sem vão entre a barra e o conteúdo: a borda da barra já é a separação. */
 .casca__conteudo {
-  padding: var(--space-6);
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* O nó da transição de página é quem carrega a tela: precisa esticar para a
+   tela poder ocupar a altura (o quadro do funil depende disso). */
+.casca__conteudo > .transicao {
+  flex: 1 0 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tela que manda na própria altura — hoje só o funil, que tem um quadro para
+   rolar na horizontal. Aqui quem rola é o quadro, não a área de conteúdo:
+   assim a barra de rolagem horizontal fica na base da JANELA, e não no fim de
+   um quadro que descia sem fim.
+
+   `:has()` não é truque: é a única forma de o pai reagir ao que a tela é sem
+   passar uma classe pela casca inteira. Onde não houver suporte, a página
+   volta a rolar como antes — ninguém fica sem a tela. */
+@media (min-width: 861px) {
+  .casca__conteudo:has(> .transicao > .funil__tela) {
+    overflow: hidden;
+  }
+
+  .casca__conteudo:has(> .transicao > .funil__tela) > .transicao {
+    flex: 1 1 auto;
+  }
 }
 
 /* --- ações da app bar ------------------------------------------------------ */
@@ -517,7 +554,7 @@ body {
 }
 
 .casca__conteudo {
-  padding: var(--space-5) var(--space-5) var(--space-8);
+  padding: var(--space-5) var(--space-5) var(--space-6);
 }
 
 /* --- campos de texto longo ------------------------------------------------- */
@@ -810,19 +847,24 @@ textarea.lc-field__input {
    itálico e mais apagado — é informação de contexto, não de navegação.
    --------------------------------------------------------------------------- */
 
+.lc-appbar__left {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  /* Não encosta na marca centralizada, que é posicionada por cima. */
+  max-width: 38%;
+}
+
 .lc-perfil {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-4) var(--space-5);
-  margin-bottom: var(--space-2);
-  border-bottom: var(--border-w) solid var(--border);
+  gap: var(--space-3);
   min-width: 0;
 }
 
 .lc-perfil__foto {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   flex: none;
   border-radius: var(--radius-pill);
   background: var(--accent);

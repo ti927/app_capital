@@ -52,9 +52,47 @@ export function niveisQueVeem(item: ItemNav): NivelAcesso[] {
    sair · trocar senha · tema · Configurações (só master).
    --------------------------------------------------------------------------- */
 
-export function BarraApp({ acoes }: { acoes?: ReactNode }) {
+/**
+ * Cargo mostrado embaixo do nome. `indicante` não aparece de propósito: é a
+ * conta de quem vem de fora, e carimbar o rótulo na tela dele o tempo todo não
+ * acrescenta nada.
+ */
+const CARGO: Partial<Record<NivelAcesso, string>> = { master: 'Master' };
+
+/** "Maicon Farina" vira "MF"; um nome só vira a primeira letra. */
+function iniciais(nome: string) {
+  const partes = nome.trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return '?';
+  return (partes[0][0] + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase();
+}
+
+/**
+ * Quem está usando, à esquerda da barra: bolinha com as iniciais, nome ao lado
+ * e o cargo embaixo, menor e em itálico.
+ *
+ * A bolinha é o lugar da foto do Google, para quando o OAuth entrar. Fica aqui
+ * e não na navegação lateral porque a barra é a parte da casca que não rola —
+ * é onde a identificação faz sentido.
+ */
+export function PerfilNaBarra({ nome, nivel }: { nome: string; nivel: NivelAcesso }) {
+  const cargo = CARGO[nivel];
+  return (
+    <div className="lc-perfil">
+      <span className="lc-perfil__foto" aria-hidden="true">
+        {iniciais(nome)}
+      </span>
+      <span className="lc-perfil__texto">
+        <span className="lc-perfil__nome">{nome}</span>
+        {cargo ? <span className="lc-perfil__cargo">{cargo}</span> : null}
+      </span>
+    </div>
+  );
+}
+
+export function BarraApp({ perfil, acoes }: { perfil?: ReactNode; acoes?: ReactNode }) {
   return (
     <header className="lc-appbar">
+      {perfil ? <div className="lc-appbar__left">{perfil}</div> : null}
       <div className="lc-appbar__brand">
         <Logo href="/clientes" chip="CAPITAL" tamanho={26} tamanhoNome={17} />
       </div>

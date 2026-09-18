@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BarraApp, ITENS_NAV, niveisQueVeem } from '@/components/ui/casca';
+import { BarraApp, ITENS_NAV, niveisQueVeem, PerfilNaBarra } from '@/components/ui/casca';
 import { NavLateral } from '@/components/ui/navlateral';
 import { BotaoDeTema } from '@/components/ui/tema';
 import { Transicao } from '@/components/ui/transicao';
@@ -32,6 +32,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
   return (
     <div className="casca">
       <BarraApp
+        perfil={<PerfilNaBarra nome={perfil.nome} nivel={perfil.nivel_acesso} />}
         acoes={
           <>
             <form action={sair}>
@@ -59,7 +60,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         }
       />
       <div className="casca__corpo">
-        <NavLateral nivel={perfil.nivel_acesso} nome={perfil.nome} />
+        <NavLateral nivel={perfil.nivel_acesso} />
         <main className="casca__conteudo">
           <Transicao>{children}</Transicao>
         </main>

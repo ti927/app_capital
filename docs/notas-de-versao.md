@@ -4,6 +4,60 @@ Uma seção por rodada, a mais recente no topo. Escrito para quem usa o sistema.
 
 ---
 
+## 18/09/2026 — rodada QOL, parte 2
+
+### Menu lateral
+
+- **Quem está usando aparece no alto**: bolinha com as iniciais do nome (Maicon
+  Farina vira MF), nome ao lado e o cargo embaixo, menor e em itálico. A
+  bolinha é o lugar da foto do Google, para quando o login por Google entrar.
+
+### Funil de Clientes
+
+- **"Novo cartão" já cria o cartão.** Antes o cartão só nascia ao salvar: fechar
+  o diálogo sem querer no meio de uma reunião levava junto o que tinha sido
+  digitado. Agora ele existe desde o clique, grava sozinho, e cartão que não
+  serviu se exclui pelo próprio diálogo.
+- **O cartão abre em tela cheia**, com os campos curtos numa coluna e parecer e
+  histórico lado a lado — tudo à vista, **sem barra de rolagem** (conferido em
+  1920×1080, 1440×900 e 1366×768).
+- **"Tags" e "Colunas no fluxo" passaram a funcionar.** Tags: criar, renomear,
+  trocar a cor, excluir. Colunas: tirar do fluxo — a coluna some do quadro e
+  **nenhum cartão se perde** — e renomear.
+- **Cinzas mais leves no tema claro**: coluna quase branca, cartão branco com
+  borda sutil. O tema escuro não mudou.
+
+### Esteira de Estruturação
+
+- **O campo "Instrumento" agora oferece só os oito que vão para a esteira** —
+  CRA, CRI, CR, FIDC Proprietário, FIAGRO, FII, SLB e Debêntures. Listava os 31
+  tipos de operação, incluindo M&A, Câmbio e Vendor, que não têm estruturação
+  para acompanhar ali.
+- Os campos que aparecem depois continuam mudando conforme o instrumento, como
+  já era: CRA/CRI/CR pede Securitizadora, DTVM, Agente Fiduciário, Custodiante;
+  Debêntures pede Emissor, Estruturador, Agente Fiduciário, DTVM;
+  FIDC/FIAGRO/FII/SLB pede Gestor, Administrador, DTVM, Assessoria Legal.
+
+### Velocidade
+
+- **Uma ida à rede a menos em toda navegação.** O sistema perguntava ao Supabase
+  "quem é esse usuário?" a cada requisição, antes de a página começar; agora a
+  assinatura do acesso é conferida na hora, sem sair do servidor.
+- **O cadastro de quem está logado fica 60s guardado** em vez de ser consultado
+  a cada tela.
+- Medido em build de produção: o conteúdo chega em ~358ms, contra 377ms. O
+  ganho grande continua sendo o de antes — a tela responde em ~100ms em vez de
+  ficar parada. O que sobra é o tempo de ida e volta ao banco (~80ms por
+  consulta), e não o tamanho do que trafega: cada tela manda entre 12 e 40 KB.
+
+### Pendente, precisa de decisão
+
+- ⚠️ **Produção continua fora do ar** até `NEXT_PUBLIC_SUPABASE_ANON_KEY` entrar
+  no projeto da Vercel.
+- Otimizar as consultas de cada página ficou para a próxima rodada.
+
+---
+
 ## 18/09/2026 — rodada QOL
 
 ### Funil de Clientes

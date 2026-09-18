@@ -10,6 +10,7 @@ import { tokenDoStatus, type EtapaOperacao, type Fornecedor, type Operacao, type
 import { arquivarOperacao, excluirOperacao } from './acoes';
 import { DialogoOperacao } from './dialogo';
 import type { ClienteResumo, Declinio, Observacao, Visualizador } from './page';
+import './operacao.css';
 
 type Aba = 'cliente' | 'fornecedor' | 'status';
 

@@ -1,0 +1,35 @@
+/* ===========================================================================
+   Operação — CSS local da rota, importado por operacoes/tela.tsx.
+
+   Fica aqui, e não em interface.css ou design-system.css: esses dois são da
+   frente C, e o design-system.css ainda por cima é regravado por
+   `npm run tokens`.
+   =========================================================================== */
+
+/* ---------------------------------------------------- tabela de etapas ---- */
+
+/*
+  "Na mão de" é texto corrido — no Bubble o campo é MultiLineInput
+  (documentacao-completa.md:1979). O `.lc-table td` do design system é
+  `nowrap` + `ellipsis`, e cortava o conteúdo no meio. Aqui a célula quebra
+  linha e mostra tudo; as demais colunas seguem como estão.
+
+  Com uma célula alta, as vizinhas precisam alinhar pelo topo — senão o texto
+  curto flutua no meio da linha.
+*/
+.tabela-etapas td {
+  vertical-align: top;
+}
+
+.tabela-etapas td.na-mao-de {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+/* A nota em itálico sob a tabela dos declinados. A cor vem de `.apoio`. */
+.etapas-nota {
+  margin-top: var(--space-2);
+  font-style: italic;
+}

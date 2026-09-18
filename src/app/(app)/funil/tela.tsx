@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
 import {
@@ -19,7 +19,7 @@ import {
   criarColuna,
   excluirColuna,
   moverCartao,
-  moverColuna,
+  trocarOrdemColunas,
 } from './acoes';
 import { DialogoCartao } from './dialogo';
 import { DialogoColunas, DialogoTags } from './gestao';
@@ -69,6 +69,9 @@ export function TelaFunil({
   const [novaColuna, setNovaColuna] = useState(false);
   const [gerindoTags, setGerindoTags] = useState(false);
   const [gerindoColunas, setGerindoColunas] = useState(false);
+  /** Colunas que estão mostrando os arquivados em vez dos ativos. */
+  const [vendoArquivados, setVendoArquivados] = useState<string[]>([]);
+  const [colunaAExcluir, setColunaAExcluir] = useState<EtapaFunil | null>(null);
   const [aVirarCliente, setAVirarCliente] = useState<CartaoDoFunil | null>(null);
   const [arrastado, setArrastado] = useState<string | null>(null);
   const [, transicao] = useTransition();
@@ -105,20 +108,29 @@ export function TelaFunil({
     return mapa;
   }, [cartaoTags, tags]);
 
-  const visiveis = useMemo(() => {
-    const alvo = busca.trim().toLowerCase();
-    return cartoes.filter((c) => {
-      if (c.arquivado) return false;
+  /** Busca e filtro de tag valem também para a vista de arquivados. */
+  const passaNoFiltro = useCallback(
+    (c: CartaoDoFunil) => {
       if (tagFiltro && !(tagsDe.get(c.id) ?? []).some((t) => t.id === tagFiltro)) return false;
+      const alvo = busca.trim().toLowerCase();
       if (!alvo) return true;
       return [c.empresa, c.contato, c.indicante].some((v) => (v ?? '').toLowerCase().includes(alvo));
-    });
-  }, [cartoes, busca, tagFiltro, tagsDe]);
+    },
+    [busca, tagFiltro, tagsDe],
+  );
+
+  const visiveis = useMemo(
+    () => cartoes.filter((c) => !c.arquivado && passaNoFiltro(c)),
+    [cartoes, passaNoFiltro],
+  );
 
   const colunas = useMemo(
     () => etapas.filter((e) => e.no_fluxo).sort((a, b) => a.ordem - b.ordem),
     [etapas],
   );
+
+  /** Tag desativada some do filtro e da escolha no cartão — e não perde nada. */
+  const tagsAtivas = useMemo(() => tags.filter((t) => t.ativo), [tags]);
 
   /** Cartões que a aba de tarefas oferece: os não arquivados, sem filtro de tela. */
   const cartoesParaTarefa = useMemo(() => cartoes.filter((c) => !c.arquivado), [cartoes]);
@@ -208,7 +220,7 @@ export function TelaFunil({
 
           <span className="apoio">Filtrar por tag:</span>
           <div className="funil__tags">
-            {tags.map((t) => (
+            {tagsAtivas.map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -228,13 +240,19 @@ export function TelaFunil({
         {/* Quadro: colunas roláveis na horizontal. */}
         <div className="funil__quadro">
           {colunas.map((coluna, i) => {
-            const daColuna = visiveis.filter((c) => c.etapa_id === coluna.id);
+            const vendoArquivadosAqui = vendoArquivados.includes(coluna.id);
+            const daColuna = cartoes.filter(
+              (c) => c.etapa_id === coluna.id && !!c.arquivado === vendoArquivadosAqui && passaNoFiltro(c),
+            );
+            const ativosAqui = cartoes.filter((c) => c.etapa_id === coluna.id && !c.arquivado).length;
             const arquivadosAqui = cartoes.filter((c) => c.etapa_id === coluna.id && c.arquivado).length;
 
             return (
               <section
                 key={coluna.id}
-                className="funil__coluna"
+                className={['funil__coluna', vendoArquivadosAqui && 'funil__coluna--arquivados']
+                  .filter(Boolean)
+                  .join(' ')}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => soltarEm(coluna.id)}
               >
@@ -243,30 +261,67 @@ export function TelaFunil({
                     <button
                       type="button"
                       aria-label="Mover coluna para a esquerda"
+                      title="Mover para a esquerda"
                       disabled={i === 0}
-                      onClick={() => transicao(() => void moverColuna(coluna.id, coluna.ordem - 1.5))}
+                      onClick={() =>
+                        transicao(() =>
+                          void trocarOrdemColunas(
+                            coluna.id,
+                            coluna.ordem,
+                            colunas[i - 1].id,
+                            colunas[i - 1].ordem,
+                          ),
+                        )
+                      }
                     >
                       <IconeChevronEsquerda tamanho={15} />
                     </button>
                     <button
                       type="button"
                       aria-label="Mover coluna para a direita"
+                      title="Mover para a direita"
                       disabled={i === colunas.length - 1}
-                      onClick={() => transicao(() => void moverColuna(coluna.id, coluna.ordem + 1.5))}
+                      onClick={() =>
+                        transicao(() =>
+                          void trocarOrdemColunas(
+                            coluna.id,
+                            coluna.ordem,
+                            colunas[i + 1].id,
+                            colunas[i + 1].ordem,
+                          ),
+                        )
+                      }
                     >
                       <IconeChevronDireita tamanho={15} />
                     </button>
                   </div>
                   <h2 className="funil__coluna-nome">{coluna.nome}</h2>
                   <div className="funil__coluna-acoes">
-                    <button type="button" aria-label="Arquivar coluna" title="Arquivar">
+                    {/* A caixa mostra os arquivados DA COLUNA — não arquiva a
+                        coluna. É o que o botão faz no funil original. */}
+                    <button
+                      type="button"
+                      className={vendoArquivadosAqui ? 'funil__coluna-acao--ativa' : undefined}
+                      aria-pressed={vendoArquivadosAqui}
+                      aria-label={
+                        vendoArquivadosAqui
+                          ? `Ver cartões ativos de ${coluna.nome}`
+                          : `Ver cartões arquivados de ${coluna.nome}`
+                      }
+                      title={vendoArquivadosAqui ? 'Ver ativos' : 'Ver arquivados'}
+                      onClick={() =>
+                        setVendoArquivados((v) =>
+                          v.includes(coluna.id) ? v.filter((x) => x !== coluna.id) : [...v, coluna.id],
+                        )
+                      }
+                    >
                       <IconeArquivar tamanho={15} />
                     </button>
                     <button
                       type="button"
-                      aria-label="Excluir coluna"
-                      title="Excluir"
-                      onClick={() => transicao(() => void excluirColuna(coluna.id))}
+                      aria-label={`Excluir coluna ${coluna.nome}`}
+                      title="Excluir coluna"
+                      onClick={() => setColunaAExcluir(coluna)}
                     >
                       <IconeFechar tamanho={15} />
                     </button>
@@ -274,7 +329,13 @@ export function TelaFunil({
                 </header>
 
                 <p className="funil__coluna-contagem apoio">
-                  {daColuna.length} {daColuna.length === 1 ? 'cartão' : 'cartões'} / {arquivadosAqui} arquivados
+                  <span className={vendoArquivadosAqui ? undefined : 'funil__contagem--forte'}>
+                    {ativosAqui} {ativosAqui === 1 ? 'cartão' : 'cartões'}
+                  </span>{' '}
+                  /{' '}
+                  <span className={vendoArquivadosAqui ? 'funil__contagem--forte' : undefined}>
+                    {arquivadosAqui} arquivado{arquivadosAqui === 1 ? '' : 's'}
+                  </span>
                 </p>
 
                 <div className="funil__cartoes">
@@ -285,21 +346,24 @@ export function TelaFunil({
                       tags={tagsDe.get(c.id) ?? []}
                       tarefasEmAberto={tarefas.filter((t) => t.cartao_id === c.id && !t.concluida).length}
                       aoAbrir={() => setAbertoId(c.id)}
-                      aoArquivar={() => transicao(() => void arquivarCartao(c.id, true))}
+                      aoArquivar={() => transicao(() => void arquivarCartao(c.id, !c.arquivado))}
                       aoArrastar={() => setArrastado(c.id)}
                       aoVirarCliente={() => setAVirarCliente(c)}
                     />
                   ))}
                 </div>
 
-                <button
-                  type="button"
-                  className="funil__novo"
-                  disabled={criandoCartao}
-                  onClick={() => void criarAqui(coluna.id)}
-                >
-                  <IconeMais tamanho={14} /> {criandoCartao ? 'Criando…' : 'Novo cartão'}
-                </button>
+                {/* Na vista de arquivados não se cria cartão — como no original. */}
+                {vendoArquivadosAqui ? null : (
+                  <button
+                    type="button"
+                    className="funil__novo"
+                    disabled={criandoCartao}
+                    onClick={() => void criarAqui(coluna.id)}
+                  >
+                    <IconeMais tamanho={14} /> {criandoCartao ? 'Criando…' : 'Novo cartão'}
+                  </button>
+                )}
               </section>
             );
           })}
@@ -325,7 +389,7 @@ export function TelaFunil({
           quadroId={quadro.id}
           etapaInicial={null}
           etapas={colunas}
-          tags={tags}
+          tags={tagsAtivas}
           tagsDoCartao={aberto ? (tagsDe.get(aberto.id) ?? []).map((t) => t.id) : []}
           perfis={perfis}
           perfilId={perfilId}
@@ -364,6 +428,15 @@ export function TelaFunil({
             aberto={gerindoColunas}
             etapas={etapas}
             aoFechar={() => setGerindoColunas(false)}
+          />
+          <DialogoExcluirColuna
+            coluna={colunaAExcluir}
+            quantosCartoes={
+              colunaAExcluir
+                ? cartoes.filter((c) => c.etapa_id === colunaAExcluir.id).length
+                : 0
+            }
+            aoFechar={() => setColunaAExcluir(null)}
           />
         </>
       ) : null}
@@ -460,6 +533,67 @@ function Cartao({
         </p>
       </button>
     </article>
+  );
+}
+
+/* ------------------------------------------------------- excluir coluna ---- */
+
+/**
+ * Excluir coluna apaga os cartões dela — é o que o funil original faz. Por
+ * isso a pergunta traz a contagem na frente: quem clica no ✕ precisa saber o
+ * tamanho do estrago antes, não depois.
+ */
+function DialogoExcluirColuna({
+  coluna,
+  quantosCartoes,
+  aoFechar,
+}: {
+  coluna: EtapaFunil | null;
+  quantosCartoes: number;
+  aoFechar: () => void;
+}) {
+  const [, transicao] = useTransition();
+
+  return (
+    <Dialogo
+      aberto={coluna !== null}
+      aoFechar={aoFechar}
+      titulo="Excluir coluna"
+      largura="sm"
+      rodape={
+        <>
+          <Botao variante="secondary" onClick={aoFechar}>
+            Cancelar
+          </Botao>
+          <Botao
+            variante="danger"
+            onClick={() => {
+              if (coluna) transicao(() => void excluirColuna(coluna.id));
+              aoFechar();
+            }}
+          >
+            Excluir coluna
+          </Botao>
+        </>
+      }
+    >
+      <p>
+        {quantosCartoes > 0 ? (
+          <>
+            A coluna <strong>{coluna?.nome}</strong> tem{' '}
+            <strong>
+              {quantosCartoes} {quantosCartoes === 1 ? 'cartão' : 'cartões'}
+            </strong>{' '}
+            (contando os arquivados). Excluir a coluna <strong>apaga esses cartões</strong>, e isso
+            não tem volta.
+          </>
+        ) : (
+          <>
+            Excluir a coluna <strong>{coluna?.nome}</strong>? Ela está vazia.
+          </>
+        )}
+      </p>
+    </Dialogo>
   );
 }
 

@@ -119,16 +119,44 @@ export async function criarColuna(quadroId: string, nome: string) {
   revalidatePath('/funil');
 }
 
-export async function moverColuna(etapaId: string, ordem: number) {
+/**
+ * Troca a coluna de lugar com a vizinha.
+ *
+ * Antes a tela mandava `ordem ± 1.5`, para a coluna se encaixar entre as duas
+ * — e `funil_etapa.ordem` é `smallint`: o banco arredondava, a coluna caía em
+ * cima da vizinha e o botão parecia não fazer nada. Agora as duas trocam de
+ * ordem, que é o que o funil original faz.
+ */
+export async function trocarOrdemColunas(
+  etapaId: string,
+  ordemDela: number,
+  vizinhaId: string,
+  ordemDaVizinha: number,
+) {
   const supabase = await clienteServidor();
-  await supabase.from('funil_etapa').update({ ordem }).eq('id', etapaId);
+
+  // Ordem repetida não quebra nada (o desempate é o id), mas deixa o quadro
+  // instável: quando as duas batem, o par é reordenado.
+  const [a, b] = ordemDela === ordemDaVizinha ? [ordemDela, ordemDela + 1] : [ordemDaVizinha, ordemDela];
+
+  await Promise.all([
+    supabase.from('funil_etapa').update({ ordem: a }).eq('id', etapaId),
+    supabase.from('funil_etapa').update({ ordem: b }).eq('id', vizinhaId),
+  ]);
   revalidatePath('/funil');
 }
 
+/**
+ * Exclui a coluna e os cartões dela, como no funil original.
+ *
+ * Antes os cartões só perdiam a etapa (`etapa_id = null`) — e cartão sem etapa
+ * não aparece em coluna nenhuma: sumiam do quadro sem aviso e sem jeito de
+ * voltar pela tela. Sumir calado é pior que apagar avisando, então agora a
+ * tela pergunta com a contagem na frente e aqui a exclusão é de verdade.
+ */
 export async function excluirColuna(id: string) {
   const supabase = await clienteServidor();
-  // Os cartões da coluna ficam sem etapa, não somem.
-  await supabase.from('funil_cartao').update({ etapa_id: null }).eq('etapa_id', id);
+  await supabase.from('funil_cartao').delete().eq('etapa_id', id);
   await supabase.from('funil_etapa').delete().eq('id', id);
   revalidatePath('/funil');
 }
@@ -311,6 +339,17 @@ export async function gravarTag(id: string, nome: string, cor: string) {
   if (!limpo) return;
   const supabase = await clienteServidor();
   await supabase.from('funil_tag').update({ nome: limpo, cor }).eq('id', id);
+  revalidatePath('/funil');
+}
+
+/**
+ * Desligar a tag a esconde dos filtros e do cartão **sem perder histórico**:
+ * as ligações com os cartões continuam no banco. Excluir, não — excluir tira a
+ * tag de todos os cartões.
+ */
+export async function alternarTagAtiva(id: string, ativo: boolean) {
+  const supabase = await clienteServidor();
+  await supabase.from('funil_tag').update({ ativo }).eq('id', id);
   revalidatePath('/funil');
 }
 

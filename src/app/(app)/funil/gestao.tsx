@@ -6,6 +6,7 @@ import { Dialogo } from '@/components/ui/dialogo';
 import { IconeDeletar, IconeMais, IconeSalvar } from '@/components/ui/icones';
 import {
   alternarColunaNoFluxo,
+  alternarTagAtiva,
   criarTag,
   excluirTag,
   gravarTag,
@@ -22,15 +23,20 @@ import type { EtapaFunil, TagFunil } from './page';
 
 /* ------------------------------------------------------------------ tags -- */
 
-/** Paleta das tags. Cores da marca, para a tag não destoar do resto. */
-const CORES = [
-  'var(--st-etapa-fechado)',
-  'var(--st-etapa-em-curso)',
-  'var(--st-etapa-inicio)',
-  'var(--st-etapa-terminal-negativo)',
-  'var(--accent)',
-  'var(--border-strong)',
-];
+/**
+ * Cor da tag nova. Qualquer cor serve — o seletor é o do próprio navegador,
+ * como no original; esta é só a que já vem escolhida.
+ */
+const COR_PADRAO = '#22c55e';
+
+/**
+ * O `<input type="color">` só entende hexadecimal. As tags carregadas do
+ * Bubble podem trazer outra notação (`rgb(...)`, nome de cor, token do design
+ * system): nesse caso o quadradinho mostra a cor como ela é, e o seletor abre
+ * numa cor neutra em vez de quebrar.
+ */
+const HEX = /^#[0-9a-f]{6}$/i;
+const paraSeletor = (cor: string | null) => (cor && HEX.test(cor) ? cor : COR_PADRAO);
 
 export function DialogoTags({
   aberto,
@@ -44,7 +50,7 @@ export function DialogoTags({
   aoFechar: () => void;
 }) {
   const [nova, setNova] = useState('');
-  const [corNova, setCorNova] = useState(CORES[0]);
+  const [corNova, setCorNova] = useState(COR_PADRAO);
   const [, transicao] = useTransition();
 
   return (
@@ -66,8 +72,13 @@ export function DialogoTags({
         {tags.length === 0 ? <li className="apoio">Nenhuma tag ainda.</li> : null}
       </ul>
 
+      <p className="apoio">
+        Desativar a tag esconde ela dos filtros <strong>sem perder o histórico</strong> dos
+        cartões. Excluir remove a tag de todos os cartões.
+      </p>
+
       <div className="gestao__nova">
-        <Paleta valor={corNova} aoEscolher={setCorNova} />
+        <Cor valor={corNova} aoEscolher={setCorNova} rotulo="Cor da tag nova" />
         <Campo valor={nova} aoMudar={setNova} placeholder="Nome da tag nova" />
         <Botao
           variante="secondary"
@@ -88,15 +99,15 @@ export function DialogoTags({
 
 function LinhaDaTag({ tag }: { tag: TagFunil }) {
   const [nome, setNome] = useState(tag.nome);
-  const [cor, setCor] = useState(tag.cor ?? CORES[0]);
+  const [cor, setCor] = useState(tag.cor ?? COR_PADRAO);
   const [, transicao] = useTransition();
 
-  const mudou = nome.trim() !== tag.nome || cor !== (tag.cor ?? CORES[0]);
+  const mudou = nome.trim() !== tag.nome || cor !== (tag.cor ?? COR_PADRAO);
 
   return (
     <li className="gestao__linha">
-      <Paleta valor={cor} aoEscolher={setCor} />
-      <Campo valor={nome} aoMudar={setNome} />
+      <Cor valor={cor} aoEscolher={setCor} rotulo={`Cor da tag ${tag.nome}`} />
+      <Campo valor={nome} aoMudar={setNome} className="gestao__nome" />
       <Botao
         variante="tertiary"
         tamanho="row"
@@ -107,6 +118,14 @@ function LinhaDaTag({ tag }: { tag: TagFunil }) {
       >
         <IconeSalvar />
       </Botao>
+      <label className="interruptor" title="Tag ativa">
+        <input
+          type="checkbox"
+          checked={tag.ativo}
+          aria-label={`Tag ${tag.nome} ativa`}
+          onChange={(e) => transicao(() => void alternarTagAtiva(tag.id, e.target.checked))}
+        />
+      </label>
       <Botao
         variante="tertiary"
         tamanho="row"
@@ -120,20 +139,24 @@ function LinhaDaTag({ tag }: { tag: TagFunil }) {
   );
 }
 
-function Paleta({ valor, aoEscolher }: { valor: string; aoEscolher: (v: string) => void }) {
+/** Quadradinho da cor: mostra a atual e abre o seletor do navegador. */
+function Cor({
+  valor,
+  aoEscolher,
+  rotulo,
+}: {
+  valor: string | null;
+  aoEscolher: (v: string) => void;
+  rotulo: string;
+}) {
   return (
-    <span className="gestao__paleta" role="group" aria-label="Cor da tag">
-      {CORES.map((c) => (
-        <button
-          key={c}
-          type="button"
-          className={['gestao__cor', c === valor && 'gestao__cor--ativa'].filter(Boolean).join(' ')}
-          style={{ background: c }}
-          aria-label={`Cor ${CORES.indexOf(c) + 1}`}
-          aria-pressed={c === valor}
-          onClick={() => aoEscolher(c)}
-        />
-      ))}
+    <span className="gestao__cor" style={{ background: valor ?? COR_PADRAO }}>
+      <input
+        type="color"
+        value={paraSeletor(valor)}
+        aria-label={rotulo}
+        onChange={(e) => aoEscolher(e.target.value)}
+      />
     </span>
   );
 }

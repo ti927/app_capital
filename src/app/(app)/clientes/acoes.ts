@@ -40,7 +40,13 @@ export async function gravarCliente(_anterior: unknown, dados: FormData) {
     const { error } = await supabase.from('cliente').update(campos).eq('id', id);
     if (error) return { erro: 'Não consegui salvar. Tente de novo.' };
   } else {
-    const { data, error } = await supabase.from('cliente').insert(campos).select('id').single();
+    // `criado_por` fecha a outra metade do recorte do indicante: ele enxerga
+    // quem cadastrou, mesmo que ninguém o tenha posto em "quem visualiza".
+    const { data, error } = await supabase
+      .from('cliente')
+      .insert({ ...campos, criado_por: perfil.id })
+      .select('id')
+      .single();
     if (error || !data) return { erro: 'Não consegui cadastrar. Tente de novo.' };
 
     // Quem cria enxerga. No original isso era feito por workflow, com um ID de

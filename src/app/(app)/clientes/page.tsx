@@ -14,10 +14,18 @@ export default async function PaginaClientes() {
   const perfil = await perfilAtual();
   const supabase = await clienteServidor();
 
-  // Recorte por nível. Hoje é feito aqui porque a RLS está desligada; quando
-  // db/003_rls.sql for aplicado o banco garante o mesmo e isto continua válido.
+  /**
+   * Recorte do indicante: os clientes em que ele está em "quem visualiza"
+   * **mais** os que ele mesmo cadastrou. São as duas metades da busca do
+   * Bubble; a segunda passou a ser possível com `cliente.criado_por`
+   * (migration 008).
+   *
+   * Feito aqui porque a RLS está desligada; quando `db/003_rls.sql` for
+   * aplicado, o banco garante o mesmo e isto continua valendo.
+   */
+  const ehMaster = perfil.nivel_acesso === 'master';
   let visiveis: string[] | null = null;
-  if (perfil.nivel_acesso !== 'master') {
+  if (!ehMaster) {
     const { data } = await supabase
       .from('cliente_visualizador')
       .select('cliente_id')
@@ -27,12 +35,14 @@ export default async function PaginaClientes() {
 
   const base = () => {
     const q = supabase.from('cliente').select(CAMPOS).order('nome_razao');
-    return visiveis ? q.in('id', visiveis.length ? visiveis : ['']) : q;
+    if (ehMaster) return q;
+    const ids = (visiveis ?? []).join(',');
+    return q.or(`criado_por.eq.${perfil.id}${ids ? `,id.in.(${ids})` : ''}`);
   };
 
-  const [ativos, arquivados, emails, usuarios, vinculos, cartoes] = await Promise.all([
+  const [ativos, arquivados, emails, usuarios, vinculos, cartoes, meusCartoes] = await Promise.all([
     base().eq('arquivado', false),
-    perfil.nivel_acesso === 'master' ? base().eq('arquivado', true) : Promise.resolve({ data: [] }),
+    ehMaster ? base().eq('arquivado', true) : Promise.resolve({ data: [] }),
     supabase.from('cliente_email').select('id, cliente_id, email').order('email'),
     supabase.from('perfil').select('id, nome').eq('ativo', true).order('nome'),
     supabase.from('cliente_visualizador').select('cliente_id, perfil_id'),
@@ -43,7 +53,20 @@ export default async function PaginaClientes() {
       .is('cliente_id', null)
       .eq('arquivado', false)
       .order('empresa'),
+    // O indicante só enxerga os cartões em que está como usuário — o mesmo
+    // recorte do funil. Sem isto, a lista de "puxar do funil" mostrava a
+    // carteira inteira para quem não pode vê-la.
+    ehMaster
+      ? Promise.resolve({ data: null })
+      : supabase.from('funil_cartao_usuario').select('cartao_id').eq('perfil_id', perfil.id),
   ]);
+
+  const cartoesDele = (meusCartoes.data ?? null) as Array<{ cartao_id: string }> | null;
+  const cartoesVisiveis = cartoesDele
+    ? ((cartoes.data ?? []) as Array<{ id: string }>).filter((c) =>
+        cartoesDele.some((m) => m.cartao_id === c.id),
+      )
+    : (cartoes.data ?? []);
 
   return (
     <TelaClientes
@@ -53,7 +76,7 @@ export default async function PaginaClientes() {
       emails={(emails.data ?? []) as unknown as Array<{ id: number; cliente_id: string; email: string }>}
       usuarios={(usuarios.data ?? []) as unknown as Array<{ id: string; nome: string }>}
       vinculos={(vinculos.data ?? []) as unknown as Array<{ cliente_id: string; perfil_id: string }>}
-      cartoesDoFunil={(cartoes.data ?? []) as unknown as CartaoDoFunil[]}
+      cartoesDoFunil={cartoesVisiveis as unknown as CartaoDoFunil[]}
     />
   );
 }

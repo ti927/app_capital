@@ -1,6 +1,7 @@
 import { BarraApp, ITENS_NAV, niveisQueVeem } from '@/components/ui/casca';
 import { NavLateral } from '@/components/ui/navlateral';
 import { BotaoDeTema } from '@/components/ui/tema';
+import { Transicao } from '@/components/ui/transicao';
 import { BotaoConfiguracoes, type UsuarioDoAcesso } from '@/components/configuracoes';
 import { IconeSair, IconeSenha } from '@/components/ui/icones';
 import { clienteServidor } from '@/lib/supabase/servidor';
@@ -58,7 +59,9 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       />
       <div className="casca__corpo">
         <NavLateral nivel={perfil.nivel_acesso} />
-        <main className="casca__conteudo">{children}</main>
+        <main className="casca__conteudo">
+          <Transicao>{children}</Transicao>
+        </main>
       </div>
     </div>
   );

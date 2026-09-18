@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 const cx = (...v: unknown[]) => v.filter((x): x is string => typeof x === 'string' && x !== '').join(' ');
 
@@ -17,6 +17,9 @@ export interface DialogoProps {
   children?: ReactNode;
   className?: string;
 }
+
+/** Tem que bater com `--mov-saida` de `animacoes.css`. */
+const MS_SAIDA = 140;
 
 /**
  * Diálogo do design system. Fecha por Esc e por clique no overlay, prende o
@@ -38,6 +41,31 @@ export function Dialogo({
 }: DialogoProps) {
   const caixa = useRef<HTMLDivElement>(null);
   const focoAnterior = useRef<HTMLElement | null>(null);
+
+  /**
+   * `aberto` é do consumidor; `montado` é nosso. Quando `aberto` vira falso o
+   * diálogo continua na tela por `MS_SAIDA`, rodando a animação de saída, e só
+   * então desmonta — sumir no talho é o que fazia a tela parecer engasgada.
+   * A API não muda: quem usa continua passando `aberto` e `aoFechar`.
+   */
+  const [montado, setMontado] = useState(aberto);
+  const [saindo, setSaindo] = useState(false);
+
+  useEffect(() => {
+    if (aberto) {
+      setMontado(true);
+      setSaindo(false);
+      return;
+    }
+    if (!montado) return;
+
+    setSaindo(true);
+    const relogio = setTimeout(() => {
+      setMontado(false);
+      setSaindo(false);
+    }, MS_SAIDA);
+    return () => clearTimeout(relogio);
+  }, [aberto, montado]);
 
   useEffect(() => {
     if (!aberto) return;
@@ -86,10 +114,13 @@ export function Dialogo({
     };
   }, [aberto, aoFechar]);
 
-  if (!aberto) return null;
+  if (!montado) return null;
 
   return (
-    <div className="lc-overlay" onMouseDown={(e) => e.target === e.currentTarget && aoFechar()}>
+    <div
+      className={cx('lc-overlay', saindo && 'lc-overlay--saindo')}
+      onMouseDown={(e) => e.target === e.currentTarget && aoFechar()}
+    >
       <div
         ref={caixa}
         className={cx('lc-dialog', `lc-dialog--${largura}`, className)}

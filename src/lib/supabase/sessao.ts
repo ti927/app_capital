@@ -33,17 +33,17 @@ export async function renovarSessao(requisicao: NextRequest) {
   );
 
   /**
-   * `getClaims()` confere a ASSINATURA do token localmente, contra a chave
-   * pública do projeto (que ele busca uma vez e guarda). `getUser()` fazia uma
-   * ida à rede ao Supabase Auth **em toda requisição** — e o middleware roda
-   * antes de a página começar, então esse tempo entrava inteiro na conta do
-   * usuário.
+   * `getUser()` revalida o token no servidor. Não trocar por `getSession()`,
+   * que lê o cookie sem conferir nada.
    *
-   * Não trocar por `getSession()`: aquele lê o cookie sem conferir nada, e aí
-   * um cookie forjado passa.
+   * `getClaims()` confere a assinatura localmente (o projeto usa ES256) e
+   * evitaria esta ida à rede. Medido com build de produção, a troca valeu
+   * ~19ms de 377ms — dentro do ruído. Fica para quando houver motivo melhor:
+   * o caminho de autenticação é o último lugar onde vale trocar uma garantia
+   * do servidor por 5% de tempo.
    */
-  const { data } = await supabase.auth.getClaims();
-  const usuario = data?.claims ?? null;
+  const { data } = await supabase.auth.getUser();
+  const usuario = data.user;
 
   const caminho = requisicao.nextUrl.pathname;
   const ehPublica = PUBLICAS.some((p) => caminho.startsWith(p));

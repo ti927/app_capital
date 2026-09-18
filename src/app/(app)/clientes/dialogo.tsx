@@ -7,7 +7,7 @@ import { IconeFechar, IconeMais } from '@/components/ui/icones';
 import { Dialogo } from '@/components/ui/dialogo';
 import { STATUS_CLIENTE, type Cliente } from '@/lib/dominio';
 import { adicionarEmail, gravarCliente, removerEmail } from './acoes';
-import type { EmailCliente } from './tela';
+import type { CartaoDoFunil, EmailCliente } from './tela';
 
 /**
  * Diálogo de cliente — o mesmo para criar e para editar.
@@ -26,6 +26,7 @@ export function DialogoCliente({
   usuarios,
   visualizadores,
   podeEditarVisualizadores,
+  cartoesDoFunil,
   aoFechar,
 }: {
   aberto: boolean;
@@ -34,16 +35,33 @@ export function DialogoCliente({
   usuarios: Array<{ id: string; nome: string }>;
   visualizadores: string[];
   podeEditarVisualizadores: boolean;
+  cartoesDoFunil: CartaoDoFunil[];
   aoFechar: () => void;
 }) {
   const [estado, agir, gravando] = useActionState(gravarCliente, null as { erro?: string; ok?: boolean } | null);
   const [emailAberto, setEmailAberto] = useState(false);
+  // Cartão escolhido em "Puxar do funil". Só preenche o formulário — nada é
+  // gravado antes de o usuário mandar salvar.
+  const [doFunil, setDoFunil] = useState<CartaoDoFunil | null>(null);
 
   useEffect(() => {
     if (estado?.ok) aoFechar();
   }, [estado, aoFechar]);
 
+  // O diálogo fica montado entre uma abertura e outra: sem isto, o cartão
+  // puxado num cadastro novo reapareceria nos campos do próximo cliente.
+  useEffect(() => {
+    if (!aberto) setDoFunil(null);
+  }, [aberto]);
+
   const editando = Boolean(cliente?.nome_razao);
+
+  // Puxar do funil só vale para cliente novo — em edição o cadastro é a fonte.
+  const cartao = cliente ? null : doFunil;
+
+  /** Valor de partida de cada campo: o do funil manda, depois o do cliente. */
+  const de = (doCartao: string | null | undefined, doCliente: string | null | undefined) =>
+    doCartao ?? doCliente ?? '';
 
   return (
     <>
@@ -58,11 +76,21 @@ export function DialogoCliente({
           </Botao>
         }
       >
-        <form id="forma-cliente" action={agir} className="grade">
+        {/* `key`: escolher um cartão remonta o formulário para os campos
+            nascerem com o valor do funil. Só aparece em cliente novo, então
+            não há o que perder de digitado. */}
+        <form key={cartao?.id ?? 'vazio'} id="forma-cliente" action={agir} className="grade">
           <input type="hidden" name="id" value={cliente?.id ?? ''} />
+          {/* Grava `funil_cartao.cliente_id` depois de cadastrar, para o cartão
+              não voltar a ser oferecido. */}
+          {cartao ? <input type="hidden" name="cartao_id" value={cartao.id} /> : null}
+
+          {!cliente ? (
+            <PuxarDoFunil cartoes={cartoesDoFunil} escolhido={cartao} aoEscolher={setDoFunil} />
+          ) : null}
 
           {/* 1 */}
-          <Campo rotulo="Nome/razão social" nome="nome_razao" valorInicial={cliente?.nome_razao ?? ''} placeholder="Digite aqui" />
+          <Campo rotulo="Nome/razão social" nome="nome_razao" valorInicial={de(cartao?.empresa, cliente?.nome_razao)} placeholder="Digite aqui" />
           <Campo rotulo="CNPJ" nome="cnpj" valorInicial={cliente?.cnpj ?? ''} placeholder="Digite aqui" />
 
           {/* 2 — e-mails: a lista some quando vazia, como no original */}
@@ -83,17 +111,17 @@ export function DialogoCliente({
           </div>
 
           {/* 3 */}
-          <Campo className="grade__inteiro" rotulo="Diretor/gerente" nome="diretor_gerente" valorInicial={cliente?.diretor_gerente ?? ''} placeholder="Digite aqui" />
+          <Campo className="grade__inteiro" rotulo="Diretor/gerente" nome="diretor_gerente" valorInicial={de(cartao?.contato, cliente?.diretor_gerente)} placeholder="Digite aqui" />
 
           {/* 4 */}
           <Campo rotulo="Cidade" nome="cidade" valorInicial={cliente?.cidade ?? ''} placeholder="Digite aqui" />
           <Campo rotulo="Telefone" nome="telefone" valorInicial={cliente?.telefone ?? ''} placeholder="Digite aqui" />
 
           {/* 5 */}
-          <Campo className="grade__inteiro" rotulo="Atividade da CIA" nome="atividade_cia" valorInicial={cliente?.atividade_cia ?? ''} placeholder="Digite aqui" />
+          <Campo className="grade__inteiro" rotulo="Atividade da CIA" nome="atividade_cia" valorInicial={de(cartao?.segmento, cliente?.atividade_cia)} placeholder="Digite aqui" />
 
           {/* 6 — texto livre: o banco guarda "R$ 2MM", "2.000.000", "dois milhões" */}
-          <Campo rotulo="Faturamento anual" nome="faturamento_anual" valorInicial={cliente?.faturamento_anual ?? ''} placeholder="Digite aqui" />
+          <Campo rotulo="Faturamento anual" nome="faturamento_anual" valorInicial={de(cartao?.faturamento, cliente?.faturamento_anual)} placeholder="Digite aqui" />
           <Campo rotulo="Margem líquida" nome="margem_liquida" valorInicial={cliente?.margem_liquida ?? ''} placeholder="Digite aqui" />
 
           {/* 7 */}
@@ -101,7 +129,7 @@ export function DialogoCliente({
           <Campo rotulo="Passivo oneroso" nome="passivo_oneroso" valorInicial={cliente?.passivo_oneroso ?? ''} placeholder="Digite aqui" />
 
           {/* 8 */}
-          <Campo rotulo="Quem indicou" nome="quem_indicou" valorInicial={cliente?.quem_indicou ?? ''} placeholder="Digite aqui" />
+          <Campo rotulo="Quem indicou" nome="quem_indicou" valorInicial={de(cartao?.indicante, cliente?.quem_indicou)} placeholder="Digite aqui" />
           <QuemVisualiza
             usuarios={usuarios}
             escolhidos={visualizadores}
@@ -113,7 +141,7 @@ export function DialogoCliente({
           <Campo rotulo="Estimativa de faturamento" nome="estimativa_faturamento" valorInicial={cliente?.estimativa_faturamento ?? ''} placeholder="Digite aqui" />
 
           {/* 10 */}
-          <Campo className="grade__inteiro campo-alto" rotulo="Parecer" nome="parecer" multilinha linhas={12} valorInicial={cliente?.parecer ?? ''} placeholder="Digite aqui" />
+          <Campo className="grade__inteiro campo-alto" rotulo="Parecer" nome="parecer" multilinha linhas={12} valorInicial={de(cartao?.parecer, cliente?.parecer)} placeholder="Digite aqui" />
 
           {/* 11 */}
           <SeletorPopup
@@ -140,6 +168,39 @@ export function DialogoCliente({
         />
       ) : null}
     </>
+  );
+}
+
+/**
+ * "Puxar do funil" — o caminho (b) do pedido. Lista os cartões que ainda não
+ * viraram cliente e preenche os seis campos do de-para. Preenche no cliente:
+ * nada é gravado antes de o usuário mandar salvar.
+ */
+function PuxarDoFunil({
+  cartoes,
+  escolhido,
+  aoEscolher,
+}: {
+  cartoes: CartaoDoFunil[];
+  escolhido: CartaoDoFunil | null;
+  aoEscolher: (c: CartaoDoFunil | null) => void;
+}) {
+  return (
+    <div className="grade__inteiro">
+      <SeletorPopup
+        rotulo="Puxar do funil"
+        placeholder={cartoes.length ? 'Escolha um cartão' : 'Nenhum cartão disponível'}
+        desabilitado={cartoes.length === 0}
+        valorInicial={escolhido?.id ?? ''}
+        opcoes={cartoes.map((c) => ({ valor: c.id, rotulo: c.empresa || 'Cartão em branco' }))}
+        aoEscolher={(id) => aoEscolher(cartoes.find((c) => c.id === id) ?? null)}
+      />
+      <p className="apoio">
+        {cartoes.length === 0
+          ? 'Todo cartão do funil já virou cliente — não há o que puxar.'
+          : 'Preenche empresa, contato, faturamento, segmento, parecer e indicante. Nada é gravado até você salvar.'}
+      </p>
+    </div>
   );
 }
 

@@ -1,0 +1,469 @@
+/* =============================================================================
+   Funil — estilo local da rota.
+   Importado por `tela.tsx`. Só o que nasceu com as tarefas mora aqui: o quadro
+   continua vindo de `interface.css`. Arquivo próprio da rota para esta frente
+   não mexer no CSS compartilhado.
+   ============================================================================= */
+
+/* ------------------------------------------------------------------ abas -- */
+
+/** Contador de tarefas em aberto, colado no rótulo da aba. */
+.abas__conta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-on);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------- cartão --- */
+
+.funil__cartao-acao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.funil__cartao-acao:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.funil__cartao-acao:focus-visible {
+  outline: var(--focus-ring);
+}
+
+.funil__pilula--cliente {
+  background: var(--success-bg);
+  color: var(--success-ink);
+}
+.funil__pilula--tarefa {
+  background: var(--info-bg);
+  color: var(--info-ink);
+}
+
+/* ================================================================ tarefas == */
+
+.tarefas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.tarefas__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+.tarefas__filtro {
+  min-width: 200px;
+}
+/* Empurra "Nova tarefa" para a direita e alinha com a base dos seletores. */
+.tarefas__filtro-acao {
+  margin-left: auto;
+  display: flex;
+  align-items: flex-end;
+  min-height: var(--control-h-md);
+}
+
+.tarefas__aviso {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--warning-bg);
+  color: var(--warning-ink);
+}
+
+/**
+ * Duas colunas no desktop; abaixo de 900px o calendário vai para baixo da
+ * lista — quem abre a tela no celular quer a lista primeiro.
+ */
+.tarefas__corpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--space-6);
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .tarefas__corpo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tarefas__calendario {
+    order: 2;
+  }
+}
+
+.tarefas__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- grupo --- */
+
+.tarefas__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tarefas__grupo-topo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+.tarefas__grupo-topo:focus-visible {
+  outline: var(--focus-ring);
+}
+.tarefas__grupo-topo--vencidas {
+  color: var(--danger-ink);
+}
+
+.tarefas__grupo-nome {
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+.tarefas__grupo-conta {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------- linha --- */
+
+.tarefas__linha {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--row-h-cozy);
+}
+
+/* O título come o espaço que sobra; o resto só o que precisa. */
+.tarefas__titulo {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tarefas__titulo:focus-visible {
+  outline: var(--focus-ring);
+}
+.tarefas__titulo-texto {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tarefas__titulo-texto--feito {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.tarefas__ficha {
+  flex: 0 0 auto;
+  padding: 2px var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+
+.tarefas__cartao {
+  flex: 0 1 auto;
+  max-width: 180px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-ink);
+  font-size: var(--text-xs);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tarefas__cartao:hover {
+  text-decoration: underline;
+}
+.tarefas__cartao:focus-visible {
+  outline: var(--focus-ring);
+}
+
+.tarefas__responsavel,
+.tarefas__prazo {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.tarefas__prazo {
+  font-family: var(--font-mono);
+}
+
+/* No celular a linha vira duas: título em cima, o resto embaixo. */
+@media (max-width: 640px) {
+  .tarefas__linha {
+    flex-wrap: wrap;
+  }
+  .tarefas__titulo {
+    flex: 1 1 100%;
+    order: -1;
+    margin-left: calc(var(--space-5) + var(--space-3));
+  }
+}
+
+/* ============================================================== calendário = */
+
+.cal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.cal__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.cal__mes {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  text-transform: capitalize;
+}
+.cal__ano {
+  color: var(--text-muted);
+  font-weight: var(--fw-regular);
+}
+.cal__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.cal__nav:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.cal__nav:focus-visible {
+  outline: var(--focus-ring);
+}
+
+.cal__semana,
+.cal__grade {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.cal__dia-nome {
+  padding-bottom: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-2xs);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+
+.cal__dia {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  aspect-ratio: 1;
+  min-height: 32px;
+  border: var(--border-w) solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.cal__dia:hover {
+  background: var(--surface-hover);
+}
+.cal__dia:focus-visible {
+  outline: var(--focus-ring);
+}
+/* Dia de outro mês: continua clicável, mas recua para o fundo. */
+.cal__dia--fora {
+  color: var(--text-muted);
+  opacity: 0.55;
+}
+.cal__dia--hoje {
+  border-color: var(--accent);
+  font-weight: var(--fw-bold);
+}
+.cal__dia--escolhido {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+.cal__dia--escolhido:hover {
+  background: var(--accent-hover);
+}
+
+.cal__numero {
+  line-height: 1;
+}
+
+.cal__ponto {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+.cal__ponto--vencida {
+  background: var(--danger);
+}
+/* Sobre o fundo cheio do dia escolhido, o ponto tem que continuar visível. */
+.cal__dia--escolhido .cal__ponto {
+  background: var(--accent-on);
+}
+
+.cal__limpar {
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent-ink);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.cal__limpar:hover {
+  background: var(--surface-hover);
+}
+.cal__limpar:focus-visible {
+  outline: var(--focus-ring);
+}
+
+.cal__legenda {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-2xs);
+}
+.cal__legenda .cal__ponto {
+  margin-left: var(--space-2);
+}
+.cal__legenda .cal__ponto:first-child {
+  margin-left: 0;
+}
+
+/* ============================================================== de-para ==== */
+
+/**
+ * O de-para que a confirmação de "cadastrar como cliente" mostra. Quatro
+ * colunas no desktop; no celular a linha quebra e o valor vai para baixo,
+ * porque é ele que pode ser longo.
+ */
+.de-para__linha {
+  display: grid;
+  grid-template-columns: auto 14px auto 1fr;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  min-height: var(--row-h-compact);
+}
+
+.de-para__seta {
+  text-align: center;
+}
+
+.de-para__para {
+  color: var(--text-secondary);
+}
+
+.de-para__valor {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.de-para__valor--vazio {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 560px) {
+  .de-para__linha {
+    grid-template-columns: auto 14px auto;
+  }
+  .de-para__valor {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}
+
+/* --------------------------------------------------- rodapé do cartão ----- */
+
+/**
+ * O rodapé do cartão ganhou um quarto botão ("Virar cliente"). No celular os
+ * quatro não cabem numa linha: as duas fileiras empilham e os botões quebram.
+ * O recuo à esquerda tira a primeira fileira de baixo do avatar flutuante da
+ * casca, que é `position: fixed` no canto inferior esquerdo.
+ */
+@media (max-width: 640px) {
+  .funil__rodape-dialogo {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  .funil__rodape-dialogo .linha {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .funil__rodape-dialogo .linha:first-child {
+    padding-left: 56px;
+  }
+}
+
+/* Espaço no fim do painel para o avatar flutuante não cobrir a legenda. */
+@media (max-width: 900px) {
+  .tarefas {
+    padding-bottom: 56px;
+  }
+}

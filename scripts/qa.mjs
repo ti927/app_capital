@@ -284,6 +284,136 @@ await passo(pagina, 'tema-alternado', async () => {
   await pagina.waitForTimeout(500);
 });
 
+// --------------------------------------------- funil: tarefas (frente A) ---
+// Acrescentado no fim do roteiro, depois do bloco da casca (specs/08a, A6).
+// O passo do tema deixou o tema trocado — desfaz antes, senão as capturas
+// destes passos saem no tema errado na rodada clara e na escura.
+await passo(pagina, 'tema-de-volta', async () => {
+  await pagina.locator('header button[title*="tema"]').first().click();
+  await pagina.waitForTimeout(500);
+});
+
+await passo(pagina, 'funil-aba-tarefas', async () => {
+  await pagina.goto(`${BASE}/funil`);
+  await pagina.waitForSelector('.abas__item', { timeout: 20000 });
+  await pagina.locator('.abas__item:has-text("Tarefas")').click();
+  await pagina.waitForSelector('.tarefas__corpo', { timeout: 10000 });
+  if (!new URL(pagina.url()).searchParams.get('aba')) {
+    throw new Error('a aba não foi espelhada em ?aba=tarefas');
+  }
+});
+
+await passo(pagina, 'funil-calendario-dia', async () => {
+  // Filtrar por um dia é o que o calendário faz de útil: tem que sair na captura.
+  await pagina.locator('.cal__dia:not(.cal__dia--fora)').nth(10).click();
+  await pagina.waitForSelector('.cal__dia--escolhido', { timeout: 5000 });
+});
+
+/** Hoje em `yyyy-mm-dd` local — o `toISOString` seria UTC e erraria o dia. */
+function hojeISO() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+const TITULO_QA = 'QA — tarefa de teste';
+let tarefaCriada = false;
+
+await passo(pagina, 'funil-tarefa-nova', async () => {
+  await pagina.locator('.cal__limpar').click();
+  const botao = pagina.locator('.tarefas__filtro-acao button');
+  if (await botao.isDisabled()) {
+    // Sem cartão no quadro não há tarefa possível — a tela tem que dizer por quê.
+    await pagina.waitForSelector('.tarefas__aviso', { timeout: 5000 });
+    return;
+  }
+  await botao.click();
+  await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+  await conferePopUp(pagina, 'diálogo de nova tarefa');
+
+  // Preenche de verdade: lista vazia não mostra agrupamento nem vencida.
+  await pagina.locator('#forma-tarefa .lc-field:has-text("Cartão") .gatilho').click();
+  // A opção pelo item visível, e não por `.lc-overlay`: o seletor pode deixar
+  // de ser pop-up e virar menu ancorado sem que este passo precise mudar.
+  await pagina.locator('.opcoes__item:visible').first().click();
+  await pagina.fill('#titulo', TITULO_QA);
+  await pagina.fill('#prazo', hojeISO());
+  await pagina.waitForTimeout(200);
+});
+
+await passo(pagina, 'funil-tarefa-criada', async () => {
+  const criar = pagina.locator('.lc-dialog__foot button:has-text("Criar tarefa")');
+  if (!(await criar.count())) return;
+  await criar.click();
+  await pagina.waitForSelector(`.tarefas__linha:has-text("${TITULO_QA}")`, { timeout: 15000 });
+  tarefaCriada = true;
+  // A tarefa de hoje tem que cair no grupo "Hoje", com a contagem ao lado.
+  await pagina.waitForSelector('.tarefas__grupo-topo:has-text("Hoje")', { timeout: 5000 });
+});
+
+await passo(pagina, 'funil-tarefa-concluida', async () => {
+  if (!tarefaCriada) return;
+  await pagina.locator(`.tarefas__linha:has-text("${TITULO_QA}") .caixa`).click();
+  await pagina.waitForSelector('.tarefas__grupo-topo:has-text("Concluídas")', { timeout: 15000 });
+});
+
+await passo(pagina, 'funil-tarefa-no-cartao', async () => {
+  if (!tarefaCriada) return;
+  // Concluídas nasce recolhido: abre o grupo antes de procurar a linha.
+  await pagina.locator('.tarefas__grupo-topo:has-text("Concluídas")').click();
+  await pagina.locator(`.tarefas__linha:has-text("${TITULO_QA}") .tarefas__cartao`).first().click();
+  await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+  await conferePopUp(pagina, 'cartão aberto pela tarefa');
+});
+
+await passo(pagina, 'funil-tarefa-excluida', async () => {
+  if (!tarefaCriada) {
+    await pagina.keyboard.press('Escape');
+    return;
+  }
+  // Limpa o que o QA criou: a base não fica com lixo de teste. Escopo no
+  // diálogo aberto — a mesma linha existe no painel atrás dele. Em laço, para
+  // varrer também o que uma rodada anterior interrompida tenha deixado.
+  const lixo = () =>
+    pagina.locator(`.lc-dialog .lista__item:has-text("${TITULO_QA}") button[title="Excluir tarefa"]`);
+  for (let i = 0; i < 5 && (await lixo().count()); i += 1) {
+    await lixo().first().click();
+    await pagina.waitForTimeout(1500);
+  }
+  if (await lixo().count()) throw new Error('sobrou tarefa de teste no cartão');
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForTimeout(600);
+});
+
+await passo(pagina, 'funil-virar-cliente', async () => {
+  await pagina.locator('.abas__item:has-text("Quadro")').click();
+  const acao = pagina.locator('.funil__cartao-acao').first();
+  if (!(await acao.count())) return;
+  await acao.click();
+  await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+  await conferePopUp(pagina, 'confirmação de cadastrar como cliente');
+});
+
+await passo(pagina, 'funil-virar-cliente-fechado', async () => {
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForTimeout(400);
+});
+
+await passo(pagina, 'clientes-puxar-do-funil', async () => {
+  await pagina.goto(`${BASE}/clientes`);
+  await pagina.locator('button:has-text("Novo Cliente")').click();
+  await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+  const puxar = pagina.locator('.lc-field:has-text("Puxar do funil")');
+  if (!(await puxar.count())) throw new Error('"Puxar do funil" não apareceu no cliente novo');
+  await conferePopUp(pagina, 'diálogo de cliente novo');
+});
+
+await passo(pagina, 'clientes-puxar-do-funil-fechado', async () => {
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForTimeout(400);
+});
+
+
 // ------------------------------------------------------------- relatório ----
 await navegador.close();
 

@@ -1,7 +1,7 @@
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
 import type { Cliente } from '@/lib/dominio';
-import { TelaClientes } from './tela';
+import { TelaClientes, type CartaoDoFunil } from './tela';
 
 export const metadata = { title: 'Cliente · Lure Capital' };
 
@@ -30,12 +30,19 @@ export default async function PaginaClientes() {
     return visiveis ? q.in('id', visiveis.length ? visiveis : ['']) : q;
   };
 
-  const [ativos, arquivados, emails, usuarios, vinculos] = await Promise.all([
+  const [ativos, arquivados, emails, usuarios, vinculos, cartoes] = await Promise.all([
     base().eq('arquivado', false),
     perfil.nivel_acesso === 'master' ? base().eq('arquivado', true) : Promise.resolve({ data: [] }),
     supabase.from('cliente_email').select('id, cliente_id, email').order('email'),
     supabase.from('perfil').select('id, nome').eq('ativo', true).order('nome'),
     supabase.from('cliente_visualizador').select('cliente_id, perfil_id'),
+    // "Puxar do funil": só os cartões que ainda não viraram cliente.
+    supabase
+      .from('funil_cartao')
+      .select('id, empresa, contato, segmento, faturamento, indicante, parecer')
+      .is('cliente_id', null)
+      .eq('arquivado', false)
+      .order('empresa'),
   ]);
 
   return (
@@ -46,6 +53,7 @@ export default async function PaginaClientes() {
       emails={(emails.data ?? []) as unknown as Array<{ id: number; cliente_id: string; email: string }>}
       usuarios={(usuarios.data ?? []) as unknown as Array<{ id: string; nome: string }>}
       vinculos={(vinculos.data ?? []) as unknown as Array<{ cliente_id: string; perfil_id: string }>}
+      cartoesDoFunil={(cartoes.data ?? []) as unknown as CartaoDoFunil[]}
     />
   );
 }

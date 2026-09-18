@@ -46,6 +46,14 @@ export async function gravarCliente(_anterior: unknown, dados: FormData) {
     // Quem cria enxerga. No original isso era feito por workflow, com um ID de
     // usuário cravado em código; aqui é o autor da ação.
     await supabase.from('cliente_visualizador').insert({ cliente_id: data.id, perfil_id: perfil.id });
+
+    // Cadastro puxado de um cartão do funil: liga os dois, senão o mesmo
+    // cartão continuaria sendo oferecido em "Puxar do funil".
+    const cartaoId = texto(dados, 'cartao_id');
+    if (cartaoId) {
+      await supabase.from('funil_cartao').update({ cliente_id: data.id }).eq('id', cartaoId);
+      revalidatePath('/funil');
+    }
   }
 
   // "Quem visualiza" só master edita.

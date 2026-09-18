@@ -44,18 +44,61 @@ const CAMPOS_ETAPA =
   'ts_assinado, op_de_pe, fee_recebido, gestor, administrador, dtvm, assessoria_legal, ' +
   'securitizadora, agente_fiduciario, custodiante, emissor, estruturador, demais';
 
+type OperacaoResumo = Pick<Operacao, 'id' | 'identificador' | 'cliente_id'>;
+
 export default async function PaginaEsteira() {
   const perfil = await perfilAtual();
   if (perfil.nivel_acesso !== 'master') redirect('/clientes');
 
   const supabase = await clienteServidor();
 
+  /*
+    A esteira tem DOIS filtros, ambos da mesma expressão do Bubble
+    (documentacao-completa.md:1605):
+
+      Do a search for operação where arquivado = false
+                                 AND Estruturação em Andamento = true
+        :filtered( nome cliente txt is in
+                   Do a search for tbl.etapas operação
+                     where status etapa = "contrato assinado" 's qual cliente txt )
+
+    Conferido contra a base em 18/09/2026: o toggle sozinho deixa 3 operações
+    (Garcia "CRA", Garcia "Giro com Barter" e Trigobel "Giro Estruturado") e
+    produção mostra 2. O segundo filtro tira a Trigobel, que não tem nenhuma
+    etapa em "contrato assinado" — e aí bate. Decisão em
+    specs/08-melhorias-qol.md.
+
+    O segundo filtro é por CLIENTE, não por operação: "Giro com Barter" entra
+    porque é a outra operação do mesmo cliente que tem o contrato assinado.
+  */
+  const { data: statusAssinado } = await supabase
+    .from('status_etapa')
+    .select('id')
+    .eq('chave', 'contrato_assinado')
+    .maybeSingle();
+
+  const { data: etapasAssinadas } = statusAssinado
+    ? await supabase.from('etapa_operacao').select('cliente_id').eq('status_id', statusAssinado.id)
+    : { data: [] as Array<{ cliente_id: string | null }> };
+
+  const clientesComContrato = [
+    ...new Set(
+      ((etapasAssinadas ?? []) as Array<{ cliente_id: string | null }>)
+        .map((e) => e.cliente_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+
   const [operacoes, clientes, fornecedores, tipos, etapas, checklist, instrumentos] = await Promise.all([
-    supabase
-      .from('operacao')
-      .select('id, identificador, cliente_id, arquivado')
-      .eq('arquivado', false)
-      .order('identificador'),
+    // Sem cliente elegível não há esteira — nem vale ir ao banco.
+    clientesComContrato.length
+      ? supabase
+          .from('operacao')
+          .select('id, identificador, cliente_id')
+          .eq('arquivado', false)
+          .eq('estruturacao_em_andamento', true)
+          .in('cliente_id', clientesComContrato)
+      : Promise.resolve({ data: [] as OperacaoResumo[] }),
     supabase.from('cliente').select('id, nome_razao'),
     supabase.from('fornecedor').select('id, nome_fundo'),
     supabase.from('tipo_operacao').select('id, chave, rotulo, ordem').order('ordem'),
@@ -64,10 +107,26 @@ export default async function PaginaEsteira() {
     supabase.from('etapa_instrumento').select('etapa_id, tipo_operacao_id'),
   ]);
 
+  const listaClientes = (clientes.data ?? []) as unknown as Array<{ id: string; nome_razao: string }>;
+  const nomeCliente = new Map(listaClientes.map((c) => [c.id, c.nome_razao]));
+
+  /**
+   * A lista mostra o nome do cliente, então é por ele que ordena — não pelo
+   * identificador. A ordenação fica aqui, e não na consulta, porque o nome
+   * está na outra tabela.
+   */
+  const emEstruturacao = ((operacoes.data ?? []) as unknown as OperacaoResumo[])
+    .slice()
+    .sort((a, b) => {
+      const na = (a.cliente_id && nomeCliente.get(a.cliente_id)) || a.identificador || '';
+      const nb = (b.cliente_id && nomeCliente.get(b.cliente_id)) || b.identificador || '';
+      return na.localeCompare(nb, 'pt-BR');
+    });
+
   return (
     <TelaEsteira
-      operacoes={(operacoes.data ?? []) as unknown as Array<Pick<Operacao, 'id' | 'identificador' | 'cliente_id'>>}
-      clientes={(clientes.data ?? []) as unknown as Array<{ id: string; nome_razao: string }>}
+      operacoes={emEstruturacao}
+      clientes={listaClientes}
       fornecedores={(fornecedores.data ?? []) as unknown as Array<{ id: string; nome_fundo: string }>}
       tipos={(tipos.data ?? []) as unknown as TabelaApoio[]}
       etapas={(etapas.data ?? []) as unknown as EtapaEsteira[]}

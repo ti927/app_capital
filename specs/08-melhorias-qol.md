@@ -142,9 +142,33 @@ Regras de convivência:
   migration 006 fecha isso no banco (`funil_tarefa.cartao_id not null`) e a tela
   nunca oferece criar tarefa sem escolher o cartão.
 
+- **Esteira: os dois filtros, não só o toggle.** (frente B, item 2 acima)
+
+  A expressão do Bubble (`documentacao-completa.md:1605`) encadeia toggle *e*
+  `:filtered( nome cliente txt is in ...etapas com status "contrato assinado" )`,
+  e a base confirma que os dois são necessários. Conferência das 14 operações
+  não arquivadas, uma a uma, em 18/09/2026:
+
+  | Operação | Cliente | `estruturacao_em_andamento` | Cliente tem etapa "contrato assinado" |
+  |---|---|---|---|
+  | CRA | Garcia Agronegócios | `true` | sim |
+  | Giro com Barter | Garcia Agronegócios | `true` | sim (pela operação "CRA") |
+  | Giro Estruturado | Trigobel atual | `true` | não |
+  | as outras 11 | — | `false` | — |
+
+  Só o toggle deixa **3** linhas; produção mostra **2**. Com o segundo filtro a
+  Trigobel sai — nenhuma das suas 12 etapas está em "contrato assinado" — e o
+  número bate. Implementado em `esteira/page.tsx`.
+
+  O segundo filtro é por **cliente**, não por operação: "Giro com Barter" entra
+  porque é a outra operação do mesmo cliente que tem o contrato assinado.
+  Filtrar por operação deixaria só 1 linha.
+
 ## A confirmar com o negócio
 
-1. **Esteira**: só o toggle, ou toggle + cliente com etapa "contrato assinado"?
-   (item 2 acima)
-2. **Tarefa**: prazo com hora ou só data? O desenho assume **data + hora
+1. **Tarefa**: prazo com hora ou só data? O desenho assume **data + hora
    opcional**, porque "reunião com o cliente tal" tem hora.
+2. **Esteira, alimentação do toggle**: 3 das 14 operações estão marcadas, e o
+   toggle só passou a existir na tela agora. Vale o negócio revisar quais
+   operações estão de fato em estruturação — o filtro está correto, mas o dado
+   que ele lê nunca teve como ser mantido.

@@ -1,0 +1,58 @@
+/* ===========================================================================
+   Fornecedor — CSS local da rota, importado por fornecedores/tela.tsx.
+
+   Não edita globals.css nem interface.css (frente C é dona). O container
+   continua sendo `.matriz__grade`, definido lá, para não perder a barra de
+   rolagem sutil; aqui só entram as regras das tags. Os seletores são
+   compostos (`.matriz__grade.matriz__tags`) para vencer por especificidade
+   sem depender da ordem de importação.
+   =========================================================================== */
+
+/* --------------------------------------------- fundos habilitados: tags --- */
+
+/*
+  A célula de "Habilitados" tinha dezenas de nomes colados um no outro, só
+  separados por espaço. Cada fundo passa a ser uma tag clicável que abre o
+  diálogo daquele fundo.
+*/
+.matriz__grade.matriz__tags {
+  gap: var(--space-2);
+  max-height: 124px;
+  padding: var(--space-2) 0;
+  align-content: flex-start;
+}
+
+/* A célula da tabela é nowrap + ellipsis por padrão; aqui precisa respirar. */
+.lc-table td.matriz__celula {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  vertical-align: top;
+}
+
+/*
+  O visual da tag vem de `.lc-chip`. Aqui só o que falta para ela ser botão:
+  reset do agente do usuário, cursor e os estados de interação.
+*/
+.matriz__tag {
+  margin: 0;
+  max-width: 100%;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.matriz__tag:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.matriz__tag:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

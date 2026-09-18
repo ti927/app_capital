@@ -30,11 +30,14 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
     demanda_inicial: texto(dados, 'demanda_inicial'),
     demanda_final: texto(dados, 'demanda_final'),
     destino_recurso: texto(dados, 'destino_recurso'),
+    faturamento_anual: texto(dados, 'faturamento_anual'),
     comissao: texto(dados, 'comissao'),
     parecer: texto(dados, 'parecer'),
     tem_fee: marcado(dados, 'tem_fee'),
     nda_assinado: marcado(dados, 'nda_assinado'),
     mandato_assinado: marcado(dados, 'mandato_assinado'),
+    mandato_assinado_fornecedor: marcado(dados, 'mandato_assinado_fornecedor'),
+    estruturacao_em_andamento: marcado(dados, 'estruturacao_em_andamento'),
   };
 
   let alvo = id;

@@ -58,7 +58,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         }
       />
       <div className="casca__corpo">
-        <NavLateral nivel={perfil.nivel_acesso} />
+        <NavLateral nivel={perfil.nivel_acesso} nome={perfil.nome} />
         <main className="casca__conteudo">
           <Transicao>{children}</Transicao>
         </main>

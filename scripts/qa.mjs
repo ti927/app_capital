@@ -33,6 +33,9 @@ const ESCURO = process.argv.includes('--escuro');
 const CELULAR = process.argv.includes('--celular');
 const SAIDA = path.join('qa', CELULAR ? 'celular' : ESCURO ? 'escuro' : 'claro');
 
+// Limpa a pasta antes: `39-...-FALHOU.png` de uma corrida velha continuava lá
+// depois de o passo voltar a passar, e quem abre as capturas via o erro antigo.
+fs.rmSync(SAIDA, { recursive: true, force: true });
 fs.mkdirSync(SAIDA, { recursive: true });
 
 /** Primeira conta master do arquivo de credenciais provisórias. */
@@ -500,6 +503,77 @@ await passo(pagina, 'clientes-puxar-do-funil-fechado', async () => {
 
 // ------------------------------------------------------------- relatório ----
 await navegador.close();
+
+// ------------------------------------------------- funil: painéis e cartão ---
+await passo(pagina, 'funil-painel-tags', async () => {
+  await pagina.click('a[href="/funil"]');
+  await pagina.waitForURL('**/funil', { timeout: 20000 });
+  await pagina.waitForSelector(COLUNA_REAL, { timeout: 20000 });
+  await pagina.locator('.tela__acoes button:has-text("Tags")').click();
+  await pagina.waitForSelector('.lc-dialog', { timeout: 5000 });
+  if (!(await pagina.locator('.gestao__linha').count())) {
+    throw new Error('o painel de tags abriu vazio');
+  }
+  await conferePopUp(pagina, 'painel de tags');
+});
+
+await passo(pagina, 'funil-painel-colunas', async () => {
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForTimeout(300);
+  await pagina.locator('.tela__acoes button:has-text("Colunas no fluxo")').click();
+  await pagina.waitForSelector('.lc-dialog', { timeout: 5000 });
+  if (!(await pagina.locator('.gestao__linha .interruptor').count())) {
+    throw new Error('o painel de colunas abriu sem os interruptores');
+  }
+});
+
+await passo(pagina, 'funil-cartao-sem-rolagem', async () => {
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForTimeout(300);
+  await pagina.locator('.funil__cartao-corpo').first().click();
+  await pagina.waitForSelector('.lc-dialog', { timeout: 5000 });
+  await pagina.waitForTimeout(250);
+
+  // A promessa do cartão em tela cheia: tudo à vista, sem barra de rolagem.
+  // No celular não vale — lá a tela é estreita e rolar é o normal.
+  if (CELULAR) return;
+  const sobra = await pagina.locator('.lc-dialog__body').evaluate((el) => el.scrollHeight - el.clientHeight);
+  if (sobra > 8) throw new Error(`o cartão precisa rolar ${sobra}px para mostrar tudo`);
+});
+
+await passo(pagina, 'funil-cartao-cheio-fechado', async () => {
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForTimeout(300);
+});
+
+// -------------------------------------------- esteira: só os instrumentos ---
+await passo(pagina, 'esteira-instrumentos-da-esteira', async () => {
+  await pagina.click('a[href="/esteira"]');
+  await pagina.waitForURL('**/esteira', { timeout: 20000 });
+  await pagina.waitForSelector(ITEM_REAL, { timeout: 20000 });
+  await pagina.locator('.lista__abrir').first().click();
+  await pagina.waitForSelector('.lc-dialog', { timeout: 5000 });
+
+  // Oito instrumentos, não os 31 tipos de operação: CRA, CRI, CR, FIDC
+  // Proprietário, FIAGRO, FII, SLB e Debêntures.
+  const quantos = await pagina.locator('.lc-dialog .tipos__tag').count();
+  if (quantos !== 8) throw new Error(`a esteira ofereceu ${quantos} instrumentos, esperado 8`);
+});
+
+await passo(pagina, 'esteira-instrumento-escolhido', async () => {
+  await pagina.locator('.lc-dialog .tipos__tag:has-text("CRA")').first().click();
+  await pagina.waitForTimeout(400);
+  // Escolher o instrumento abre o bloco de campos daquele instrumento.
+  if (!(await pagina.locator('.lc-dialog').getByText('CRA, CRI, CR').count())) {
+    throw new Error('o bloco do instrumento não apareceu');
+  }
+});
+
+await passo(pagina, 'esteira-fechada-de-novo', async () => {
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForTimeout(400);
+});
+
 
 const falhas = resultados.filter((r) => !r.ok);
 console.log(`\n${resultados.length - falhas.length}/${resultados.length} passos ok · capturas em ${SAIDA}/`);

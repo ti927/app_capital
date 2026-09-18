@@ -31,8 +31,25 @@ const corridas = FORMAS.map(
       });
 
       let saida = '';
-      filho.stdout.on('data', (p) => (saida += p));
-      filho.stderr.on('data', (p) => (saida += p));
+      /**
+       * Repassa o que o filho diz na hora, com a forma na frente. A primeira
+       * versão só guardava e imprimia no fim: quando uma corrida travava, não
+       * dava para saber onde — e foi o que aconteceu.
+       */
+      const eco = (pedaco) => {
+        saida += pedaco;
+        for (const linha of String(pedaco).split(String.fromCharCode(10))) {
+          if (linha.includes('FALHA') || linha.includes('passos ok')) {
+            console.log(`[${nome}] ${linha.trim()}`);
+          }
+        }
+      };
+      filho.stdout.on('data', eco);
+      filho.stderr.on('data', eco);
+
+      // Corrida que passa de 4 minutos está travada: mata e segue.
+      const relogio = setTimeout(() => filho.kill(), 240000);
+      filho.on('close', () => clearTimeout(relogio));
       filho.on('close', (codigo) => resolve({ nome, codigo, saida }));
     }),
 );

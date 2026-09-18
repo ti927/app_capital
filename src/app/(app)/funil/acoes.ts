@@ -52,6 +52,34 @@ export async function gravarCartao(_anterior: unknown, dados: FormData) {
   return { ok: true, id: alvo };
 }
 
+const CAMPOS_CARTAO =
+  'id, quadro_id, etapa_id, empresa, contato, segmento, faturamento, indicante, parecer, ' +
+  'historico, ordem, data_kb, data_call, arquivado, atualizado_em, cliente_id';
+
+/**
+ * "Novo cartão" grava na hora, antes de a pessoa digitar qualquer coisa.
+ *
+ * O motivo é de uso, não de código: quem abre um cartão está em reunião com o
+ * cliente. Se o cartão só nascesse ao salvar, fechar o diálogo sem querer —
+ * ou um Esc no meio da conversa — levava junto o que já tinha sido digitado.
+ * Agora o cartão existe desde o clique, a gravação é automática, e cartão que
+ * não serviu se exclui pelo próprio diálogo.
+ */
+export async function criarCartaoVazio(quadroId: string, etapaId: string | null) {
+  const supabase = await clienteServidor();
+
+  const { data, error } = await supabase
+    .from('funil_cartao')
+    .insert({ quadro_id: quadroId, etapa_id: etapaId, empresa: '' })
+    .select(CAMPOS_CARTAO)
+    .single();
+
+  if (error || !data) return null;
+
+  revalidatePath('/funil');
+  return data;
+}
+
 /** Mover cartão entre colunas e reordenar. */
 export async function moverCartao(cartaoId: string, etapaId: string | null, ordem: number) {
   const supabase = await clienteServidor();
@@ -261,4 +289,55 @@ export async function vincularCartaoACliente(cartaoId: string, clienteId: string
   revalidatePath('/funil');
   revalidatePath('/clientes');
   return { ok: true, clienteId };
+}
+
+/* --------------------------------------------------------------- tags ---- */
+
+/**
+ * As tags do quadro. Eram cinco, fixas, vindas da carga do Bubble, e o botão
+ * "Tags" do topo não fazia nada — não havia como criar, renomear nem trocar a
+ * cor sem ir ao banco.
+ */
+export async function criarTag(quadroId: string, nome: string, cor: string) {
+  const limpo = nome.trim();
+  if (!limpo) return;
+  const supabase = await clienteServidor();
+  await supabase.from('funil_tag').insert({ quadro_id: quadroId, nome: limpo, cor });
+  revalidatePath('/funil');
+}
+
+export async function gravarTag(id: string, nome: string, cor: string) {
+  const limpo = nome.trim();
+  if (!limpo) return;
+  const supabase = await clienteServidor();
+  await supabase.from('funil_tag').update({ nome: limpo, cor }).eq('id', id);
+  revalidatePath('/funil');
+}
+
+export async function excluirTag(id: string) {
+  const supabase = await clienteServidor();
+  // A ligação com os cartões cai junto, por `on delete cascade`.
+  await supabase.from('funil_tag').delete().eq('id', id);
+  revalidatePath('/funil');
+}
+
+/* ------------------------------------------------------ colunas no fluxo -- */
+
+/**
+ * Tira a coluna do quadro sem apagar nada: `no_fluxo = false` esconde a coluna
+ * e os cartões continuam lá, com a etapa preservada. É o que o botão "Colunas
+ * no fluxo" do topo sempre prometeu e não fazia.
+ */
+export async function alternarColunaNoFluxo(etapaId: string, noFluxo: boolean) {
+  const supabase = await clienteServidor();
+  await supabase.from('funil_etapa').update({ no_fluxo: noFluxo }).eq('id', etapaId);
+  revalidatePath('/funil');
+}
+
+export async function renomearColuna(etapaId: string, nome: string) {
+  const limpo = nome.trim();
+  if (!limpo) return;
+  const supabase = await clienteServidor();
+  await supabase.from('funil_etapa').update({ nome: limpo }).eq('id', etapaId);
+  revalidatePath('/funil');
 }

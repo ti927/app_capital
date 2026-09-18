@@ -446,6 +446,14 @@ body {
   max-width: var(--dialog-w-lg);
 }
 
+/* A janela inteira, menos a margem do overlay. Para o cartão do funil, que é
+   o que fica aberto durante a reunião. */
+.lc-dialog--cheia {
+  max-width: none;
+  width: 100%;
+  min-height: calc(100dvh - var(--space-8) * 2);
+}
+
 /* Cabeçalho e rodapé fixos; só o corpo rola. */
 .lc-dialog__head {
   display: flex;
@@ -781,4 +789,63 @@ textarea.lc-field__input {
 .lc-empty svg {
   display: block;
   margin-inline: auto;
+}
+
+/* ---------------------------------------------------------------------------
+   Quem está usando, no alto da navegação.
+
+   A bolinha guarda o lugar da foto do Google, que entra quando o OAuth for
+   ligado; até lá mostra as iniciais. O cargo vem embaixo do nome, menor, em
+   itálico e mais apagado — é informação de contexto, não de navegação.
+   --------------------------------------------------------------------------- */
+
+.lc-perfil {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4) var(--space-5);
+  margin-bottom: var(--space-2);
+  border-bottom: var(--border-w) solid var(--border);
+  min-width: 0;
+}
+
+.lc-perfil__foto {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-on);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  /* A foto redonda entra aqui por cima, sem mexer no resto. */
+  background-size: cover;
+  background-position: center;
+}
+
+.lc-perfil__texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.lc-perfil__nome {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lc-perfil__cargo {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-muted);
+  opacity: 0.75;
 }

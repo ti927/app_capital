@@ -66,7 +66,7 @@ export function DialogoCartao({
         aberto={aberto}
         aoFechar={aoFechar}
         titulo={novo ? 'Cartão criado' : 'Editar cartão'}
-        largura="md"
+        largura="cheia"
         rodape={
           <div className="funil__rodape-dialogo">
             <div className="linha">
@@ -112,7 +112,7 @@ export function DialogoCartao({
           </div>
         }
       >
-        <form id="forma-cartao" action={agir} className="grade">
+        <form id="forma-cartao" action={agir} className="grade funil__grade-cheia">
           <input type="hidden" name="id" value={cartao?.id ?? ''} />
           <input type="hidden" name="quadro_id" value={quadroId} />
           {escolhidas.map((t) => (
@@ -133,8 +133,8 @@ export function DialogoCartao({
           />
 
           {/* 3, 4 */}
-          <Campo className="grade__inteiro campo-alto" rotulo="Parecer" nome="parecer" multilinha linhas={9} valorInicial={cartao?.parecer ?? ''} placeholder="Digite aqui" />
-          <Campo className="grade__inteiro campo-medio" rotulo="Histórico" nome="historico" multilinha linhas={9} valorInicial={cartao?.historico ?? ''} placeholder="Digite aqui" />
+          <Campo className="funil__texto" rotulo="Parecer" nome="parecer" multilinha linhas={9} valorInicial={cartao?.parecer ?? ''} placeholder="Digite aqui" />
+          <Campo className="funil__texto" rotulo="Histórico" nome="historico" multilinha linhas={9} valorInicial={cartao?.historico ?? ''} placeholder="Digite aqui" />
 
           {/* 4b — as tarefas do cartão, logo abaixo do histórico */}
           <BlocoTarefas

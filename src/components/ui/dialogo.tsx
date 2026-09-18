@@ -10,8 +10,8 @@ export interface DialogoProps {
   titulo?: ReactNode;
   /** Linha de contexto acima do título, em mono 11px caixa alta. */
   contexto?: ReactNode;
-  /** sm 620px · md 880px · lg 1120px. */
-  largura?: 'sm' | 'md' | 'lg';
+  /** sm 620px · md 880px · lg 1120px · cheia = a janela toda, menos a margem. */
+  largura?: 'sm' | 'md' | 'lg' | 'cheia';
   /** Ações do rodapé de 56px. */
   rodape?: ReactNode;
   children?: ReactNode;

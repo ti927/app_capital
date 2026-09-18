@@ -13,8 +13,16 @@ import {
   IconeMais,
 } from '@/components/ui/icones';
 import { data } from '@/lib/dominio';
-import { arquivarCartao, criarColuna, excluirColuna, moverCartao, moverColuna } from './acoes';
+import {
+  arquivarCartao,
+  criarCartaoVazio,
+  criarColuna,
+  excluirColuna,
+  moverCartao,
+  moverColuna,
+} from './acoes';
 import { DialogoCartao } from './dialogo';
+import { DialogoColunas, DialogoTags } from './gestao';
 import { PainelTarefas } from './tarefas';
 import { DialogoVirarCliente } from './virar-cliente';
 import type { CartaoDoFunil, EtapaFunil, TagFunil, Tarefa } from './page';
@@ -50,9 +58,17 @@ export function TelaFunil({
   const [aba, setAba] = useState<Aba>('quadro');
   const [busca, setBusca] = useState('');
   const [tagFiltro, setTagFiltro] = useState<string | null>(null);
-  const [aberto, setAberto] = useState<CartaoDoFunil | null>(null);
-  const [criandoEm, setCriandoEm] = useState<string | null>(null);
+  /**
+   * O cartão aberto é guardado por **id**, não por objeto: depois de gravar, a
+   * lista chega nova do servidor e um objeto preso no estado ficaria velho.
+   * `recemCriado` cobre a fresta entre criar o cartão e a lista chegar.
+   */
+  const [abertoId, setAbertoId] = useState<string | null>(null);
+  const [recemCriado, setRecemCriado] = useState<CartaoDoFunil | null>(null);
+  const [criandoCartao, setCriandoCartao] = useState(false);
   const [novaColuna, setNovaColuna] = useState(false);
+  const [gerindoTags, setGerindoTags] = useState(false);
+  const [gerindoColunas, setGerindoColunas] = useState(false);
   const [aVirarCliente, setAVirarCliente] = useState<CartaoDoFunil | null>(null);
   const [arrastado, setArrastado] = useState<string | null>(null);
   const [, transicao] = useTransition();
@@ -72,6 +88,11 @@ export function TelaFunil({
     // quadro não pode remontar nem perder busca e filtro de tag.
     window.history.replaceState(null, '', url.toString());
   };
+
+  const aberto = useMemo(() => {
+    if (!abertoId) return null;
+    return cartoes.find((c) => c.id === abertoId) ?? (recemCriado?.id === abertoId ? recemCriado : null);
+  }, [abertoId, cartoes, recemCriado]);
 
   const tagsDe = useMemo(() => {
     const mapa = new Map<string, TagFunil[]>();
@@ -109,9 +130,19 @@ export function TelaFunil({
     setArrastado(null);
   };
 
+  /** Cria o cartão no banco e abre o diálogo já nele — nada se perde no meio. */
+  const criarAqui = async (etapaId: string) => {
+    if (!quadro || criandoCartao) return;
+    setCriandoCartao(true);
+    const criado = (await criarCartaoVazio(quadro.id, etapaId)) as CartaoDoFunil | null;
+    setCriandoCartao(false);
+    if (!criado) return;
+    setRecemCriado(criado);
+    setAbertoId(criado.id);
+  };
+
   const abrirCartaoPorId = (cartaoId: string) => {
-    const alvo = cartoes.find((c) => c.id === cartaoId);
-    if (alvo) setAberto(alvo);
+    if (cartoes.some((c) => c.id === cartaoId)) setAbertoId(cartaoId);
   };
 
   const emAberto = tarefas.filter((t) => !t.concluida).length;
@@ -121,8 +152,12 @@ export function TelaFunil({
       <div className="tela__topo">
         <h1 className="tela__titulo t-page-title">FUNIL COMERCIAL</h1>
         <div className="tela__acoes">
-          <Botao variante="secondary">Colunas no fluxo</Botao>
-          <Botao variante="secondary">Tags</Botao>
+          <Botao variante="secondary" onClick={() => setGerindoColunas(true)}>
+            Colunas no fluxo
+          </Botao>
+          <Botao variante="secondary" onClick={() => setGerindoTags(true)}>
+            Tags
+          </Botao>
           <Botao variante="primary" onClick={() => setNovaColuna(true)}>
             <IconeMais tamanho={15} /> Nova coluna
           </Botao>
@@ -249,7 +284,7 @@ export function TelaFunil({
                       cartao={c}
                       tags={tagsDe.get(c.id) ?? []}
                       tarefasEmAberto={tarefas.filter((t) => t.cartao_id === c.id && !t.concluida).length}
-                      aoAbrir={() => setAberto(c)}
+                      aoAbrir={() => setAbertoId(c.id)}
                       aoArquivar={() => transicao(() => void arquivarCartao(c.id, true))}
                       aoArrastar={() => setArrastado(c.id)}
                       aoVirarCliente={() => setAVirarCliente(c)}
@@ -257,8 +292,13 @@ export function TelaFunil({
                   ))}
                 </div>
 
-                <button type="button" className="funil__novo" onClick={() => setCriandoEm(coluna.id)}>
-                  <IconeMais tamanho={14} /> Novo cartão
+                <button
+                  type="button"
+                  className="funil__novo"
+                  disabled={criandoCartao}
+                  onClick={() => void criarAqui(coluna.id)}
+                >
+                  <IconeMais tamanho={14} /> {criandoCartao ? 'Criando…' : 'Novo cartão'}
                 </button>
               </section>
             );
@@ -278,12 +318,12 @@ export function TelaFunil({
         />
       </div>
 
-      {(aberto || criandoEm) && quadro ? (
+      {aberto && quadro ? (
         <DialogoCartao
           aberto
           cartao={aberto}
           quadroId={quadro.id}
-          etapaInicial={criandoEm}
+          etapaInicial={null}
           etapas={colunas}
           tags={tags}
           tagsDoCartao={aberto ? (tagsDe.get(aberto.id) ?? []).map((t) => t.id) : []}
@@ -295,8 +335,8 @@ export function TelaFunil({
           tarefas={aberto ? tarefas.filter((t) => t.cartao_id === aberto.id) : []}
           aoVirarCliente={() => aberto && setAVirarCliente(aberto)}
           aoFechar={() => {
-            setAberto(null);
-            setCriandoEm(null);
+            setAbertoId(null);
+            setRecemCriado(null);
           }}
         />
       ) : null}
@@ -308,11 +348,24 @@ export function TelaFunil({
       />
 
       {quadro ? (
-        <DialogoNovaColuna
-          aberto={novaColuna}
-          quadroId={quadro.id}
-          aoFechar={() => setNovaColuna(false)}
-        />
+        <>
+          <DialogoNovaColuna
+            aberto={novaColuna}
+            quadroId={quadro.id}
+            aoFechar={() => setNovaColuna(false)}
+          />
+          <DialogoTags
+            aberto={gerindoTags}
+            quadroId={quadro.id}
+            tags={tags}
+            aoFechar={() => setGerindoTags(false)}
+          />
+          <DialogoColunas
+            aberto={gerindoColunas}
+            etapas={etapas}
+            aoFechar={() => setGerindoColunas(false)}
+          />
+        </>
       ) : null}
     </>
   );

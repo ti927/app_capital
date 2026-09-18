@@ -467,3 +467,161 @@
     padding-bottom: 56px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Cartão em tela cheia.
+
+   Pedido de uso: o cartão é o que se olha durante a reunião, e rolar para ver
+   o parecer enquanto se fala com o cliente não serve. Em tela cheia os campos
+   curtos ficam numa coluna, e parecer e histórico ganham uma coluna cada,
+   altos, lado a lado.
+   --------------------------------------------------------------------------- */
+
+.funil__grade-cheia {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  /* Respiro menor que o do diálogo comum: são 15 campos numa tela só, e a
+     promessa aqui é caber tudo sem rolagem. */
+  gap: var(--space-4);
+}
+
+/* Parecer e histórico: uma coluna cada, altura que puxa o resto para cima. */
+.funil__texto {
+  grid-row: span 4;
+}
+
+/* 232px é a medida que faz o cartão inteiro caber em 900px de janela sem
+   barra de rolagem — conferido com o corpo do diálogo medido, não no olho. */
+.funil__texto textarea.lc-field__input {
+  min-height: 232px;
+  height: 100%;
+}
+
+/* Tela baixa (notebook de 768px) cabe do mesmo jeito: quem encolhe é o campo
+   de texto, que tem rolagem própria, e não o cartão inteiro. */
+@media (max-height: 860px) {
+  .funil__texto textarea.lc-field__input {
+    min-height: 118px;
+  }
+}
+
+/* Notebook de 768px: quatro colunas em vez de três. Mesmos campos, uma fileira
+   a menos — é o que faltava para o cartão caber inteiro sem rolagem. */
+@media (max-height: 800px) and (min-width: 1280px) {
+  .funil__grade-cheia {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+  .funil__texto textarea.lc-field__input {
+    min-height: 104px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .funil__grade-cheia {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .funil__texto {
+    grid-row: auto;
+  }
+  .funil__texto textarea.lc-field__input {
+    min-height: 180px;
+  }
+}
+
+@media (max-width: 720px) {
+  .funil__grade-cheia {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Painéis de Tags e de Colunas no fluxo.
+   --------------------------------------------------------------------------- */
+
+.gestao__lista {
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.gestao__linha,
+.gestao__nova {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.gestao__linha .lc-field,
+.gestao__nova .lc-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.gestao__nova {
+  padding-top: var(--space-4);
+  border-top: var(--border-w) solid var(--border);
+}
+
+.gestao__paleta {
+  display: flex;
+  gap: 2px;
+  flex: none;
+}
+
+.gestao__cor {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.gestao__cor--ativa {
+  border-color: var(--text);
+}
+
+/* ---------------------------------------------------------------------------
+   Os cinzas do quadro, no tema claro.
+
+   O `--surface-sunken` do sistema (#ebebeb) é pesado para uma coluna inteira:
+   o quadro ficava com cara de tabela cinza. Aqui a coluna é quase branca, o
+   cartão é branco de verdade e a separação vem da borda e de uma sombra baixa
+   — como no funil de produção. No escuro nada muda: lá o contraste é o que
+   segura a leitura.
+   --------------------------------------------------------------------------- */
+
+.funil__quadro {
+  --funil-coluna: #fafafa;
+  --funil-borda: #ececec;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .funil__quadro {
+    --funil-coluna: var(--surface-sunken);
+    --funil-borda: var(--border);
+  }
+}
+
+:root[data-theme="dark"] .funil__quadro {
+  --funil-coluna: var(--surface-sunken);
+  --funil-borda: var(--border);
+}
+
+.funil__quadro .funil__coluna {
+  background: var(--funil-coluna);
+  border-color: var(--funil-borda);
+}
+
+.funil__quadro .funil__cartao {
+  border-color: var(--funil-borda);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+.funil__quadro .funil__novo {
+  border-color: var(--funil-borda);
+}

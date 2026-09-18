@@ -164,14 +164,25 @@ function Menu({
 
   const aoTeclar = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
-      // Não deixa o Esc chegar ao diálogo atrás e fechar os dois de uma vez.
+      /**
+       * O Esc fecha o menu e para aí. O `Dialogo` escuta `keydown` no
+       * `document` para fechar com Esc, e o menu vive num portal no `body` —
+       * o evento nativo chega lá de qualquer jeito, então `stopPropagation`
+       * do React não basta: sem isto, um Esc fechava o menu E o diálogo
+       * atrás dele.
+       */
       e.stopPropagation();
+      e.nativeEvent.stopImmediatePropagation();
       aoFechar();
       gatilho.current?.focus();
       return;
     }
     if (e.key === 'Tab') {
+      // Devolve o foco ao campo antes de fechar: o próximo Tab continua de
+      // onde o usuário estava, e não do começo do formulário.
+      e.preventDefault();
       aoFechar();
+      gatilho.current?.focus();
       return;
     }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {

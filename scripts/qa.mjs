@@ -174,9 +174,17 @@ await passo(pagina, 'cliente-status-em-menu', async () => {
   await confereMenu(pagina, 'seletor de status', overlaysAntes);
 });
 
-await passo(pagina, 'cliente-parecer-com-respiro', async () => {
+await passo(pagina, 'cliente-esc-fecha-so-o-menu', async () => {
+  // Esc no menu fecha o menu e deixa o diálogo de pé. Já fechou os dois.
   await pagina.keyboard.press('Escape');
-  await pagina.waitForTimeout(200);
+  await pagina.waitForTimeout(250);
+  if (await pagina.locator('.lc-popover').count()) throw new Error('o Esc não fechou o menu');
+  if (!(await pagina.locator('.lc-dialog').count())) {
+    throw new Error('o Esc fechou o diálogo junto com o menu');
+  }
+});
+
+await passo(pagina, 'cliente-parecer-com-respiro', async () => {
   // Texto longo tem que ter padding em cima: o `.lc-field__input` do design
   // system é medida de campo de uma linha e zerava o respiro do textarea.
   const respiro = await pagina.locator('textarea.lc-field__input').first().evaluate((el) => {

@@ -19,6 +19,16 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 const BASE = process.env.QA_BASE ?? 'http://localhost:3000';
+
+/**
+ * Conteúdo de verdade, não o esqueleto de carregamento. O esqueleto reusa as
+ * classes do conteúdo de propósito, para ter a mesma geometria — então quem
+ * espera por seletor precisa dizer que não quer a versão cinza.
+ */
+const ITEM_REAL = '.lista__item:not(.lista__item--esqueleto)';
+const LINHA_REAL = '.lc-table tbody tr:not(.lc-table__linha--esqueleto)';
+const COLUNA_REAL = '.funil__coluna:not(.funil__coluna--esqueleto)';
+
 const ESCURO = process.argv.includes('--escuro');
 const CELULAR = process.argv.includes('--celular');
 const SAIDA = path.join('qa', CELULAR ? 'celular' : ESCURO ? 'escuro' : 'claro');
@@ -155,7 +165,7 @@ await passo(pagina, 'login-preenchido', async () => {
 await passo(pagina, 'clientes-lista', async () => {
   await pagina.click('button[type="submit"]');
   await pagina.waitForURL('**/clientes', { timeout: 20000 });
-  await pagina.waitForSelector('.lista__item', { timeout: 20000 });
+  await pagina.waitForSelector(ITEM_REAL, { timeout: 20000 });
 });
 
 // ---------------------------------------------------------------- cliente ---
@@ -228,7 +238,7 @@ await passo(pagina, 'cliente-arquivados', async () => {
 await passo(pagina, 'fornecedor-tabela', async () => {
   await pagina.click('a[href="/fornecedores"]');
   await pagina.waitForURL('**/fornecedores', { timeout: 20000 });
-  await pagina.waitForSelector('.lc-table', { timeout: 20000 });
+  await pagina.waitForSelector(LINHA_REAL, { timeout: 20000 });
 });
 
 await passo(pagina, 'fornecedor-aba-tipos', async () => {
@@ -262,7 +272,7 @@ await passo(pagina, 'fornecedor-fechado', async () => {
 await passo(pagina, 'operacao-aba-cliente', async () => {
   await pagina.click('a[href="/operacoes"]');
   await pagina.waitForURL('**/operacoes', { timeout: 20000 });
-  await pagina.waitForSelector('.lista__item', { timeout: 20000 });
+  await pagina.waitForSelector(ITEM_REAL, { timeout: 20000 });
 });
 
 await passo(pagina, 'operacao-aba-fornecedor-vazia', async () => {
@@ -296,7 +306,7 @@ await passo(pagina, 'operacao-fechado', async () => {
 await passo(pagina, 'esteira-lista', async () => {
   await pagina.click('a[href="/esteira"]');
   await pagina.waitForURL('**/esteira', { timeout: 20000 });
-  await pagina.waitForSelector('.lista__item', { timeout: 20000 });
+  await pagina.waitForSelector(ITEM_REAL, { timeout: 20000 });
 });
 
 await passo(pagina, 'esteira-dialogo-checklist', async () => {
@@ -316,7 +326,7 @@ await passo(pagina, 'esteira-fechado', async () => {
 await passo(pagina, 'funil-quadro', async () => {
   await pagina.click('a[href="/funil"]');
   await pagina.waitForURL('**/funil', { timeout: 20000 });
-  await pagina.waitForSelector('.funil__coluna', { timeout: 20000 });
+  await pagina.waitForSelector(COLUNA_REAL, { timeout: 20000 });
 });
 
 await passo(pagina, 'funil-cartao-dialogo', async () => {

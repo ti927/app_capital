@@ -774,3 +774,11 @@ textarea.lc-field__input {
 .gatilho--aberto {
   border-color: var(--focus-ring);
 }
+
+/* `.lc-empty` é `text-align: center`, o que centraliza o texto e **não** o
+   símbolo: `<svg>` é elemento de bloco e ficava encostado à esquerda. Apareceu
+   no vazio da aba de tarefas do funil. */
+.lc-empty svg {
+  display: block;
+  margin-inline: auto;
+}

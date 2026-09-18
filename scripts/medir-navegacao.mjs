@@ -26,15 +26,25 @@ import { chromium } from 'playwright';
 const BASE = process.env.QA_BASE ?? 'http://localhost:3000';
 
 /**
+ * Conteúdo de verdade, não o esqueleto de carregamento. O esqueleto reusa as
+ * classes do conteúdo de propósito, para ter a mesma geometria — então quem
+ * espera por seletor precisa dizer que não quer a versão cinza.
+ */
+const ITEM_REAL = '.lista__item:not(.lista__item--esqueleto)';
+const LINHA_REAL = '.lc-table tbody tr:not(.lc-table__linha--esqueleto)';
+const COLUNA_REAL = '.funil__coluna:not(.funil__coluna--esqueleto)';
+
+
+/**
  * `rota` não é enfeite: a tela ANTERIOR continua no DOM até a nova renderizar,
  * e `.lista__item` existe em três delas. Sem conferir o endereço junto, a
  * esteira "media" 24ms — que era a lista de operações ainda na tela.
  */
 const TELAS = [
-  { rotulo: 'Funil de Clientes',       rota: '/funil',        conteudo: '.funil__coluna' },
-  { rotulo: 'Fornecedor',              rota: '/fornecedores', conteudo: '.lc-table tbody tr, .lc-empty' },
-  { rotulo: 'Operação',                rota: '/operacoes',    conteudo: '.lista__item, .lc-empty' },
-  { rotulo: 'Esteira de Estruturação', rota: '/esteira',      conteudo: '.lista__item, .lc-empty' },
+  { rotulo: 'Funil de Clientes',       rota: '/funil',        conteudo: COLUNA_REAL },
+  { rotulo: 'Fornecedor',              rota: '/fornecedores', conteudo: `${LINHA_REAL}, .lc-empty` },
+  { rotulo: 'Operação',                rota: '/operacoes',    conteudo: `${ITEM_REAL}, .lc-empty` },
+  { rotulo: 'Esteira de Estruturação', rota: '/esteira',      conteudo: `${ITEM_REAL}, .lc-empty` },
 ];
 
 const linha = fs
@@ -60,7 +70,7 @@ await pagina.fill('input[name="email"]', email);
 await pagina.fill('input[name="senha"]', senha);
 await pagina.click('button[type="submit"]');
 await pagina.waitForURL('**/clientes', { timeout: 30000 });
-await pagina.waitForSelector('.lista__item', { timeout: 30000 });
+await pagina.waitForSelector(ITEM_REAL, { timeout: 30000 });
 
 const resultados = [];
 
@@ -68,7 +78,7 @@ for (const tela of TELAS) {
   // Sempre do mesmo ponto de partida, e sem o router guardado da visita
   // anterior — é a PRIMEIRA visita que dói.
   await pagina.goto(`${BASE}/clientes`, { waitUntil: 'networkidle' });
-  await pagina.waitForSelector('.lista__item', { timeout: 30000 });
+  await pagina.waitForSelector(ITEM_REAL, { timeout: 30000 });
 
   const inicio = Date.now();
 

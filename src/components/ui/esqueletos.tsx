@@ -10,6 +10,12 @@ import type { CSSProperties } from 'react';
 
    Cada peça é um componente de servidor: entra no `loading.tsx` da rota e some
    sozinha quando a página termina de renderizar.
+
+   Toda classe emprestada do conteúdo vem acompanhada de um modificador
+   `--esqueleto`. Sem isso o esqueleto é indistinguível do conteúdo para quem
+   espera por seletor: o QA dava `waitForSelector('.lista__item')` por
+   satisfeito com a barra cinza e fotografava o esqueleto no lugar da lista.
+   Descoberto abrindo as capturas, não no teste — que passou.
    --------------------------------------------------------------------------- */
 
 /** Barra cinza de uma medida. `w` aceita qualquer unidade CSS. */
@@ -59,7 +65,7 @@ export function EsqueletoLista({ linhas = 8 }: { linhas?: number }) {
   return (
     <ul className="lista">
       {Array.from({ length: linhas }, (_, i) => (
-        <li key={i} className="lista__item">
+        <li key={i} className="lista__item lista__item--esqueleto">
           <span className="lista__texto">
             <Barra w={`${38 + ((i * 13) % 40)}%`} h={13} />
           </span>
@@ -89,7 +95,7 @@ export function EsqueletoTabela({ colunas = 6, linhas = 8 }: { colunas?: number;
       </thead>
       <tbody>
         {Array.from({ length: linhas }, (_, l) => (
-          <tr key={l}>
+          <tr key={l} className="lc-table__linha--esqueleto">
             {Array.from({ length: colunas }, (_, c) => (
               <td key={c}>
                 <Barra w={c === 0 ? `${52 + ((l * 7) % 30)}%` : `${34 + ((l + c) % 4) * 12}%`} />
@@ -107,7 +113,7 @@ export function EsqueletoQuadro({ colunas = 5, cartoes = 3 }: { colunas?: number
   return (
     <div className="funil__quadro">
       {Array.from({ length: colunas }, (_, i) => (
-        <section key={i} className="funil__coluna">
+        <section key={i} className="funil__coluna funil__coluna--esqueleto">
           <header className="funil__coluna-topo">
             <Barra w="120px" h={13} />
           </header>

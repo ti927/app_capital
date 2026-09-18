@@ -84,6 +84,47 @@ async function conferePopUp(pagina, onde) {
   }
 }
 
+/**
+ * Confere que o seletor abre um MENU ancorado no campo — e não um segundo
+ * pop-up por cima do diálogo, que era o desenho antigo.
+ *
+ * O que se exige: o menu existe, está dentro da janela, encosta no gatilho
+ * (até 24px de distância vertical) e não aumentou a contagem de `.lc-overlay`.
+ */
+async function confereMenu(pagina, onde, overlaysAntes) {
+  const menu = pagina.locator('.lc-popover').first();
+  if (!(await menu.count())) throw new Error(`${onde}: o menu não abriu`);
+
+  const caixa = await menu.boundingBox();
+  const janela = pagina.viewportSize();
+  if (!caixa) throw new Error(`${onde}: menu sem caixa`);
+
+  if (caixa.y < 0 || caixa.y + caixa.height > janela.height + 1) {
+    throw new Error(
+      `${onde}: menu fora da janela (y=${Math.round(caixa.y)}, altura=${Math.round(caixa.height)})`,
+    );
+  }
+  if (caixa.x < 0 || caixa.x + caixa.width > janela.width + 1) {
+    throw new Error(`${onde}: menu passa da lateral da janela`);
+  }
+
+  const gatilho = await pagina.locator('.gatilho--aberto').first().boundingBox();
+  if (gatilho) {
+    const distancia = Math.min(
+      Math.abs(caixa.y - (gatilho.y + gatilho.height)),
+      Math.abs(gatilho.y - (caixa.y + caixa.height)),
+    );
+    if (distancia > 24) {
+      throw new Error(`${onde}: menu descolado do campo (${Math.round(distancia)}px)`);
+    }
+  }
+
+  const agora = await pagina.locator('.lc-overlay').count();
+  if (agora > overlaysAntes) {
+    throw new Error(`${onde}: o seletor abriu mais um pop-up (${overlaysAntes} -> ${agora})`);
+  }
+}
+
 const navegador = await chromium.launch();
 const contexto = await navegador.newContext({
   viewport: CELULAR ? { width: 390, height: 844 } : { width: 1440, height: 900 },
@@ -125,13 +166,29 @@ await passo(pagina, 'cliente-dialogo-pelo-nome', async () => {
   await conferePopUp(pagina, 'diálogo de cliente');
 });
 
-await passo(pagina, 'cliente-status-em-popup', async () => {
-  // O status abre em pop-up, não em menu suspenso.
+await passo(pagina, 'cliente-status-em-menu', async () => {
+  // O status abre um menu ancorado no campo — nunca um segundo pop-up.
+  const overlaysAntes = await pagina.locator('.lc-overlay').count();
   await pagina.locator('.gatilho').last().click();
   await pagina.waitForTimeout(300);
-  const quantos = await pagina.locator('.lc-overlay').count();
-  if (quantos < 2) throw new Error('o seletor não abriu um segundo pop-up');
-  await conferePopUp(pagina, 'seletor de status');
+  await confereMenu(pagina, 'seletor de status', overlaysAntes);
+});
+
+await passo(pagina, 'cliente-parecer-com-respiro', async () => {
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForTimeout(200);
+  // Texto longo tem que ter padding em cima: o `.lc-field__input` do design
+  // system é medida de campo de uma linha e zerava o respiro do textarea.
+  const respiro = await pagina.locator('textarea.lc-field__input').first().evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { topo: parseFloat(s.paddingTop), lado: parseFloat(s.paddingLeft) };
+  });
+  if (!(respiro.topo >= 8)) {
+    throw new Error(`texto longo com padding-top de ${respiro.topo}px, esperado 8 ou mais`);
+  }
+  if (!(respiro.lado >= 8)) {
+    throw new Error(`texto longo com padding lateral de ${respiro.lado}px`);
+  }
 });
 
 await passo(pagina, 'cliente-fechado', async () => {
@@ -179,10 +236,11 @@ await passo(pagina, 'fornecedor-dialogo', async () => {
   await conferePopUp(pagina, 'diálogo de fornecedor');
 });
 
-await passo(pagina, 'fornecedor-tipos-em-popup', async () => {
+await passo(pagina, 'fornecedor-tipos-em-menu', async () => {
+  const overlaysAntes = await pagina.locator('.lc-overlay').count();
   await pagina.locator('.gatilho').nth(1).click();
   await pagina.waitForTimeout(400);
-  await conferePopUp(pagina, 'seletor de tipos');
+  await confereMenu(pagina, 'seletor de tipos', overlaysAntes);
 });
 
 await passo(pagina, 'fornecedor-fechado', async () => {

@@ -160,7 +160,7 @@ export function TelaFunil({
   const emAberto = tarefas.filter((t) => !t.concluida).length;
 
   return (
-    <>
+    <div className="funil__tela">
       <div className="tela__topo">
         <h1 className="tela__titulo t-page-title">FUNIL COMERCIAL</h1>
         <div className="tela__acoes">
@@ -199,7 +199,7 @@ export function TelaFunil({
 
       {/* As duas abas ficam montadas: trocar de aba não pode remontar o quadro
           nem perder busca e filtro de tag. `hidden` esconde sem desmontar. */}
-      <div hidden={aba !== 'quadro'}>
+      <div className="funil__aba" hidden={aba !== 'quadro'}>
         {/* Barra de filtro: busca e as cinco tags como pílulas com ponto colorido. */}
         <div className="funil__filtros">
           <label className="busca">
@@ -440,7 +440,7 @@ export function TelaFunil({
           />
         </>
       ) : null}
-    </>
+    </div>
   );
 }
 

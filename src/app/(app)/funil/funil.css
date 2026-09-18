@@ -680,3 +680,55 @@
   color: var(--text-secondary);
   font-weight: 600;
 }
+
+/* ---------------------------------------------------------------------------
+   O quadro ocupa a altura que sobra, e rola dentro dela.
+
+   Antes o quadro crescia com a coluna mais alta e empurrava a página: para
+   chegar na barra de rolagem horizontal era preciso descer até o fim de tudo.
+   Agora a tela cabe na janela e a barra fica na base dela, à mão.
+
+   Só no desktop. No celular a janela tem ~400px de altura útil: prender o
+   quadro ali dentro daria uma faixa estreita com cada coluna rolando por
+   dentro — pior do que deixar a página rolar, que é o que o dedo já espera.
+   --------------------------------------------------------------------------- */
+
+@media (min-width: 861px) {
+  .funil__tela {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+  }
+
+  .funil__aba {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* `hidden` tem que vencer o `display: flex` de cima. */
+  .funil__aba[hidden] {
+    display: none;
+  }
+
+  .funil__tela .funil__quadro {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding-bottom: var(--space-2);
+  }
+
+  /* A coluna cabe na altura do quadro e rola por dentro quando tem cartão
+     demais — assim a barra horizontal não foge para baixo. */
+  .funil__tela .funil__coluna {
+    max-height: 100%;
+  }
+
+  .funil__tela .funil__cartoes {
+    overflow-y: auto;
+    min-height: 0;
+  }
+}

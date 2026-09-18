@@ -159,7 +159,7 @@ export function DialogoEsteira({
           {instrumentoIds.map((id) => (
             <input key={id} type="hidden" name="instrumento" value={id} />
           ))}
-          <div className="tipos__lista">
+          <div className="tipos__lista tipos__lista--instrumentos">
             {tiposDeInstrumento.map((t) => {
               const marcado = instrumentoIds.includes(t.id);
               return (

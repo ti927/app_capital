@@ -8,6 +8,7 @@ import {
   IconeBuscar,
   IconeChevronDireita,
   IconeChevronEsquerda,
+  IconeCliente,
   IconeFechar,
   IconeMais,
 } from '@/components/ui/icones';
@@ -15,6 +16,7 @@ import { data } from '@/lib/dominio';
 import { arquivarCartao, criarColuna, excluirColuna, moverCartao, moverColuna } from './acoes';
 import { DialogoCartao } from './dialogo';
 import { PainelTarefas } from './tarefas';
+import { DialogoVirarCliente } from './virar-cliente';
 import type { CartaoDoFunil, EtapaFunil, TagFunil, Tarefa } from './page';
 import './funil.css';
 
@@ -29,6 +31,7 @@ export function TelaFunil({
   cartaoUsuarios,
   perfis,
   tarefas,
+  clientes,
   perfilId,
   ehMaster,
 }: {
@@ -40,6 +43,7 @@ export function TelaFunil({
   cartaoUsuarios: Array<{ cartao_id: string; perfil_id: string }>;
   perfis: Array<{ id: string; nome: string }>;
   tarefas: Tarefa[];
+  clientes: Array<{ id: string; nome_razao: string }>;
   perfilId: string;
   ehMaster: boolean;
 }) {
@@ -49,6 +53,7 @@ export function TelaFunil({
   const [aberto, setAberto] = useState<CartaoDoFunil | null>(null);
   const [criandoEm, setCriandoEm] = useState<string | null>(null);
   const [novaColuna, setNovaColuna] = useState(false);
+  const [aVirarCliente, setAVirarCliente] = useState<CartaoDoFunil | null>(null);
   const [arrastado, setArrastado] = useState<string | null>(null);
   const [, transicao] = useTransition();
 
@@ -247,6 +252,7 @@ export function TelaFunil({
                       aoAbrir={() => setAberto(c)}
                       aoArquivar={() => transicao(() => void arquivarCartao(c.id, true))}
                       aoArrastar={() => setArrastado(c.id)}
+                      aoVirarCliente={() => setAVirarCliente(c)}
                     />
                   ))}
                 </div>
@@ -287,12 +293,19 @@ export function TelaFunil({
             aberto ? cartaoUsuarios.filter((u) => u.cartao_id === aberto.id).map((u) => u.perfil_id) : []
           }
           tarefas={aberto ? tarefas.filter((t) => t.cartao_id === aberto.id) : []}
+          aoVirarCliente={() => aberto && setAVirarCliente(aberto)}
           aoFechar={() => {
             setAberto(null);
             setCriandoEm(null);
           }}
         />
       ) : null}
+
+      <DialogoVirarCliente
+        cartao={aVirarCliente}
+        clientes={clientes}
+        aoFechar={() => setAVirarCliente(null)}
+      />
 
       {quadro ? (
         <DialogoNovaColuna
@@ -320,6 +333,7 @@ function Cartao({
   aoAbrir,
   aoArquivar,
   aoArrastar,
+  aoVirarCliente,
 }: {
   cartao: CartaoDoFunil;
   tags: TagFunil[];
@@ -327,6 +341,7 @@ function Cartao({
   aoAbrir: () => void;
   aoArquivar: () => void;
   aoArrastar: () => void;
+  aoVirarCliente: () => void;
 }) {
   return (
     <article className="funil__cartao" draggable onDragStart={aoArrastar}>
@@ -341,6 +356,16 @@ function Cartao({
         ) : (
           <span className="apoio funil__sem-tags">sem tags</span>
         )}
+        {/* As duas ações do cartão no quadro: virar cliente e arquivar. */}
+        <button
+          type="button"
+          className="funil__cartao-acao"
+          onClick={aoVirarCliente}
+          title={cartao.cliente_id ? 'Ver cliente' : 'Cadastrar como cliente'}
+          aria-label={cartao.cliente_id ? 'Ver cliente' : 'Cadastrar como cliente'}
+        >
+          <IconeCliente tamanho={14} />
+        </button>
         <button
           type="button"
           className="funil__cartao-arquivar"
@@ -364,6 +389,9 @@ function Cartao({
           {cartao.faturamento ? <span className="funil__pilula">{cartao.faturamento}</span> : null}
           {cartao.indicante ? (
             <span className="funil__pilula funil__pilula--fraca">indicado por {cartao.indicante}</span>
+          ) : null}
+          {cartao.cliente_id ? (
+            <span className="funil__pilula funil__pilula--cliente">já é cliente</span>
           ) : null}
           {tarefasEmAberto ? (
             <span className="funil__pilula funil__pilula--tarefa">

@@ -5,11 +5,11 @@ import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import { Dialogo } from '@/components/ui/dialogo';
 import { IconeDeletar, IconeMais } from '@/components/ui/icones';
-import { data, type FunilCartao } from '@/lib/dominio';
+import { data } from '@/lib/dominio';
 import { arquivarCartao, excluirCartao, excluirTarefa, gravarCartao } from './acoes';
 import { CaixaConcluir, DialogoTarefa } from './tarefas';
 import { prazoCurto, rotuloDoTipo } from './tarefas-apoio';
-import type { EtapaFunil, TagFunil, Tarefa } from './page';
+import type { CartaoDoFunil, EtapaFunil, TagFunil, Tarefa } from './page';
 
 /**
  * Diálogo do cartão do funil. Difere de todos os outros: **não tem botão de
@@ -28,10 +28,11 @@ export function DialogoCartao({
   perfilId,
   usuariosDoCartao,
   tarefas,
+  aoVirarCliente,
   aoFechar,
 }: {
   aberto: boolean;
-  cartao: FunilCartao | null;
+  cartao: CartaoDoFunil | null;
   quadroId: string;
   etapaInicial: string | null;
   etapas: EtapaFunil[];
@@ -41,6 +42,7 @@ export function DialogoCartao({
   perfilId: string;
   usuariosDoCartao: string[];
   tarefas: Tarefa[];
+  aoVirarCliente: () => void;
   aoFechar: () => void;
 }) {
   const [estado, agir, gravando] = useActionState(gravarCartao, null as { erro?: string; ok?: boolean } | null);
@@ -83,6 +85,12 @@ export function DialogoCartao({
               ) : null}
             </div>
             <div className="linha">
+              {/* Vira "Ver cliente" depois que o cartão já tem `cliente_id`. */}
+              {cartao ? (
+                <Botao variante="secondary" onClick={aoVirarCliente}>
+                  {cartao.cliente_id ? 'Ver cliente' : 'Cadastrar como cliente'}
+                </Botao>
+              ) : null}
               {cartao ? (
                 <Botao
                   variante="secondary"

@@ -15,6 +15,20 @@ export interface EmailCliente {
   email: string;
 }
 
+/**
+ * Cartão do funil que ainda não virou cliente — o que o "Puxar do funil" do
+ * diálogo oferece. Só os seis campos do de-para, mais o `id`.
+ */
+export interface CartaoDoFunil {
+  id: string;
+  empresa: string;
+  contato: string | null;
+  segmento: string | null;
+  faturamento: string | null;
+  indicante: string | null;
+  parecer: string | null;
+}
+
 export function TelaClientes({
   nivel,
   clientes,
@@ -22,6 +36,7 @@ export function TelaClientes({
   emails,
   usuarios,
   vinculos,
+  cartoesDoFunil,
 }: {
   nivel: NivelAcesso;
   clientes: Cliente[];
@@ -29,6 +44,7 @@ export function TelaClientes({
   emails: EmailCliente[];
   usuarios: Array<{ id: string; nome: string }>;
   vinculos: Array<{ cliente_id: string; perfil_id: string }>;
+  cartoesDoFunil: CartaoDoFunil[];
 }) {
   const [busca, setBusca] = useState('');
   const [emEdicao, setEmEdicao] = useState<Cliente | null>(null);
@@ -125,6 +141,7 @@ export function TelaClientes({
         usuarios={usuarios}
         visualizadores={emEdicao ? visualizadoresDe(emEdicao.id) : []}
         podeEditarVisualizadores={nivel === 'master'}
+        cartoesDoFunil={cartoesDoFunil}
         aoFechar={() => {
           setCriando(false);
           setEmEdicao(null);

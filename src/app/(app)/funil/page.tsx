@@ -49,7 +49,7 @@ export default async function PaginaFunil() {
   const perfil = await perfilAtual();
   const supabase = await clienteServidor();
 
-  const [quadros, etapas, tags, cartoes, cartaoTags, cartaoUsuarios, perfis, tarefas] =
+  const [quadros, etapas, tags, cartoes, cartaoTags, cartaoUsuarios, perfis, tarefas, clientes] =
     await Promise.all([
       supabase.from('funil_quadro').select('id, nome, ordem').order('ordem'),
       supabase.from('funil_etapa').select('id, quadro_id, nome, ordem, no_fluxo').order('ordem'),
@@ -71,6 +71,7 @@ export default async function PaginaFunil() {
             'data_conclusao, responsavel_id',
         )
         .order('prazo'),
+      supabase.from('cliente').select('id, nome_razao').order('nome_razao'),
     ]);
 
   // O indicante só vê os cartões em que está.
@@ -106,6 +107,7 @@ export default async function PaginaFunil() {
       }
       perfis={(perfis.data ?? []) as unknown as Array<{ id: string; nome: string }>}
       tarefas={tarefasVisiveis}
+      clientes={(clientes.data ?? []) as unknown as Array<{ id: string; nome_razao: string }>}
       perfilId={perfil.id}
       ehMaster={ehMaster}
     />

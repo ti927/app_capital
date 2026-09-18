@@ -4,6 +4,48 @@ Uma seção por rodada, a mais recente no topo. Escrito para quem usa o sistema.
 
 ---
 
+## 18/09/2026 — rodada QOL, parte 3
+
+### Funil de Clientes
+
+- **O cartão agora abre numa caixa 4:3**, ocupando ~70% da tela — mais larga que
+  alta, em vez da tela inteira. Continua mostrando tudo sem barra de rolagem.
+- **Os quatro botões da coluna passaram a funcionar**, e nenhum fazia o que
+  promete:
+  - as **setas** trocam a coluna de lugar com a vizinha (antes o banco
+    arredondava a posição e a coluna caía em cima da outra);
+  - o **ícone de caixa** mostra os **arquivados daquela coluna** — é o que ele
+    faz no funil original. A coluna muda de cara para dizer em que vista está;
+  - o **✕** agora pergunta antes, com a contagem de cartões na frente. Antes
+    excluía calado e os cartões sumiam do quadro sem jeito de voltar.
+- **Cor da tag é livre**: o quadradinho mostra a cor atual e abre o seletor do
+  navegador, com todas as cores.
+- **Tag pode ser desativada**: some dos filtros e do cartão **sem perder o
+  histórico**. Excluir, esse sim, tira a tag de todos os cartões.
+
+### Conta
+
+- **A tela de trocar senha existe.** O botão "Senha" da barra apontava para uma
+  rota que nunca foi escrita — dava 404 para qualquer um que clicasse.
+
+### Quem vê o quê
+
+- **Indicante, em Clientes**: vê os clientes em que está em "quem visualiza"
+  **e** os que ele mesmo cadastrou. A segunda metade não era possível antes — o
+  sistema não guardava quem cadastrou (passa a guardar a partir de agora; os 51
+  clientes que vieram da carga ficam sem autor e seguem pela regra antiga).
+- **"Puxar do funil" parou de mostrar a carteira inteira** ao indicante: agora
+  só os cartões em que ele está como usuário.
+- **Fornecedor, Operação e Esteira** já estavam bloqueadas para o indicante,
+  tanto no menu quanto no servidor — conferido.
+
+### Bastidores
+
+- Voltou atrás na guarda de sessão em cache: dava para misturar dados de sessões
+  diferentes para economizar ~80ms. Não compensa.
+
+---
+
 ## 18/09/2026 — rodada QOL, parte 2
 
 ### Menu lateral

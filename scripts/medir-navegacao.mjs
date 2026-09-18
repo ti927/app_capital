@@ -25,11 +25,16 @@ import { chromium } from 'playwright';
 
 const BASE = process.env.QA_BASE ?? 'http://localhost:3000';
 
+/**
+ * `rota` não é enfeite: a tela ANTERIOR continua no DOM até a nova renderizar,
+ * e `.lista__item` existe em três delas. Sem conferir o endereço junto, a
+ * esteira "media" 24ms — que era a lista de operações ainda na tela.
+ */
 const TELAS = [
-  { rotulo: 'Funil de Clientes',      conteudo: '.funil__coluna' },
-  { rotulo: 'Fornecedor',             conteudo: '.lc-table tbody tr, .lc-empty' },
-  { rotulo: 'Operação',               conteudo: '.lista__item, .lc-empty' },
-  { rotulo: 'Esteira de Estruturação', conteudo: '.lista__item, .lc-empty' },
+  { rotulo: 'Funil de Clientes',       rota: '/funil',        conteudo: '.funil__coluna' },
+  { rotulo: 'Fornecedor',              rota: '/fornecedores', conteudo: '.lc-table tbody tr, .lc-empty' },
+  { rotulo: 'Operação',                rota: '/operacoes',    conteudo: '.lista__item, .lc-empty' },
+  { rotulo: 'Esteira de Estruturação', rota: '/esteira',      conteudo: '.lista__item, .lc-empty' },
 ];
 
 const linha = fs
@@ -60,16 +65,25 @@ await pagina.waitForSelector('.lista__item', { timeout: 30000 });
 const resultados = [];
 
 for (const tela of TELAS) {
+  // Sempre do mesmo ponto de partida, e sem o router guardado da visita
+  // anterior — é a PRIMEIRA visita que dói.
+  await pagina.goto(`${BASE}/clientes`, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('.lista__item', { timeout: 30000 });
+
   const inicio = Date.now();
 
   // O esqueleto e o conteúdo são corridas paralelas a partir do mesmo clique.
   const esqueleto = pagina
-    .waitForSelector('.lc-skel, .lc-esqueleto', { timeout: 30000 })
+    .waitForSelector('.lc-skel', { timeout: 30000 })
     .then(() => Date.now() - inicio)
     .catch(() => null);
 
   await pagina.click(`.lc-navitem:has-text("${tela.rotulo}")`);
-  await pagina.waitForSelector(tela.conteudo, { timeout: 30000 });
+  await pagina.waitForFunction(
+    ([rota, sel]) => window.location.pathname === rota && document.querySelector(sel) !== null,
+    [tela.rota, tela.conteudo],
+    { timeout: 30000 },
+  );
   const conteudo = Date.now() - inicio;
 
   resultados.push({ tela: tela.rotulo, resposta: await esqueleto, conteudo });

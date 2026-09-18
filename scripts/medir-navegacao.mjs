@@ -80,6 +80,20 @@ for (const tela of TELAS) {
   await pagina.goto(`${BASE}/clientes`, { waitUntil: 'networkidle' });
   await pagina.waitForSelector(ITEM_REAL, { timeout: 30000 });
 
+  // Quanto a tela manda pelo fio: o payload do React Server Component carrega
+  // TODO o dado que a página buscou. Tela que consulta a tabela inteira paga
+  // isso em bytes, e o navegador paga de novo ao ler.
+  let bytes = 0;
+  const contar = async (r) => {
+    if (!r.url().includes(tela.rota)) return;
+    try {
+      bytes += (await r.body()).length;
+    } catch {
+      /* resposta sem corpo */
+    }
+  };
+  pagina.on('response', contar);
+
   const inicio = Date.now();
 
   // O esqueleto e o conteúdo são corridas paralelas a partir do mesmo clique.
@@ -96,14 +110,17 @@ for (const tela of TELAS) {
   );
   const conteudo = Date.now() - inicio;
 
-  resultados.push({ tela: tela.rotulo, resposta: await esqueleto, conteudo });
+  pagina.off('response', contar);
+  resultados.push({ tela: tela.rotulo, resposta: await esqueleto, conteudo, kb: Math.round(bytes / 1024) });
 }
 
 console.log(`\nprimeira visita a cada tela (${BASE})\n`);
-console.log('  tela                       resposta   conteúdo');
+console.log('  tela                       resposta   conteúdo   pelo fio');
 for (const r of resultados) {
   const resposta = r.resposta === null ? '     —' : `${String(r.resposta).padStart(5)}ms`;
-  console.log(`  ${r.tela.padEnd(24)} ${resposta}    ${String(r.conteudo).padStart(5)}ms`);
+  console.log(
+    `  ${r.tela.padEnd(24)} ${resposta}    ${String(r.conteudo).padStart(5)}ms   ${String(r.kb).padStart(4)} KB`,
+  );
 }
 console.log(
   `\n  conteúdo, mediana: ${

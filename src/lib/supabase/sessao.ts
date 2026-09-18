@@ -32,21 +32,30 @@ export async function renovarSessao(requisicao: NextRequest) {
     },
   );
 
-  // getUser() revalida o token no servidor. Não trocar por getSession(),
-  // que lê o cookie sem conferir.
-  const { data } = await supabase.auth.getUser();
+  /**
+   * `getClaims()` confere a ASSINATURA do token localmente, contra a chave
+   * pública do projeto (que ele busca uma vez e guarda). `getUser()` fazia uma
+   * ida à rede ao Supabase Auth **em toda requisição** — e o middleware roda
+   * antes de a página começar, então esse tempo entrava inteiro na conta do
+   * usuário.
+   *
+   * Não trocar por `getSession()`: aquele lê o cookie sem conferir nada, e aí
+   * um cookie forjado passa.
+   */
+  const { data } = await supabase.auth.getClaims();
+  const usuario = data?.claims ?? null;
 
   const caminho = requisicao.nextUrl.pathname;
   const ehPublica = PUBLICAS.some((p) => caminho.startsWith(p));
 
-  if (!data.user && !ehPublica) {
+  if (!usuario && !ehPublica) {
     const url = requisicao.nextUrl.clone();
     url.pathname = '/entrar';
     url.searchParams.set('de', caminho);
     return NextResponse.redirect(url);
   }
 
-  if (data.user && caminho === '/entrar') {
+  if (usuario && caminho === '/entrar') {
     const url = requisicao.nextUrl.clone();
     url.pathname = '/clientes';
     url.search = '';

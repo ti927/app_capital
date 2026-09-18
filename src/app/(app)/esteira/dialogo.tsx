@@ -47,6 +47,16 @@ const BLOCOS = [
   },
 ] as const;
 
+/**
+ * Os instrumentos que a esteira conhece — a união do `quando` dos três blocos.
+ *
+ * São os mesmos da expressão do Bubble (`documentacao-completa.md:1614`), que
+ * filtra `All tipo operação op` por CRA, CRI, CR, FIDC Proprietário, FIAGRO,
+ * FII, SLB e Debêntures. A tela mostrava os 31 tipos de operação, inclusive
+ * M&A, Câmbio e Vendor, que não têm estruturação nenhuma para acompanhar aqui.
+ */
+const INSTRUMENTOS: ReadonlySet<string> = new Set(BLOCOS.flatMap((b) => [...b.quando]));
+
 export function DialogoEsteira({
   aberto,
   operacao,
@@ -79,6 +89,9 @@ export function DialogoEsteira({
     [instrumentos, etapaId],
   );
   const [instrumentoIds, setInstrumentoIds] = useState<number[]>(escolhidos);
+
+  /** Só os instrumentos da esteira entram na lista de pílulas. */
+  const tiposDeInstrumento = useMemo(() => tipos.filter((t) => INSTRUMENTOS.has(t.rotulo)), [tipos]);
   useEffect(() => setInstrumentoIds(escolhidos), [escolhidos]);
 
   const rotulosEscolhidos = useMemo(() => {
@@ -147,7 +160,7 @@ export function DialogoEsteira({
             <input key={id} type="hidden" name="instrumento" value={id} />
           ))}
           <div className="tipos__lista">
-            {tipos.map((t) => {
+            {tiposDeInstrumento.map((t) => {
               const marcado = instrumentoIds.includes(t.id);
               return (
                 <button

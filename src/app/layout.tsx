@@ -3,6 +3,7 @@ import { Archivo, IBM_Plex_Mono } from 'next/font/google';
 import { SCRIPT_TEMA } from '@/components/ui/tema';
 import './globals.css';
 import './interface.css';
+import './animacoes.css';
 
 // Archivo é a substituição web de Akkurat/FLAMA, já decidida no design system.
 const archivo = Archivo({

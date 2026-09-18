@@ -504,10 +504,18 @@ body {
 /* --- campos de texto longo ------------------------------------------------- */
 
 /* Parecer e histórico são o corpo do cadastro: precisam de área de escrita,
-   não de uma faixa de três linhas. */
+   não de uma faixa de três linhas.
+
+   O `.lc-field__input` do design system é `height: var(--control-h-md)` com
+   `padding: 0 var(--space-5)`: medida de campo de uma linha, onde a altura
+   fixa centraliza o texto sozinha. Num `<textarea>` isso vira padding vertical
+   **zero** — o texto encosta na borda de cima e a última linha some por baixo.
+   Aqui a altura solta e o padding vertical volta. */
 .lc-field__input textarea,
 textarea.lc-field__input {
+  height: auto;
   min-height: 92px;
+  padding: var(--space-4) var(--space-5);
   resize: vertical;
   line-height: 20px;
 }
@@ -648,4 +656,121 @@ textarea.lc-field__input:focus::-webkit-scrollbar-thumb {
 /* O canto de redimensionar do textarea também é feio no Windows. */
 textarea.lc-field__input {
   resize: vertical;
+}
+
+/* ---------------------------------------------------------------------------
+   Esqueleto de carregamento.
+
+   As peças estão em `src/components/ui/esqueletos.tsx` e reusam as classes do
+   conteúdo de verdade (`.lista`, `.lc-table`, `.funil__quadro`), para que a
+   troca do cinza pelo dado não mova nada de lugar. O que falta são as poucas
+   medidas que só o esqueleto tem.
+   --------------------------------------------------------------------------- */
+
+.esq__aba {
+  display: inline-flex;
+  align-items: center;
+  height: var(--tab-h, 40px);
+  padding: 0 var(--space-5);
+}
+
+.esq__acoes {
+  display: inline-flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+/* A tabela de verdade tem `table-layout: fixed`; sem colgroup, as barras do
+   esqueleto precisam de célula com largura própria. */
+.esq__tabela {
+  table-layout: auto;
+}
+
+.esq__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+/* Texto que só o leitor de tela recebe — "Carregando…" no esqueleto. */
+.lc-visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Menu de escolha ancorado no campo.
+
+   Substitui o pop-up que o seletor abria. Mora num portal no `body`, em
+   `position: fixed`, com a posição calculada em JS a partir do gatilho — é o
+   único jeito de escapar do `overflow` da tabela de etapas e da caixa do
+   diálogo, que cortavam qualquer coisa posicionada no fluxo.
+
+   O z-index fica **acima** do diálogo de propósito: o menu é usado dentro de
+   diálogo o tempo todo (`--z-dropdown` é 20 e não serve aqui).
+   --------------------------------------------------------------------------- */
+
+.lc-popover {
+  position: fixed;
+  z-index: calc(var(--z-modal) + 5);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--space-3);
+  background: var(--surface);
+  border: var(--border-w) solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+}
+
+.lc-popover .filtro-opcoes {
+  flex: none;
+  margin-bottom: var(--space-3);
+}
+
+/* A altura de verdade vem do `maxHeight` calculado no componente. */
+.lc-popover .opcoes {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+.lc-popover__pe {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--border-w) solid var(--border);
+}
+
+/* A contagem de selecionados fica à esquerda; os botões, à direita. */
+.lc-popover__pe .apoio {
+  margin-right: auto;
+}
+
+/* Onde as setas do teclado estão. Diferente do "escolhido" (`--ativo`), que é
+   estado do dado, não da navegação. */
+.opcoes__item--teclado {
+  background: var(--surface-hover);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* Campo aberto: a borda acompanha, para não parecer que o menu saiu de outro
+   lugar da tela. */
+.gatilho--aberto {
+  border-color: var(--focus-ring);
 }

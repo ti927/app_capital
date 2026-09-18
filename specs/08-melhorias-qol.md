@@ -177,6 +177,14 @@ Regras de convivência:
   porque é a outra operação do mesmo cliente que tem o contrato assinado.
   Filtrar por operação deixaria só 1 linha.
 
+## Achado de passagem (frente C, 18/09/2026)
+
+O botão **"Senha"** da barra superior aponta para `/conta/senha`, rota que não
+existe no projeto — 404 em produção, para qualquer usuário que clicar. A tela
+de troca de senha nunca foi escrita; a Fase 0 previa que cada pessoa trocasse
+a senha provisória no primeiro acesso (`specs/04-fases.md`). Precisa virar
+tarefa: ou a tela existe, ou o botão sai da barra.
+
 ## A confirmar com o negócio
 
 1. **Tarefa**: prazo com hora ou só data? O desenho assume **data + hora

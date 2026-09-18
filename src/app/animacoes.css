@@ -1,0 +1,156 @@
+/* ===========================================================================
+   Movimento.
+
+   Três regras que valem para tudo o que está aqui:
+
+   1. Curto. 120–180ms. Animação que se percebe como animação atrasa o
+      trabalho de quem usa o sistema o dia inteiro.
+   2. Só na entrada do que aparece e na saída do que some. Nada pisca, nada
+      pula, nada se move sozinho depois de pronto.
+   3. `prefers-reduced-motion` desliga tudo, no fim do arquivo. Não é enfeite:
+      para quem tem sensibilidade vestibular, movimento é sintoma.
+
+   Os tokens de tempo moram aqui, e não em `tokens.css`, porque aquele arquivo
+   é gerado por `npm run tokens` a partir do `tokens.json` do design system.
+   =========================================================================== */
+
+:root {
+  --mov-rapido: 120ms;
+  --mov-padrao: 160ms;
+  --mov-saida: 140ms;
+  /* Sai rápido e freia no fim — o contrário de `ease-in-out`, que arrasta. */
+  --mov-curva: cubic-bezier(0.2, 0, 0, 1);
+  --brilho-esqueleto: rgba(255, 255, 255, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --brilho-esqueleto: rgba(255, 255, 255, 0.05);
+  }
+}
+
+:root[data-theme="dark"] {
+  --brilho-esqueleto: rgba(255, 255, 255, 0.05);
+}
+
+/* --- esqueleto: brilho que atravessa a barra ------------------------------- */
+
+.lc-skel {
+  position: relative;
+  overflow: hidden;
+}
+
+.lc-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--brilho-esqueleto), transparent);
+  animation: lc-brilho 1400ms infinite;
+}
+
+@keyframes lc-brilho {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* --- troca de página -------------------------------------------------------
+
+   O conteúdo novo entra subindo 6px. A casca (app bar e navegação) não se
+   mexe: quem troca é só a área de conteúdo, que é o que mudou de verdade.
+   --------------------------------------------------------------------------- */
+
+.transicao {
+  animation: lc-entrada var(--mov-padrao) var(--mov-curva);
+}
+
+@keyframes lc-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* --- diálogo ---------------------------------------------------------------
+
+   O véu escurece; a caixa sobe 8px e cresce de 0.98. Na saída o caminho é o
+   mesmo, ao contrário: `Dialogo` segura a desmontagem por `--mov-saida`.
+   --------------------------------------------------------------------------- */
+
+.lc-overlay {
+  animation: lc-vela var(--mov-padrao) var(--mov-curva);
+}
+
+.lc-dialog {
+  animation: lc-caixa var(--mov-padrao) var(--mov-curva);
+}
+
+.lc-overlay--saindo {
+  animation: lc-vela var(--mov-saida) var(--mov-curva) reverse forwards;
+}
+
+.lc-overlay--saindo .lc-dialog {
+  animation: lc-caixa var(--mov-saida) var(--mov-curva) reverse forwards;
+}
+
+@keyframes lc-vela {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes lc-caixa {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+/* --- menu de escolha (o antigo pop-up de seletor) -------------------------- */
+
+.lc-popover {
+  animation: lc-menu var(--mov-rapido) var(--mov-curva);
+}
+
+/* Quando abre para cima, o movimento também inverte. */
+.lc-popover--acima {
+  animation-name: lc-menu-acima;
+}
+
+@keyframes lc-menu {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes lc-menu-acima {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* --- fim: quem pediu menos movimento não recebe nenhum --------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .transicao,
+  .lc-overlay,
+  .lc-dialog,
+  .lc-overlay--saindo,
+  .lc-overlay--saindo .lc-dialog,
+  .lc-popover,
+  .lc-skel::after {
+    animation: none;
+  }
+  /* Sem o brilho, a barra parada ainda precisa se ler como "carregando". */
+  .lc-skel::after {
+    content: none;
+  }
+}
+
+/* Durante a saída o diálogo ainda está na tela, mas não recebe mais clique. */
+.lc-overlay--saindo {
+  pointer-events: none;
+}

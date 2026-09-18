@@ -119,14 +119,14 @@ O que ficou de fora desta e já tem dono sugerido:
 - "Colunas no fluxo" e "Tags", no topo do funil, são botões sem `onClick`.
 
 **Frente B — operação, esteira e fornecedor**
-- Confirmar o segundo filtro da esteira contra dado real (`specs/08-melhorias-qol.md`,
-  "A confirmar", ponto 1). **Atenção ao que o dado diz antes de mexer no
-  filtro**: a esteira listava 7 operações não arquivadas, e o toggle
-  "Estruturação em Andamento" nunca teve como ser marcado pela tela — ele não
-  existia no diálogo de operação até esta rodada. Se a lista vier **vazia**, a
-  resposta não é somar filtro: é marcar o toggle nas operações certas, e isso é
-  decisão do negócio, não de código (regra 9). Como referência do que o segundo
-  filtro do Bubble pegaria: a base tem 13 etapas em "contrato assinado".
+- ~~Confirmar o segundo filtro da esteira~~ — **resolvido em 18/09/2026**, pelo
+  MCP de leitura, operação por operação: o toggle sozinho dá 3 linhas (Garcia
+  "CRA", Garcia "Giro com Barter", Trigobel "Giro Estruturado"); com o segundo
+  filtro do Bubble a Trigobel sai, porque nenhuma das 12 etapas dela está em
+  "contrato assinado", e sobram as 2 de produção. O filtro é por **cliente**,
+  não por operação — "Giro com Barter" entra porque é a outra operação do mesmo
+  cliente que tem contrato assinado; por operação sobraria 1. A decisão está em
+  `specs/08-melhorias-qol.md`, seção "Decidido", com a tabela das 14.
 - "Soma:" no painel de status é um `input` sem efeito nenhum.
 - "Enviar Email" existe no Bubble (`documentacao-completa.md:1997`) e não existe
   no app. É escopo, não bug — precisa de decisão antes de virar tarefa.

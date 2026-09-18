@@ -35,11 +35,14 @@ Conserto, nesta ordem:
    tabela, topo + colunas do quadro), com o `Esqueleto` de
    `@/components/ui/base` e animação de brilho. Não é um spinner centralizado:
    é o esqueleto do conteúdo que vai aparecer.
-3. Navegação instantânea: `<Link prefetch>` nos itens de `NavLateral` (hoje é
-   `<a>` em `casca.tsx`/`navlateral.tsx` — `<a>` recarrega a aplicação inteira,
-   `Link` não). Confira também o "Sair"/"Senha" da barra.
-4. Onde a consulta é grande e independente, envolva em `<Suspense>` para a
-   casca pintar antes dos dados.
+3. ~~Navegação instantânea com `<Link prefetch>`~~ — **conferido, já estava
+   certo**: `NavLateral` usa `Link` desde sempre. O que existe de errado na
+   barra é outra coisa: o botão "Senha" aponta para `/conta/senha`, e essa
+   rota **não existe** — dá 404 em produção. A tela é trabalho de outra
+   frente; fica registrado aqui e em `08-melhorias-qol.md`.
+4. `<Suspense>` por consulta dentro da página **fica para depois**: as
+   `page.tsx` são de A e de B nesta rodada. Com `loading.tsx` o ganho
+   principal já está feito — a tela responde na hora.
 
 Meça antes e depois com o painel de rede (navegação entre duas telas) e anote o
 número no commit.

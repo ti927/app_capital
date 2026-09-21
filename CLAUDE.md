@@ -65,6 +65,7 @@ docs: decisão sobre o de-para de status
 | `db/003_rls.sql` | policies — **não aplicado**, por decisão |
 | `design/` | marca, tokens e o brief para o Claude Design |
 | `docs/` | handoff, fluxo de trabalho, primeiro prompt, segurança |
+| `docs/otimizacao-de-carregamento.md` | de onde vem o tempo de tela, como medir, e o que já foi medido e **descartado** — leia antes de otimizar |
 | `scripts/` | bootstrap do repo e extração do Bubble |
 
 ## Economia de contexto

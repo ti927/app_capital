@@ -4,6 +4,59 @@ Uma seção por rodada, a mais recente no topo. Escrito para quem usa o sistema.
 
 ---
 
+## 21/09/2026 — rodada de velocidade
+
+### Em todas as telas
+
+- **As telas param de esperar por elas mesmas.** O sistema perguntava "quem é
+  esse usuário?" e só *depois* ia buscar os dados da tela — 90ms de banco
+  parado em toda navegação. Agora as duas coisas acontecem ao mesmo tempo.
+  Quem vê o quê não mudou em nada: o bloqueio de acesso continua acontecendo
+  antes de qualquer dado aparecer.
+- **Listas longas aparecem por partes.** Clientes, fundos, operações, etapas,
+  esteira, cartões do funil e tarefas mostram as primeiras 40 linhas na hora e
+  vão completando conforme você rola — sem clique, sem espera. Buscar e filtrar
+  continuam valendo sobre a lista inteira: procurar um cliente que está na
+  linha 800 acha do mesmo jeito.
+- Quem navega por teclado tem um botão **"Mostrar mais"** no fim da lista, com
+  a contagem do que falta.
+
+### Esteira de Estruturação
+
+- **A tela mais lenta virou a mais rápida.** Ela fazia quatro perguntas ao
+  banco uma depois da outra, cada uma esperando a resposta da anterior. Duas
+  viraram uma só, e as outras passaram a correr juntas. De 442ms para 366ms,
+  e nos piores momentos de 567ms para menos de 500ms.
+
+### Funil de Clientes
+
+- **A aba Tarefas só é montada quando você abre.** Antes o calendário do mês e
+  os oito grupos de tarefas eram desenhados junto com o quadro, mesmo em quem
+  nunca abre essa aba. Depois de aberta uma vez, continua tudo como era:
+  trocar de aba não recarrega nem perde busca e filtro.
+
+### Bastidores
+
+- Novo guia: `docs/otimizacao-de-carregamento.md` — de onde vem o tempo, como
+  medir, o que foi feito e, principalmente, **as cinco ideias que foram medidas
+  e descartadas**, para ninguém gastar o dia de novo nelas.
+- `scripts/medir-navegacao.mjs` agora repete a medição e tira a mediana
+  (`--vezes 7`). Uma medição só não servia para comparar nada: a mesma versão,
+  medida três vezes seguidas, dava 485ms, 360ms e 380ms.
+- Conferido de novo e descartado de novo: trocar a conferência de sessão do
+  middleware por uma verificação local não economiza tempo nenhum (372ms contra
+  375ms) e custaria a revogação de sessão pelo servidor.
+
+### Onde chegamos
+
+Mediana das quatro telas, da primeira visita até o dado na tela: **406ms →
+375ms**. O desenho da tela continua respondendo em ~100ms. O que sobra agora é
+ida e volta ao Supabase, não espera boba — para melhorar muito além disto seria
+preciso aproximar o banco do servidor, o que não se justifica com o tamanho
+atual da base.
+
+---
+
 ## 18/09/2026 — rodada QOL, parte 4
 
 ### A casca do sistema

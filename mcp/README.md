@@ -55,7 +55,7 @@ Em `claude_desktop_config.json`:
   "mcpServers": {
     "app-capital": {
       "command": "node",
-      "args": ["C:/Users/fabio/Downloads/files/mcp/servidor.mjs"]
+      "args": ["C:/Users/fabio/Downloads/AppLureCapital/mcp/servidor.mjs"]
     }
   }
 }

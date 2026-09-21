@@ -4,6 +4,8 @@
       "WebFetch",
       "WebSearch",
 
+      "mcp__app-capital",
+
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",

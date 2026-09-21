@@ -35,16 +35,31 @@ contrário do que o `docs/handoff-claude-code.md` previa: o design system da Lur
 traz os próprios doze componentes, e somar outra biblioteca criaria dois sistemas
 concorrentes disputando as mesmas classes.
 
-Cada tela segue o mesmo desenho de quatro arquivos:
+Cada tela segue o mesmo desenho de cinco arquivos:
 
 | Arquivo | Papel |
 |---|---|
 | `page.tsx` | server component; busca os dados e aplica o recorte por nível |
+| `loading.tsx` | o esqueleto, com a **geometria da tela que vem** |
 | `tela.tsx` | client component; lista, busca, estado da interface |
 | `dialogo.tsx` | o formulário de criar e editar |
 | `acoes.ts` | server actions; é o único lugar que escreve no banco |
 
 Quem for construir a sexta tela copia `src/app/(app)/clientes/`.
+
+Duas coisas do `page.tsx` que não são estilo, são desempenho, e que se copiam
+junto — as duas explicadas em `docs/otimizacao-de-carregamento.md`:
+
+- **As consultas saem antes de esperar o perfil.** Ler o perfil custa duas idas
+  ao Supabase em série (~90ms); pedir os dados só depois era deixar o banco
+  parado esse tempo todo. O `redirect` da guarda de acesso continua antes de
+  qualquer dado chegar à tela — o que mudou é só quem espera quem.
+- **Consulta que só existe para alimentar o `where` da próxima é um `!inner`**
+  do PostgREST, não duas idas ao banco. Ver `esteira/page.tsx`.
+
+No `tela.tsx`, lista que possa passar de ~100 linhas usa `useListaIncremental`
+de `src/components/ui/rolagem.tsx`: mostra as primeiras 40 e cresce conforme a
+pessoa rola.
 
 ### Estilo — três arquivos, nesta ordem
 

@@ -10,19 +10,27 @@ avisam; não fazem merge.
 
 ---
 
-## Estado agora
+## Estado — encerrado em 21/09/2026
 
-| Branch | Worktree | O que toca |
+**As três frentes entraram em `main`.** `git log main..<branch>` está vazio
+para as três; a divisão de propriedade abaixo virou histórico.
+
+| Branch | Worktree | O que tocou |
 |---|---|---|
-| `qol-funil-tarefas` (A) | `Downloads/files` | `db/006`, `funil/**`, `clientes/**`, `tsconfig.json` |
+| `qol-funil-tarefas` (A) | `Downloads/AppLureCapital` | `db/006`, `funil/**`, `clientes/**`, `tsconfig.json` |
 | `qol-operacao-esteira` (B) | `Downloads/app-capital-B` | `db/007`, `operacoes/**`, `esteira/**`, `fornecedores/**` |
 | `qol-polimento` (C) | `Downloads/app-capital-C` | `components/**`, CSS global, layouts, `loading.tsx`, `perfil.ts`, `scripts/**` |
 
-A contagem de commits muda a cada hora: confira com `git log --oneline main..<branch>`.
+Depois do merge veio a **rodada de velocidade**, feita numa sessão só, em
+`qol-funil-tarefas` já em cima da `main` unificada. Ela atravessa as fronteiras
+da tabela de propósito — mexe em `page.tsx` e `tela.tsx` das cinco telas, em
+`components/ui/rolagem.tsx`, na CSS global e em `scripts/` — e isso **só foi
+possível porque não havia mais ninguém trabalhando em paralelo**. Com as
+frentes vivas, uma mudança dessas teria que ser negociada arquivo por arquivo.
 
-`git diff --name-only main...<branch>` nas três: **nenhum arquivo aparece em
-duas branches**. O merge não vai ter conflito de texto. O que existe é
-conflito de *comportamento*, na tabela mais abaixo.
+O resto deste arquivo fica como registro de como a rodada de três frentes foi
+coordenada; o protocolo no fim continua valendo para a próxima vez que houver
+mais de uma sessão no repositório.
 
 ---
 
@@ -100,9 +108,12 @@ frente dona do arquivo que quebrou, não da estação de merge.
 
 1. `npm run build && npm run start`, `npm run qa` nas três formas, capturas
    abertas — feito pela frente C, em `main`.
-2. `node scripts/medir-navegacao.mjs`, para comparar com a medição de antes
-   (primeira visita: funil 1139ms, fornecedor 881ms, operação 854ms, com a tela
-   anterior parada na frente do usuário o tempo todo).
+2. `node scripts/medir-navegacao.mjs --vezes 7`, para comparar com a medição
+   de antes (primeira visita: funil 1139ms, fornecedor 881ms, operação 854ms,
+   com a tela anterior parada na frente do usuário o tempo todo). Depois da
+   rodada de velocidade de 21/09 a mediana das quatro telas é **375ms**, com o
+   esqueleto em ~100ms. O `--vezes` não é opcional: sem ele é uma medição só
+   por tela, e o ruído da rede é maior que qualquer ganho que se vá medir.
 3. `main` é o que a Vercel publica. Merge é publicação.
 4. Desfazer os worktrees: `files/` volta para `main`, os outros saem com
    `git worktree remove`.
@@ -131,11 +142,18 @@ O que ficou de fora desta e já tem dono sugerido:
 - "Enviar Email" existe no Bubble (`documentacao-completa.md:1997`) e não existe
   no app. É escopo, não bug — precisa de decisão antes de virar tarefa.
 
-**Frente C — plataforma**
+**Plataforma**
 - Passos de QA para as telas novas (tarefas, calendário, tabela de declinados).
-- `<Suspense>` por consulta dentro das páginas, agora que as `page.tsx` não
-  estão mais divididas entre frentes.
-- Esqueleto do funil com a fita de abas.
+- ~~`<Suspense>` por consulta dentro das páginas~~ — **medido e recusado em
+  21/09/2026.** As consultas de cada página já são paralelas, então o ganho
+  seria a diferença entre a mais lenta e a mais rápida do lote (~40ms), ao
+  custo de partir cada página em componentes de servidor separados. Revisitar
+  só se alguma tela passar a ter uma consulta claramente mais lenta que as
+  outras. Ver `docs/otimizacao-de-carregamento.md`, §5.4.
+- Esqueleto do funil com a fita de abas: `funil/loading.tsx` desenha o topo e o
+  quadro, mas não as abas Quadro/Tarefas, então o esqueleto ainda pula uma
+  linha quando o conteúdo chega. `EsqueletoAbas` já existe em
+  `components/ui/esqueletos.tsx` — é encaixar.
 
 **Fora de rodada, precisa de decisão do usuário**
 - RLS. `db/003_rls.sql` está escrito e não aplicado desde 17/09/2026. Enquanto

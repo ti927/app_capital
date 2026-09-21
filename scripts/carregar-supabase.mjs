@@ -168,17 +168,58 @@ let etapas = 0, instr = 0, itens = 0, semOperacao = 0;
 for (const e of J('etapas_opera__o')) {
   const oid = operacaoId.get(e['qual operação etapa']);
   if (!oid) { semOperacao++; continue; }
+  /**
+   * Os campos da esteira. `Admnistrador` e `Gesto ` estão assim no Bubble
+   * mesmo — o primeiro com o erro de digitação, o segundo com espaço no fim.
+   * Conferido chave por chave no JSON extraído; não "corrigir" os nomes.
+   *
+   * Dos treze, só quatro aparecem no retrato de 15/09/2026 (gestor,
+   * administrador, assessoria legal, volume) e num único registro. Os outros
+   * nove não existem como chave em nenhuma das 388 linhas: o Bubble omite
+   * campo que nunca foi preenchido. Ficam mapeados assim mesmo — sem isso, o
+   * dia em que alguém preencher DTVM no Bubble, uma nova carga descarta o
+   * valor em silêncio. Foi o que já acontecia até 21/09/2026.
+   */
   const r = await c.query(`
     insert into etapa_operacao (bubble_id, operacao_id, cliente_id, fornecedor_id, status_id,
-      tipo_operacao_id, na_mao_de, dt_inicio, volume, administrador, assessoria_legal, gestor, criado_em)
-    values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-    on conflict (bubble_id) do update set operacao_id = excluded.operacao_id
+      tipo_operacao_id, na_mao_de, dt_inicio, volume, administrador, assessoria_legal, gestor,
+      dtvm, securitizadora, agente_fiduciario, custodiante, emissor, estruturador, demais,
+      ts_assinado, op_de_pe, fee_recebido, criado_em)
+    values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+    on conflict (bubble_id) do update set
+      operacao_id       = excluded.operacao_id,
+      -- Recarga PREENCHE, nunca apaga. O que já foi digitado na nossa tela
+      -- ganha do Bubble (coalesce com o nosso valor na frente), e o que está
+      -- vazio aqui recebe o que veio de lá. Sem isto, rodar a carga de novo
+      -- sobrescreveria o trabalho de quem usa o sistema com os campos vazios
+      -- do Bubble — e este do-update só tocava operacao_id, então a recarga
+      -- também não trazia nada de novo.
+      dt_inicio         = coalesce(etapa_operacao.dt_inicio,         excluded.dt_inicio),
+      volume            = coalesce(etapa_operacao.volume,            excluded.volume),
+      administrador     = coalesce(etapa_operacao.administrador,     excluded.administrador),
+      assessoria_legal  = coalesce(etapa_operacao.assessoria_legal,  excluded.assessoria_legal),
+      gestor            = coalesce(etapa_operacao.gestor,            excluded.gestor),
+      dtvm              = coalesce(etapa_operacao.dtvm,              excluded.dtvm),
+      securitizadora    = coalesce(etapa_operacao.securitizadora,    excluded.securitizadora),
+      agente_fiduciario = coalesce(etapa_operacao.agente_fiduciario, excluded.agente_fiduciario),
+      custodiante       = coalesce(etapa_operacao.custodiante,       excluded.custodiante),
+      emissor           = coalesce(etapa_operacao.emissor,           excluded.emissor),
+      estruturador      = coalesce(etapa_operacao.estruturador,      excluded.estruturador),
+      demais            = coalesce(etapa_operacao.demais,            excluded.demais),
+      -- Booleano é not null default false, então coalesce não serve: o OR
+      -- liga o que o Bubble tem ligado e nunca desliga o que já está.
+      ts_assinado       = etapa_operacao.ts_assinado  or excluded.ts_assinado,
+      op_de_pe          = etapa_operacao.op_de_pe     or excluded.op_de_pe,
+      fee_recebido      = etapa_operacao.fee_recebido or excluded.fee_recebido
     returning id`,
     [e._id, oid, clienteId.get(e['qual cliente']) ?? null,
      fornecedorId.get(e['fundo etapa']) ?? null,
      statusEtapa.get(e['status etapa']) ?? null, tipoOp.get(e['tipo operação etapa']) ?? null,
      txt(e['na mão de etapa']), e.DtInicio ? new Date(e.DtInicio) : null, txt(e.volume),
      txt(e.Admnistrador), txt(e.AssessoriaLegal), txt(e['Gesto ']),
+     txt(e.DTVM), txt(e.securitizadora), txt(e.AgenteFiduciario), txt(e.Custodiante),
+     txt(e.Emissor), txt(e.Estruturador), txt(e.Demais),
+     e.TsAssinado === true, e.Opdepe === true, e.FeeRecebido === true,
      e['Created Date'] ?? new Date()]);
   const eid = r.rows[0].id;
   etapas++;

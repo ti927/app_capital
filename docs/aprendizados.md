@@ -202,3 +202,54 @@ só para isso, e ela é a parte mais útil do arquivo.
 
 **O que isso diz:** documentação de otimização que só lista vitórias é um mapa
 sem os penhascos marcados.
+
+---
+
+## 11. "O dado não foi migrado" era "o dado nunca existiu"
+
+A esteira abre o pop-up com tudo em branco — volume, securitizadora, DTVM,
+agente fiduciário, checklist. A leitura natural é que a migração perdeu o
+dado. Não perdeu.
+
+Contado no JSON extraído, **sem imprimir um valor sequer** (é dado de
+cliente): das 388 etapas do Bubble, **uma** tem gestor, administrador,
+assessoria legal, volume e data de início. Os outros nove campos da esteira —
+`DTVM`, `securitizadora`, `AgenteFiduciario`, `Custodiante`, `Emissor`,
+`Estruturador`, `Demais`, `Opdepe`, `TsAssinado`, `FeeRecebido` — **não
+aparecem como chave em nenhuma linha**: o Bubble omite campo que nunca foi
+preenchido. São 31 chaves distintas no arquivo, para um data type que declara
+52 campos.
+
+E a única etapa preenchida é de uma operação **arquivada** (Hospcom / FIDC /
+Vert Capital), então a esteira nunca a lista. As duas que ela lista têm zero.
+Daí o pop-up vazio, todas as vezes.
+
+O banco confere com a origem campo a campo: 1 gestor no Bubble, 1 no Postgres;
+7 itens de checklist lá, 7 aqui; 1 instrumento lá, 1 aqui. Rodar a carga de
+novo não mudou nenhuma contagem.
+
+**Dois bugs de verdade apareceram no caminho**, os dois latentes:
+
+1. O carregador mapeava 3 dos 13 campos da esteira. Como a origem está vazia,
+   ninguém notou — mas no dia em que alguém preenchesse DTVM no Bubble, a
+   carga descartaria o valor em silêncio.
+2. O `on conflict` da etapa só atualizava `operacao_id`. Recarga não trazia
+   nada de novo para linha que já existia. Agora preenche com `coalesce`, com
+   o nosso valor na frente: **recarga preenche, nunca apaga** — senão a carga
+   sobrescreveria com os campos vazios do Bubble o que foi digitado na tela.
+
+**O que isso diz:** antes de "recuperar" dado que sumiu, conte quantos existem
+na origem. O caminho todo — extração, carga, tela — pode estar correto e o
+resultado ainda ser uma tela vazia, porque vazio é a resposta certa. E o jeito
+de contar sem violar a regra do dado de cliente é contar chaves, não ler
+valores.
+
+> **Cuidado ao concluir:** `version-test` e `live` são bancos separados no
+> Bubble. `user` e `fornecedor` batem linha a linha e na data nas duas raízes,
+> e `funilcartao` tem 18 nos dois com um dia a mais no live — então o
+> version-test é uma cópia fiel do live de ~15/09/2026, não um espelho ao vivo.
+> Como `etapas_opera__o` dá 404 no live (nunca foi exposta na Data API de lá),
+> não dá para provar pelo código que o live também está vazio. Prova em 30
+> segundos: abrir a esteira no Bubble de produção e olhar. Se lá tiver dado,
+> marque o tipo em Settings → API e rode
+> `node scripts/extrair-bubble.mjs --live` seguido de `npm run carregar`.

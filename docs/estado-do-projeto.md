@@ -73,12 +73,27 @@ Quando a RLS for ligada, duas coisas desta rodada pedem policy nova:
 
 **Precisa de decisão do negócio**
 
-1. **Quais operações estão de fato em estruturação.** 3 das 14 têm o toggle
-   marcado, e o toggle só passou a existir na tela nesta rodada — o dado nunca
-   teve como ser mantido.
-2. **"Enviar Email"** existe no Bubble (`documentacao-completa.md:1997`) e não
+1. **Quais operações estão de fato em estruturação.** 20 operações têm o toggle
+   marcado, mas 17 estão arquivadas; sobram 3 ativas, e o segundo filtro do
+   Bubble (cliente com etapa em "contrato assinado") deixa 2 — que é o que
+   produção mostra. O toggle só passou a existir na tela na rodada de QOL, então
+   o dado nunca teve como ser mantido.
+2. **A esteira não tem dado para mostrar, e isso não é falha da migração.**
+   Das 388 etapas do Bubble, **uma** tem os campos da esteira preenchidos
+   (Hospcom / FIDC / Vert Capital) — e essa operação está **arquivada**, então a
+   esteira nunca a lista. `DTVM`, `securitizadora`, `AgenteFiduciario`,
+   `Custodiante`, `Emissor`, `Estruturador`, `Demais` e os três toggles não
+   existem como chave em nenhuma linha do Bubble. O pop-up abre em branco
+   porque a origem está em branco; conferido campo a campo em 21/09/2026
+   (`docs/aprendizados.md`, seção 11).
+   **Falta confirmar no live:** `etapas_opera__o` dá 404 na Data API de
+   produção (nunca foi exposta lá), e o `version-test` de onde se extraiu é uma
+   cópia de ~15/09. Abrir a esteira no Bubble de produção resolve em 30
+   segundos. Se houver dado lá, marcar o tipo em Settings → API e rodar
+   `node scripts/extrair-bubble.mjs --live` seguido de `npm run carregar`.
+3. **"Enviar Email"** existe no Bubble (`documentacao-completa.md:1997`) e não
    existe aqui. É escopo, não bug.
-3. **RLS**: quando ligar.
+4. **RLS**: quando ligar.
 
 **Próxima rodada, técnico**
 

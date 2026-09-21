@@ -6,8 +6,20 @@
 //
 // Nota: a exposicao da Data API para cliente, opera__o e etapas_opera__o nunca
 // foi publicada em live — la esses tipos dao 404. Pelo /version-test todos
-// respondem, e o dado e o mesmo (fornecedor tem os mesmos 73 nomes nas duas
-// raizes). Por isso a raiz padrao aponta para version-test.
+// respondem. Por isso a raiz padrao aponta para version-test.
+//
+// version-test e live sao bancos SEPARADOS no Bubble. Conferido em 21/09/2026:
+// user e fornecedor batem linha a linha e na data de modificacao nas duas
+// raizes, e funilcartao tem 18 nos dois mas com um dia a mais no live. Ou seja,
+// o version-test e uma copia do live tirada por volta de 15/09/2026 — fiel,
+// mas nao ao vivo.
+//
+// Isso importa quando um campo aparece vazio no app novo: pode ser que o dado
+// nunca tenha existido, ou que tenha sido digitado no live depois da copia.
+// Para tirar a duvida, exponha o data type na Data API do live
+// (Settings > API, marcar o tipo) e rode com --live.
+//
+//   node scripts/extrair-bubble.mjs --live
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -16,9 +28,13 @@ const env = Object.fromEntries(
     .filter(l => l && !l.trimStart().startsWith('#') && l.includes('='))
     .map(l => { const i = l.indexOf('='); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }));
 
-const KEY  = env.BUBBLE_API_KEY;
-const RAIZ = (env.BUBBLE_APP_URL || 'https://planilha-lurecapital.bubbleapps.io') + '/version-test';
+const KEY = env.BUBBLE_API_KEY;
+const APP = env.BUBBLE_APP_URL || 'https://planilha-lurecapital.bubbleapps.io';
+const LIVE = process.argv.includes('--live');
+const RAIZ = LIVE ? APP : `${APP}/version-test`;
 if (!KEY) { console.error('BUBBLE_API_KEY ausente no .env'); process.exit(1); }
+console.log(`raiz: ${LIVE ? 'LIVE' : 'version-test'}  (${RAIZ})
+`);
 
 const TIPOS = [
   'user', 'cliente', 'fornecedor', 'opera__o', 'etapas_opera__o',

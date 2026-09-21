@@ -6,6 +6,7 @@ import { TopoDaTela } from '@/components/ui/casca';
 import { AcoesLinha, BlocoArquivados, ConfirmarExclusao, ItemDaLista } from '@/components/listas';
 import { IconeMais } from '@/components/ui/icones';
 import { SeletorPopup } from '@/components/ui/seletor-popup';
+import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import { tokenDoStatus, type EtapaOperacao, type Fornecedor, type Operacao, type TabelaApoio } from '@/lib/dominio';
 import { arquivarOperacao, excluirOperacao } from './acoes';
 import { DialogoOperacao } from './dialogo';
@@ -41,6 +42,10 @@ export function TelaOperacoes(props: {
     [clientes],
   );
   const rotuloTipo = useMemo(() => new Map(tipos.map((t) => [t.id, t.rotulo])), [tipos]);
+
+  /** As duas listas entram em lotes conforme rola — ver `ui/rolagem.tsx`. */
+  const lista = useListaIncremental(operacoes);
+  const listaArquivadas = useListaIncremental(arquivadas);
   const nomePerfil = useMemo(() => new Map(props.perfis.map((p) => [p.id, p.nome])), [props.perfis]);
 
   /**
@@ -123,10 +128,22 @@ export function TelaOperacoes(props: {
               <Vazio titulo="Nenhuma operação ainda" />
             </div>
           ) : (
-            <ul className="lista">{operacoes.map((op) => itemDaLista(op, false))}</ul>
+            <>
+              <ul className="lista">{lista.visiveis.map((op) => itemDaLista(op, false))}</ul>
+              <CarregarMais
+                faltam={lista.faltam}
+                aoCarregar={lista.carregarMais}
+                substantivo="operações"
+              />
+            </>
           )}
           <BlocoArquivados quantidade={arquivadas.length}>
-            <ul className="lista">{arquivadas.map((op) => itemDaLista(op, true))}</ul>
+            <ul className="lista">{listaArquivadas.visiveis.map((op) => itemDaLista(op, true))}</ul>
+            <CarregarMais
+              faltam={listaArquivadas.faltam}
+              aoCarregar={listaArquivadas.carregarMais}
+              substantivo="arquivadas"
+            />
           </BlocoArquivados>
         </>
       ) : null}
@@ -212,6 +229,13 @@ function AbaFornecedor({
     [etapas, fundo],
   );
 
+  /**
+   * A tabela por fundo é a que mais cresce da tela: são 383 etapas no total e
+   * os fundos mais acionados já passam de 20 cada. Entra em lotes conforme
+   * rola — ver `ui/rolagem.tsx`.
+   */
+  const tabela = useListaIncremental(linhas);
+
   return (
     <>
       <div style={{ marginBottom: 'var(--space-5)' }}>
@@ -241,7 +265,7 @@ function AbaFornecedor({
             </tr>
           </thead>
           <tbody>
-            {linhas.map((e) => {
+            {tabela.visiveis.map((e) => {
               const op = operacaoPorId.get(e.operacao_id);
               const st = e.status_id ? statusPorId.get(e.status_id) : undefined;
               return (
@@ -262,6 +286,7 @@ function AbaFornecedor({
           </tbody>
         </table>
       )}
+      <CarregarMais faltam={tabela.faltam} aoCarregar={tabela.carregarMais} substantivo="etapas" />
     </>
   );
 }

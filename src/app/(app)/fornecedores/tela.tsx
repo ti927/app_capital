@@ -6,6 +6,7 @@ import { IconeMais } from '@/components/ui/icones';
 import { Tabela } from '@/components/ui/tabela';
 import { TopoDaTela } from '@/components/ui/casca';
 import { AcoesLinha, BlocoArquivados, Busca, ConfirmarExclusao } from '@/components/listas';
+import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import type { Fornecedor, TabelaApoio } from '@/lib/dominio';
 import { arquivarFornecedor, excluirFornecedor } from './acoes';
 import { DialogoFornecedor } from './dialogo';
@@ -53,6 +54,13 @@ export function TelaFornecedores({
 
   const visiveis = useMemo(() => filtrar(fornecedores), [fornecedores, filtrar]);
   const arquivadosVisiveis = useMemo(() => filtrar(arquivados), [arquivados, filtrar]);
+
+  /**
+   * A tabela entra em lotes conforme rola — ver `ui/rolagem.tsx`. A busca
+   * continua varrendo os 70 fundos inteiros; o lote é só o que vai ao DOM.
+   */
+  const tabela = useListaIncremental(visiveis);
+  const tabelaArquivados = useListaIncremental(arquivadosVisiveis);
 
   const rotuloDoTipo = useMemo(() => new Map(tipos.map((t) => [t.id, t.rotulo])), [tipos]);
 
@@ -124,7 +132,7 @@ export function TelaFornecedores({
         <>
           <Tabela
             colunas={COLUNAS}
-            linhas={linhas(visiveis, false)}
+            linhas={linhas(tabela.visiveis, false)}
             semLinhas={
               <div className="vazio-tela">
                 <Vazio
@@ -135,8 +143,14 @@ export function TelaFornecedores({
               </div>
             }
           />
+          <CarregarMais faltam={tabela.faltam} aoCarregar={tabela.carregarMais} substantivo="fundos" />
           <BlocoArquivados quantidade={arquivadosVisiveis.length}>
-            <Tabela colunas={COLUNAS} linhas={linhas(arquivadosVisiveis, true)} />
+            <Tabela colunas={COLUNAS} linhas={linhas(tabelaArquivados.visiveis, true)} />
+            <CarregarMais
+              faltam={tabelaArquivados.faltam}
+              aoCarregar={tabelaArquivados.carregarMais}
+              substantivo="arquivados"
+            />
           </BlocoArquivados>
         </>
       ) : (

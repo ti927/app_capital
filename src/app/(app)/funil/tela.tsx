@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
 import {
@@ -12,6 +12,7 @@ import {
   IconeFechar,
   IconeMais,
 } from '@/components/ui/icones';
+import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import { data } from '@/lib/dominio';
 import {
   arquivarCartao,
@@ -76,11 +77,27 @@ export function TelaFunil({
   const [arrastado, setArrastado] = useState<string | null>(null);
   const [, transicao] = useTransition();
 
+  /**
+   * A aba de tarefas só é montada depois de aberta pela primeira vez — e daí
+   * em diante fica montada, que é o que o `hidden` já garantia.
+   *
+   * Quem abre o funil cai no Quadro. Montar junto o painel de tarefas, com o
+   * calendário do mês e os oito grupos, era desenhar uma tela inteira que a
+   * maioria das visitas nunca olha: custava o primeiro desenho do quadro, que
+   * é a tela mais pesada do sistema. Depois da primeira visita nada muda —
+   * trocar de aba continua não remontando nem perdendo filtro.
+   */
+  const [tarefasAbertas, setTarefasAbertas] = useState(false);
+
   // `?aba=tarefas` deixa o link compartilhável. Lido uma vez, na montagem:
   // depois quem manda é o estado local, para a troca de aba não recarregar.
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('aba') === 'tarefas') setAba('tarefas');
   }, []);
+
+  useEffect(() => {
+    if (aba === 'tarefas') setTarefasAbertas(true);
+  }, [aba]);
 
   const trocarAba = (nova: Aba) => {
     setAba(nova);
@@ -241,9 +258,6 @@ export function TelaFunil({
         <div className="funil__quadro">
           {colunas.map((coluna, i) => {
             const vendoArquivadosAqui = vendoArquivados.includes(coluna.id);
-            const daColuna = cartoes.filter(
-              (c) => c.etapa_id === coluna.id && !!c.arquivado === vendoArquivadosAqui && passaNoFiltro(c),
-            );
             const ativosAqui = cartoes.filter((c) => c.etapa_id === coluna.id && !c.arquivado).length;
             const arquivadosAqui = cartoes.filter((c) => c.etapa_id === coluna.id && c.arquivado).length;
 
@@ -338,20 +352,18 @@ export function TelaFunil({
                   </span>
                 </p>
 
-                <div className="funil__cartoes">
-                  {daColuna.map((c) => (
-                    <Cartao
-                      key={c.id}
-                      cartao={c}
-                      tags={tagsDe.get(c.id) ?? []}
-                      tarefasEmAberto={tarefas.filter((t) => t.cartao_id === c.id && !t.concluida).length}
-                      aoAbrir={() => setAbertoId(c.id)}
-                      aoArquivar={() => transicao(() => void arquivarCartao(c.id, !c.arquivado))}
-                      aoArrastar={() => setArrastado(c.id)}
-                      aoVirarCliente={() => setAVirarCliente(c)}
-                    />
-                  ))}
-                </div>
+                <CartoesDaColuna
+                  cartoes={cartoes}
+                  etapaId={coluna.id}
+                  arquivados={vendoArquivadosAqui}
+                  passaNoFiltro={passaNoFiltro}
+                  tagsDe={tagsDe}
+                  tarefas={tarefas}
+                  aoAbrir={setAbertoId}
+                  aoArquivar={(c) => transicao(() => void arquivarCartao(c.id, !c.arquivado))}
+                  aoArrastar={setArrastado}
+                  aoVirarCliente={setAVirarCliente}
+                />
 
                 {/* Na vista de arquivados não se cria cartão — como no original. */}
                 {vendoArquivadosAqui ? null : (
@@ -371,15 +383,17 @@ export function TelaFunil({
       </div>
 
       <div hidden={aba !== 'tarefas'}>
-        <PainelTarefas
-          tarefas={tarefas}
-          cartoes={cartoesParaTarefa}
-          perfis={perfis}
-          perfilId={perfilId}
-          ehMaster={ehMaster}
-          quadroId={quadro?.id ?? null}
-          aoAbrirCartao={abrirCartaoPorId}
-        />
+        {tarefasAbertas ? (
+          <PainelTarefas
+            tarefas={tarefas}
+            cartoes={cartoesParaTarefa}
+            perfis={perfis}
+            perfilId={perfilId}
+            ehMaster={ehMaster}
+            quadroId={quadro?.id ?? null}
+            aoAbrirCartao={abrirCartaoPorId}
+          />
+        ) : null}
       </div>
 
       {aberto && quadro ? (
@@ -440,6 +454,81 @@ export function TelaFunil({
           />
         </>
       ) : null}
+    </div>
+  );
+}
+
+/* ------------------------------------------------- cartões de uma coluna -- */
+
+/**
+ * Os cartões de uma coluna, entrando em lotes conforme a coluna rola.
+ *
+ * É componente próprio por dois motivos. O primeiro é que o hook de lote não
+ * pode ser chamado dentro do `.map` das colunas — regra dos hooks. O segundo é
+ * que o filtro precisa morar aqui: se a lista já filtrada viesse de fora, ela
+ * seria um array novo a cada render do quadro (arrastar um cartão, digitar na
+ * busca), e o lote voltaria ao começo a cada tecla. Filtrando aqui dentro com
+ * `useMemo` sobre entradas estáveis, a lista só muda quando o filtro muda — que
+ * é exatamente quando voltar ao começo é o certo.
+ *
+ * O lote é de 15, e não dos 40 da lista: a coluna é estreita e alta, e 15
+ * cartões já passam da altura visível.
+ */
+function CartoesDaColuna({
+  cartoes,
+  etapaId,
+  arquivados,
+  passaNoFiltro,
+  tagsDe,
+  tarefas,
+  aoAbrir,
+  aoArquivar,
+  aoArrastar,
+  aoVirarCliente,
+}: {
+  cartoes: CartaoDoFunil[];
+  etapaId: string;
+  arquivados: boolean;
+  passaNoFiltro: (c: CartaoDoFunil) => boolean;
+  tagsDe: Map<string, TagFunil[]>;
+  tarefas: Tarefa[];
+  aoAbrir: (id: string) => void;
+  aoArquivar: (c: CartaoDoFunil) => void;
+  aoArrastar: (id: string) => void;
+  aoVirarCliente: (c: CartaoDoFunil) => void;
+}) {
+  const raiz = useRef<HTMLDivElement>(null);
+
+  const daColuna = useMemo(
+    () =>
+      cartoes.filter(
+        (c) => c.etapa_id === etapaId && !!c.arquivado === arquivados && passaNoFiltro(c),
+      ),
+    [cartoes, etapaId, arquivados, passaNoFiltro],
+  );
+
+  const lote = useListaIncremental(daColuna, 15);
+
+  return (
+    <div className="funil__cartoes" ref={raiz}>
+      {lote.visiveis.map((c) => (
+        <Cartao
+          key={c.id}
+          cartao={c}
+          tags={tagsDe.get(c.id) ?? []}
+          tarefasEmAberto={tarefas.filter((t) => t.cartao_id === c.id && !t.concluida).length}
+          aoAbrir={() => aoAbrir(c.id)}
+          aoArquivar={() => aoArquivar(c)}
+          aoArrastar={() => aoArrastar(c.id)}
+          aoVirarCliente={() => aoVirarCliente(c)}
+        />
+      ))}
+      <CarregarMais
+        faltam={lote.faltam}
+        aoCarregar={lote.carregarMais}
+        substantivo="cartões"
+        raiz={raiz}
+      />
     </div>
   );
 }

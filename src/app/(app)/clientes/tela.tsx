@@ -5,6 +5,7 @@ import { Botao } from '@/components/ui/base';
 import { Vazio } from '@/components/ui/base';
 import { TopoDaTela } from '@/components/ui/casca';
 import { AcoesLinha, BlocoArquivados, Busca, ConfirmarExclusao, ItemDaLista } from '@/components/listas';
+import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import type { Cliente, NivelAcesso } from '@/lib/dominio';
 import { arquivarCliente, excluirCliente } from './acoes';
 import { DialogoCliente } from './dialogo';
@@ -65,6 +66,14 @@ export function TelaClientes({
   const arquivadosVisiveis = useMemo(() => filtrar(arquivados), [arquivados, filtrar]);
   const escondidos = clientes.length - visiveis.length;
 
+  /**
+   * A lista entra em lotes conforme rola — ver `ui/rolagem.tsx`. `visiveis`
+   * continua sendo o total filtrado, então a busca e a contagem de escondidos
+   * valem sobre a carteira inteira, não sobre o pedaço que está no DOM.
+   */
+  const lista = useListaIncremental(visiveis);
+  const listaArquivados = useListaIncremental(arquivadosVisiveis);
+
   const emailsDe = (id: string) => emails.filter((e) => e.cliente_id === id);
   const visualizadoresDe = (id: string) =>
     vinculos.filter((v) => v.cliente_id === id).map((v) => v.perfil_id);
@@ -88,31 +97,38 @@ export function TelaClientes({
           />
         </div>
       ) : (
-        <ul className="lista">
-          {visiveis.map((c) => (
-            <ItemDaLista
-              key={c.id}
-              aoAbrir={() => setEmEdicao(c)}
-              rotuloAbrir={`Editar ${c.nome_razao}`}
-              acoes={
-                <AcoesLinha
-                  aoArquivar={() => transicao(() => void arquivarCliente(c.id, true))}
-                  aoExcluir={() => setAExcluir(c)}
-                  aoEditar={() => setEmEdicao(c)}
-                />
-              }
-            >
-              {/* Cada linha mostra só o nome/razão. O nome inteiro abre a edição. */}
-              <span className="lista__nome">{c.nome_razao}</span>
-            </ItemDaLista>
-          ))}
-        </ul>
+        <>
+          <ul className="lista">
+            {lista.visiveis.map((c) => (
+              <ItemDaLista
+                key={c.id}
+                aoAbrir={() => setEmEdicao(c)}
+                rotuloAbrir={`Editar ${c.nome_razao}`}
+                acoes={
+                  <AcoesLinha
+                    aoArquivar={() => transicao(() => void arquivarCliente(c.id, true))}
+                    aoExcluir={() => setAExcluir(c)}
+                    aoEditar={() => setEmEdicao(c)}
+                  />
+                }
+              >
+                {/* Cada linha mostra só o nome/razão. O nome inteiro abre a edição. */}
+                <span className="lista__nome">{c.nome_razao}</span>
+              </ItemDaLista>
+            ))}
+          </ul>
+          <CarregarMais
+            faltam={lista.faltam}
+            aoCarregar={lista.carregarMais}
+            substantivo="clientes"
+          />
+        </>
       )}
 
       {nivel === 'master' ? (
         <BlocoArquivados quantidade={arquivadosVisiveis.length}>
           <ul className="lista">
-            {arquivadosVisiveis.map((c) => (
+            {listaArquivados.visiveis.map((c) => (
               <ItemDaLista
                 key={c.id}
                 aoAbrir={() => setEmEdicao(c)}
@@ -130,6 +146,11 @@ export function TelaClientes({
               </ItemDaLista>
             ))}
           </ul>
+          <CarregarMais
+            faltam={listaArquivados.faltam}
+            aoCarregar={listaArquivados.carregarMais}
+            substantivo="arquivados"
+          />
         </BlocoArquivados>
       ) : null}
 

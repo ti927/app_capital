@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useState, useTransition, type React
 import { Botao, Campo, Vazio } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
 import { SeletorPopup } from '@/components/ui/seletor-popup';
+import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import {
   IconeChevronBaixo,
   IconeChevronCima,
@@ -160,18 +161,13 @@ export function PainelTarefas({
               if (!lista.length) return null;
               return (
                 <Grupo key={chave} chave={chave} rotulo={rotulo} quantidade={lista.length}>
-                  <ul className="lista">
-                    {lista.map((t) => (
-                      <LinhaTarefa
-                        key={t.id}
-                        tarefa={t}
-                        cartao={cartaoPorId.get(t.cartao_id) ?? null}
-                        responsavel={t.responsavel_id ? (nomePerfil.get(t.responsavel_id) ?? '') : ''}
-                        aoAbrirCartao={aoAbrirCartao}
-                        aoEditar={() => setEmEdicao(t)}
-                      />
-                    ))}
-                  </ul>
+                  <ListaDoGrupo
+                    tarefas={lista}
+                    cartaoPorId={cartaoPorId}
+                    nomePerfil={nomePerfil}
+                    aoAbrirCartao={aoAbrirCartao}
+                    aoEditar={setEmEdicao}
+                  />
                 </Grupo>
               );
             })
@@ -201,6 +197,51 @@ export function PainelTarefas({
         />
       ) : null}
     </div>
+  );
+}
+
+/* ------------------------------------------------------ lista de um grupo -- */
+
+/**
+ * As tarefas de um grupo, entrando em lotes conforme a pessoa rola.
+ *
+ * Componente próprio porque o hook de lote não pode ser chamado dentro do
+ * `.map` dos grupos. O grupo que justifica isto é "Concluídas": ele é
+ * histórico e só cresce — depois de um ano de uso é o único que passa de
+ * algumas centenas de linhas. Os outros esvaziam sozinhos conforme o prazo
+ * passa.
+ */
+function ListaDoGrupo({
+  tarefas,
+  cartaoPorId,
+  nomePerfil,
+  aoAbrirCartao,
+  aoEditar,
+}: {
+  tarefas: Tarefa[];
+  cartaoPorId: Map<string, FunilCartao>;
+  nomePerfil: Map<string, string>;
+  aoAbrirCartao: (id: string) => void;
+  aoEditar: (t: Tarefa) => void;
+}) {
+  const lote = useListaIncremental(tarefas);
+
+  return (
+    <>
+      <ul className="lista">
+        {lote.visiveis.map((t) => (
+          <LinhaTarefa
+            key={t.id}
+            tarefa={t}
+            cartao={cartaoPorId.get(t.cartao_id) ?? null}
+            responsavel={t.responsavel_id ? (nomePerfil.get(t.responsavel_id) ?? '') : ''}
+            aoAbrirCartao={aoAbrirCartao}
+            aoEditar={() => aoEditar(t)}
+          />
+        ))}
+      </ul>
+      <CarregarMais faltam={lote.faltam} aoCarregar={lote.carregarMais} substantivo="tarefas" />
+    </>
   );
 }
 

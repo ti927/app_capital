@@ -5,6 +5,7 @@ import { Botao, Vazio } from '@/components/ui/base';
 import { TopoDaTela } from '@/components/ui/casca';
 import { Busca, ItemDaLista } from '@/components/listas';
 import { IconeEditar } from '@/components/ui/icones';
+import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import type { Operacao, TabelaApoio } from '@/lib/dominio';
 import { DialogoEsteira } from './dialogo';
 import type { EtapaEsteira, ItemChecklist } from './page';
@@ -62,6 +63,9 @@ export function TelaEsteira({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [operacoes, busca, tipoDe]);
 
+  /** A lista entra em lotes conforme rola — ver `ui/rolagem.tsx`. */
+  const lista = useListaIncremental(visiveis);
+
   return (
     <>
       {/* Busca sublinhada no alto da área de conteúdo. */}
@@ -78,30 +82,37 @@ export function TelaEsteira({
           />
         </div>
       ) : (
-        <ul className="lista">
-          {visiveis.map((op) => (
-            <ItemDaLista
-              key={op.id}
-              aoAbrir={() => setAberta(op)}
-              rotuloAbrir={`Abrir esteira de ${clienteDe(op)}`}
-              acoes={
-                /* Um único ícone: o lápis. Não há lixeira nem arquivar aqui. */
-                <Botao
-                  variante="tertiary"
-                  tamanho="row"
-                  title="Abrir esteira"
-                  aria-label={`Abrir esteira de ${clienteDe(op)}`}
-                  onClick={() => setAberta(op)}
-                >
-                  <IconeEditar />
-                </Botao>
-              }
-            >
-              {tipoDe(op) ? <span className="lista__apoio">{tipoDe(op)} - </span> : null}
-              <span className="lista__nome">{clienteDe(op)}</span>
-            </ItemDaLista>
-          ))}
-        </ul>
+        <>
+          <ul className="lista">
+            {lista.visiveis.map((op) => (
+              <ItemDaLista
+                key={op.id}
+                aoAbrir={() => setAberta(op)}
+                rotuloAbrir={`Abrir esteira de ${clienteDe(op)}`}
+                acoes={
+                  /* Um único ícone: o lápis. Não há lixeira nem arquivar aqui. */
+                  <Botao
+                    variante="tertiary"
+                    tamanho="row"
+                    title="Abrir esteira"
+                    aria-label={`Abrir esteira de ${clienteDe(op)}`}
+                    onClick={() => setAberta(op)}
+                  >
+                    <IconeEditar />
+                  </Botao>
+                }
+              >
+                {tipoDe(op) ? <span className="lista__apoio">{tipoDe(op)} - </span> : null}
+                <span className="lista__nome">{clienteDe(op)}</span>
+              </ItemDaLista>
+            ))}
+          </ul>
+          <CarregarMais
+            faltam={lista.faltam}
+            aoCarregar={lista.carregarMais}
+            substantivo="operações"
+          />
+        </>
       )}
 
       {aberta ? (

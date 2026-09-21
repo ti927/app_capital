@@ -46,11 +46,16 @@ export interface Tarefa {
 }
 
 export default async function PaginaFunil() {
-  const perfil = await perfilAtual();
   const supabase = await clienteServidor();
 
-  const [quadros, etapas, tags, cartoes, cartaoTags, cartaoUsuarios, perfis, tarefas, clientes] =
-    await Promise.all([
+  /**
+   * As nove consultas saem ANTES de esperar o perfil — ver a nota em
+   * `fornecedores/page.tsx`. Nenhuma delas filtra por perfil (o recorte do
+   * indicante é feito aqui embaixo, sobre o que voltou), então esperar o
+   * perfil era deixar o banco parado ~90ms em toda abertura do funil — a tela
+   * mais lenta do sistema.
+   */
+  const pedidos = Promise.all([
       supabase.from('funil_quadro').select('id, nome, ordem').order('ordem'),
       supabase.from('funil_etapa').select('id, quadro_id, nome, ordem, no_fluxo').order('ordem'),
       supabase.from('funil_tag').select('id, nome, cor, ativo').order('nome'),
@@ -73,6 +78,11 @@ export default async function PaginaFunil() {
         .order('prazo'),
       supabase.from('cliente').select('id, nome_razao').order('nome_razao'),
     ]);
+  pedidos.catch(() => {});
+
+  const perfil = await perfilAtual();
+  const [quadros, etapas, tags, cartoes, cartaoTags, cartaoUsuarios, perfis, tarefas, clientes] =
+    await pedidos;
 
   // O indicante só vê os cartões em que está.
   const meus = new Set(

@@ -47,10 +47,26 @@ const CAMPOS_ETAPA =
 type OperacaoResumo = Pick<Operacao, 'id' | 'identificador' | 'cliente_id'>;
 
 export default async function PaginaEsteira() {
-  const perfil = await perfilAtual();
-  if (perfil.nivel_acesso !== 'master') redirect('/clientes');
-
   const supabase = await clienteServidor();
+
+  /**
+   * Tudo que não depende de nada sai primeiro, e fica no ar enquanto o resto
+   * acontece. Antes esta lista era a ÚLTIMA coisa a ser pedida, depois de
+   * quatro idas ao Supabase em série (perfil, status, etapas assinadas) — o
+   * banco ficava parado esperando a vez.
+   *
+   * O `catch` é para o caso de a página desistir no `redirect` com a consulta
+   * ainda no ar: sem ele, viraria "unhandled rejection" no log.
+   */
+  const apoio = Promise.all([
+    supabase.from('cliente').select('id, nome_razao'),
+    supabase.from('fornecedor').select('id, nome_fundo'),
+    supabase.from('tipo_operacao').select('id, chave, rotulo, ordem').order('ordem'),
+    supabase.from('etapa_operacao').select(CAMPOS_ETAPA),
+    supabase.from('etapa_checklist_item').select('id, etapa_id, chave, rotulo, descricao, valor, ordem'),
+    supabase.from('etapa_instrumento').select('etapa_id, tipo_operacao_id'),
+  ]);
+  apoio.catch(() => {});
 
   /*
     A esteira tem DOIS filtros, ambos da mesma expressão do Bubble
@@ -71,41 +87,44 @@ export default async function PaginaEsteira() {
     O segundo filtro é por CLIENTE, não por operação: "Giro com Barter" entra
     porque é a outra operação do mesmo cliente que tem o contrato assinado.
   */
-  const { data: statusAssinado } = await supabase
-    .from('status_etapa')
-    .select('id')
-    .eq('chave', 'contrato_assinado')
-    .maybeSingle();
+  /**
+   * Quem tem contrato assinado, em UMA ida ao banco. Eram duas em série —
+   * pegar o id do status, depois as etapas com esse id. O `!inner` faz o
+   * PostgREST juntar `status_etapa` no servidor e filtrar pela chave, que é o
+   * que a segunda consulta fazia à mão. Mesmo resultado (13 etapas, 7
+   * clientes, conferido em 21/09/2026), metade do tempo de espera.
+   */
+  const comContrato = supabase
+    .from('etapa_operacao')
+    .select('cliente_id, status_etapa!inner(chave)')
+    .eq('status_etapa.chave', 'contrato_assinado');
+  const pedidoContrato = Promise.resolve(comContrato);
+  pedidoContrato.catch(() => {});
 
-  const { data: etapasAssinadas } = statusAssinado
-    ? await supabase.from('etapa_operacao').select('cliente_id').eq('status_id', statusAssinado.id)
-    : { data: [] as Array<{ cliente_id: string | null }> };
+  const perfil = await perfilAtual();
+  if (perfil.nivel_acesso !== 'master') redirect('/clientes');
+
+  const { data: etapasAssinadas } = await pedidoContrato;
 
   const clientesComContrato = [
     ...new Set(
-      ((etapasAssinadas ?? []) as Array<{ cliente_id: string | null }>)
+      ((etapasAssinadas ?? []) as unknown as Array<{ cliente_id: string | null }>)
         .map((e) => e.cliente_id)
         .filter((id): id is string => Boolean(id)),
     ),
   ];
 
-  const [operacoes, clientes, fornecedores, tipos, etapas, checklist, instrumentos] = await Promise.all([
-    // Sem cliente elegível não há esteira — nem vale ir ao banco.
-    clientesComContrato.length
-      ? supabase
-          .from('operacao')
-          .select('id, identificador, cliente_id')
-          .eq('arquivado', false)
-          .eq('estruturacao_em_andamento', true)
-          .in('cliente_id', clientesComContrato)
-      : Promise.resolve({ data: [] as OperacaoResumo[] }),
-    supabase.from('cliente').select('id, nome_razao'),
-    supabase.from('fornecedor').select('id, nome_fundo'),
-    supabase.from('tipo_operacao').select('id, chave, rotulo, ordem').order('ordem'),
-    supabase.from('etapa_operacao').select(CAMPOS_ETAPA),
-    supabase.from('etapa_checklist_item').select('id, etapa_id, chave, rotulo, descricao, valor, ordem'),
-    supabase.from('etapa_instrumento').select('etapa_id, tipo_operacao_id'),
-  ]);
+  // Sem cliente elegível não há esteira — nem vale ir ao banco.
+  const operacoes = clientesComContrato.length
+    ? await supabase
+        .from('operacao')
+        .select('id, identificador, cliente_id')
+        .eq('arquivado', false)
+        .eq('estruturacao_em_andamento', true)
+        .in('cliente_id', clientesComContrato)
+    : { data: [] as OperacaoResumo[] };
+
+  const [clientes, fornecedores, tipos, etapas, checklist, instrumentos] = await apoio;
 
   const listaClientes = (clientes.data ?? []) as unknown as Array<{ id: string; nome_razao: string }>;
   const nomeCliente = new Map(listaClientes.map((c) => [c.id, c.nome_razao]));

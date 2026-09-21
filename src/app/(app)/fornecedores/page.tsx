@@ -17,18 +17,32 @@ export interface VinculoTipo {
 }
 
 export default async function PaginaFornecedores() {
-  const perfil = await perfilAtual();
-  // A tela inteira é de master: o indicante não vê fornecedores.
-  if (perfil.nivel_acesso !== 'master') redirect('/clientes');
-
   const supabase = await clienteServidor();
 
-  const [ativos, arquivados, tipos, vinculos] = await Promise.all([
+  /**
+   * As consultas saem ANTES de esperar o perfil. Nenhuma delas depende dele, e
+   * ler o perfil custa duas idas ao Supabase em série (`getUser` + `select`,
+   * ~90ms): esperar por elas era deixar o banco parado esse tempo todo. Agora
+   * as duas coisas correm juntas e a página termina na mais lenta das duas.
+   *
+   * A guarda de acesso não afrouxa: o `redirect` continua antes de qualquer
+   * dado chegar à tela. O `catch` existe só para o caso de a página desistir
+   * no redirect com a consulta ainda no ar — sem ele viraria "unhandled
+   * rejection" no log do servidor.
+   */
+  const pedidos = Promise.all([
     supabase.from('fornecedor').select(CAMPOS).eq('arquivado', false).order('nome_fundo'),
     supabase.from('fornecedor').select(CAMPOS).eq('arquivado', true).order('nome_fundo'),
     supabase.from('tipo_operacao').select('id, chave, rotulo, ordem').order('ordem'),
     supabase.from('fornecedor_tipo_operacao').select('fornecedor_id, tipo_operacao_id, papel'),
   ]);
+  pedidos.catch(() => {});
+
+  const perfil = await perfilAtual();
+  // A tela inteira é de master: o indicante não vê fornecedores.
+  if (perfil.nivel_acesso !== 'master') redirect('/clientes');
+
+  const [ativos, arquivados, tipos, vinculos] = await pedidos;
 
   return (
     <TelaFornecedores

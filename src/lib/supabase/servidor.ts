@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { cache } from 'react';
 
 /**
  * Cliente Supabase para Server Components, Route Handlers e Server Actions.
@@ -9,8 +10,15 @@ import { cookies } from 'next/headers';
  * Enquanto estiver assim, o recorte por nível de acesso é feito na consulta,
  * aqui na aplicação. Quando `db/003_rls.sql` for aplicado, o banco passa a
  * garantir o mesmo recorte e estas consultas continuam válidas.
+ *
+ * Embrulhado em `cache()` do React: layout, página e cada ação pedem o cliente
+ * na mesma requisição, e sem isto cada chamada montava o seu — lendo os
+ * cookies e armando o cliente de novo. `cache()` vale para UMA requisição e
+ * morre com ela. Não é `unstable_cache`, que guarda entre requisições e aqui
+ * levaria junto o cliente de uma requisição velha: ver a nota em
+ * `src/lib/perfil.ts`, onde isso custou a sessão do usuário.
  */
-export async function clienteServidor() {
+export const clienteServidor = cache(async function clienteServidor() {
   const armazem = await cookies();
 
   return createServerClient(
@@ -34,4 +42,4 @@ export async function clienteServidor() {
       },
     },
   );
-}
+});

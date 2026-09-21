@@ -32,25 +32,15 @@ export interface Visualizador {
 }
 
 export default async function PaginaOperacoes() {
-  const perfil = await perfilAtual();
-  if (perfil.nivel_acesso !== 'master') redirect('/clientes');
-
   const supabase = await clienteServidor();
 
-  const [
-    ativas,
-    arquivadas,
-    clientes,
-    fornecedores,
-    tipos,
-    statusEtapa,
-    statusOperacao,
-    etapas,
-    observacoes,
-    declinios,
-    perfis,
-    visualizadores,
-  ] = await Promise.all([
+  /**
+   * As doze consultas saem ANTES de esperar o perfil — ver a nota em
+   * `fornecedores/page.tsx`. Nenhuma depende dele, e o perfil custa duas idas
+   * ao Supabase em série (~90ms) que antes corriam na frente do banco em vez
+   * de junto com ele.
+   */
+  const pedidos = Promise.all([
     supabase.from('operacao').select(CAMPOS).eq('arquivado', false).order('identificador'),
     supabase.from('operacao').select(CAMPOS).eq('arquivado', true).order('identificador'),
     supabase.from('cliente').select('id, nome_razao').order('nome_razao'),
@@ -69,6 +59,25 @@ export default async function PaginaOperacoes() {
     supabase.from('perfil').select('id, nome').eq('ativo', true),
     supabase.from('cliente_visualizador').select('cliente_id, perfil_id'),
   ]);
+  pedidos.catch(() => {});
+
+  const perfil = await perfilAtual();
+  if (perfil.nivel_acesso !== 'master') redirect('/clientes');
+
+  const [
+    ativas,
+    arquivadas,
+    clientes,
+    fornecedores,
+    tipos,
+    statusEtapa,
+    statusOperacao,
+    etapas,
+    observacoes,
+    declinios,
+    perfis,
+    visualizadores,
+  ] = await pedidos;
 
   return (
     <TelaOperacoes

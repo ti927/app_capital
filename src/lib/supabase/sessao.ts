@@ -37,10 +37,16 @@ export async function renovarSessao(requisicao: NextRequest) {
    * que lê o cookie sem conferir nada.
    *
    * `getClaims()` confere a assinatura localmente (o projeto usa ES256) e
-   * evitaria esta ida à rede. Medido com build de produção, a troca valeu
-   * ~19ms de 377ms — dentro do ruído. Fica para quando houver motivo melhor:
-   * o caminho de autenticação é o último lugar onde vale trocar uma garantia
-   * do servidor por 5% de tempo.
+   * evitaria esta ida à rede. **Já foi medido duas vezes, e não compensa:**
+   *
+   *   18/09/2026  ~19ms de 377ms
+   *   21/09/2026  372ms contra 375ms — mediana de 7 passadas, empate
+   *
+   * A segunda medição foi feita de propósito porque o log do servidor mostra
+   * `getUser()` levando ~68ms: parecia dinheiro no chão. Não é — esses 68ms
+   * correm junto com o prefetch da rota, não na frente do clique. Trocar aqui
+   * seria abrir mão de uma revogação de sessão que o servidor confere, em
+   * troca de nada. Não medir de novo sem mudar alguma outra coisa antes.
    */
   const { data } = await supabase.auth.getUser();
   const usuario = data.user;

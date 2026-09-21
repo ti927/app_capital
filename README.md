@@ -24,6 +24,9 @@ lista de clientes filtrada pelos vínculos.
 > `.next`. Se a página aparecer sem estilo nenhum, é quase certo que há dois
 > processos na porta 3000 e o mais antigo perdeu os arquivos de build.
 
+> **Produção está fora do ar** por falta de `NEXT_PUBLIC_SUPABASE_ANON_KEY` no
+> projeto da Vercel. O que fazer está em `docs/estado-do-projeto.md`.
+
 ## Comandos
 
 | | |
@@ -31,6 +34,8 @@ lista de clientes filtrada pelos vínculos.
 | `npm run dev` | servidor de desenvolvimento |
 | `npm run verify` | typecheck + lint + teste |
 | `npm run qa` | percorre as telas e grava uma captura por passo em `qa/` |
+| `npm run qa:tudo` | as três formas do QA em paralelo (~40s) |
+| `node scripts/medir-navegacao.mjs` | mede a primeira visita a cada tela, contra um build de produção |
 | `npm run tokens` | regera `tokens.css` e `design-system.css` do design system |
 | `npm run migration <arquivo>` | aplica uma migration |
 | `npm run extrair` / `npm run carregar` | extrai do Bubble e carrega no Supabase |

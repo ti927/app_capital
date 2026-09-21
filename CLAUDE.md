@@ -27,6 +27,10 @@ quem usa hoje; banco e lógica são refeitos.
 3. **Trigger de log em `evento`**, com `UPDATE` e `DELETE` revogados na tabela.
 4. **`npm run verify` (typecheck + lint + teste) passa antes de todo commit.**
 5. **`npm run qa` roda antes de entregar tela, e as capturas se olham.**
+   Use `npm run qa:tudo` — as três formas em paralelo, ~40s em vez de ~4min.
+   Espere pelo conteúdo, nunca pela classe crua: o esqueleto de carregamento
+   usa as mesmas classes de propósito, e um passo já deu "ok" fotografando tela
+   em branco (`docs/aprendizados.md`, seção 1).
    `scripts/qa.mjs` percorre as telas exercitando as funcoes e grava uma
    captura por passo em `qa/` (fora do git). Rode nas tres formas: padrao,
    `-- --escuro` e `-- --celular`. Passar nao basta — **abra as imagens**: os
@@ -60,12 +64,16 @@ docs: decisão sobre o de-para de status
 | `specs/bubble/documentacao-completa.md` | mapeamento do app atual (2.540 linhas) |
 | `specs/bubble/fase1-inventario.md` | inventário de páginas, data types e plugins |
 | `specs/00-` … `07-` | especificação por assunto — **ainda não escritas**, ver `specs/LEIA-ME.md` |
-| `db/001_fundacao.sql` | tipos, perfil, acesso, evento — **aplicado** |
-| `db/002_dominio.sql` | as 24 tabelas de domínio — **aplicado** |
+| `db/001` … `002` | fundação e as 24 tabelas de domínio — **aplicadas** |
+| `db/004` … `008` | correções, tarefas do funil, esteira, `cliente.criado_por` — **aplicadas** |
 | `db/003_rls.sql` | policies — **não aplicado**, por decisão |
 | `design/` | marca, tokens e o brief para o Claude Design |
-| `docs/` | handoff, fluxo de trabalho, primeiro prompt, segurança |
+| `docs/estado-do-projeto.md` | **onde o app está hoje** — leia primeiro |
+| `docs/aprendizados.md` | o que as rodadas ensinaram, e o que mudou por causa disso |
+| `docs/notas-de-versao.md` | patch notes por rodada, para a equipe |
 | `docs/otimizacao-de-carregamento.md` | de onde vem o tempo de tela, como medir, e o que já foi medido e **descartado** — leia antes de otimizar |
+| `docs/` | handoff, fluxo de trabalho, primeiro prompt, segurança |
+| `specs/08-melhorias-qol.md` · `09-ordem-de-merge.md` | a rodada de QOL e o protocolo de trabalho em paralelo |
 | `scripts/` | bootstrap do repo e extração do Bubble |
 
 ## Economia de contexto

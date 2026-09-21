@@ -1,5 +1,11 @@
 # 09 — Ordem de merge e divisão das frentes · 18/09/2026
 
+> **Rodada encerrada em 18/09/2026.** As três frentes entraram em `main` na
+> ordem abaixo, sem um conflito de texto sequer, e `main` está publicada. O que
+> vale daqui para frente é o **protocolo**, no fim do arquivo — ele serve para
+> qualquer rodada em paralelo. O estado do app está em
+> `docs/estado-do-projeto.md`; o que a rodada ensinou, em `docs/aprendizados.md`.
+
 Três sessões trabalhando em paralelo, uma por frente. Este arquivo é o
 combinado entre elas: quem faz o quê, em que ordem entra em `main`, e o que
 cada uma tem que ter na mão antes de pedir merge.
@@ -10,10 +16,10 @@ avisam; não fazem merge.
 
 ---
 
-## Estado — encerrado em 21/09/2026
+## Como as frentes foram divididas — histórico
 
-**As três frentes entraram em `main`.** `git log main..<branch>` está vazio
-para as três; a divisão de propriedade abaixo virou histórico.
+`git log main..<branch>` está vazio para as três: a divisão de propriedade
+abaixo já cumpriu o papel dela e fica como registro.
 
 | Branch | Worktree | O que tocou |
 |---|---|---|
@@ -21,8 +27,8 @@ para as três; a divisão de propriedade abaixo virou histórico.
 | `qol-operacao-esteira` (B) | `Downloads/app-capital-B` | `db/007`, `operacoes/**`, `esteira/**`, `fornecedores/**` |
 | `qol-polimento` (C) | `Downloads/app-capital-C` | `components/**`, CSS global, layouts, `loading.tsx`, `perfil.ts`, `scripts/**` |
 
-Depois do merge veio a **rodada de velocidade**, feita numa sessão só, em
-`qol-funil-tarefas` já em cima da `main` unificada. Ela atravessa as fronteiras
+Depois desses merges veio a **rodada de velocidade** (21/09/2026), feita numa
+sessão só, em `qol-funil-tarefas` já em cima da `main` unificada. Ela atravessa as fronteiras
 da tabela de propósito — mexe em `page.tsx` e `tela.tsx` das cinco telas, em
 `components/ui/rolagem.tsx`, na CSS global e em `scripts/` — e isso **só foi
 possível porque não havia mais ninguém trabalhando em paralelo**. Com as

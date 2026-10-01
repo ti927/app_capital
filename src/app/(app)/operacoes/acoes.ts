@@ -50,6 +50,22 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
     alvo = data.id as string;
   }
 
+  /*
+    "Parecer do cliente": no Bubble o ipt.parecercliente do diálogo de operação
+    grava em `cliente.parecer` (documentacao-completa.md:2105–2120). O campo só
+    vai no formulário quando a operação tem cliente — sem ele, nada a gravar.
+  */
+  if (dados.has('parecer_cliente') && campos.cliente_id) {
+    // O navegador envia <textarea> com CRLF; sem normalizar, abrir e salvar sem
+    // mexer reescrevia o parecer do cliente (e o log registrava mudança falsa).
+    const parecerCliente = texto(dados, 'parecer_cliente')?.replace(/\r\n/g, '\n') ?? null;
+    const { error } = await supabase
+      .from('cliente')
+      .update({ parecer: parecerCliente })
+      .eq('id', campos.cliente_id);
+    if (error) return { erro: 'Salvei a operação, mas não o parecer do cliente. Tente de novo.' };
+  }
+
   // Declínios: regrava o conjunto inteiro.
   const declinios = dados.getAll('declinios').map(String).filter(Boolean);
   await supabase.from('operacao_declinio').delete().eq('operacao_id', alvo);
@@ -60,6 +76,7 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
   }
 
   revalidatePath('/operacoes');
+  revalidatePath('/clientes');
   return { ok: true, id: alvo };
 }
 

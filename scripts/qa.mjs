@@ -290,6 +290,27 @@ await passo(pagina, 'operacao-aba-fornecedor-vazia', async () => {
   }
 });
 
+await passo(pagina, 'operacao-aba-fornecedor-tabela', async () => {
+  await pagina.click('.lc-field:has-text("Fundo parceiro") .gatilho');
+  await pagina.waitForSelector('.lc-popover .opcoes__item', { timeout: 5000 });
+  await pagina.locator('.lc-popover .opcoes__item').first().click();
+  // Espera o conteúdo: o filtro de status no cabeçalho só existe com a tabela.
+  await pagina.waitForSelector('.lc-table .th-filtro .gatilho', { timeout: 10000 });
+});
+
+await passo(pagina, 'operacao-aba-fornecedor-filtro-status', async () => {
+  await pagina.click('.th-filtro .gatilho');
+  await pagina.waitForSelector('.lc-popover .opcoes__item', { timeout: 5000 });
+  // O gatilho mora num <th> com overflow:hidden — o menu não pode sair cortado.
+  await confereMenu(pagina, 'filtro de status da aba Fornecedor', 0);
+});
+
+await passo(pagina, 'operacao-aba-fornecedor-filtrada', async () => {
+  // A segunda opção é o primeiro status de verdade (a primeira é "Todos").
+  await pagina.locator('.lc-popover .opcoes__item').nth(1).click();
+  await pagina.waitForSelector('.lc-popover', { state: 'detached', timeout: 5000 });
+});
+
 await passo(pagina, 'operacao-aba-status', async () => {
   await pagina.click('button[role="tab"]:has-text("Status")');
   await pagina.waitForSelector('.painel-status', { timeout: 10000 });

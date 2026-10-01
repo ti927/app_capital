@@ -32,8 +32,35 @@ export function TelaOperacoes(props: {
   const { operacoes, arquivadas, clientes, tipos, statusEtapa, statusOperacao, etapas } = props;
 
   const [aba, setAba] = useState<Aba>('cliente');
-  const [emEdicao, setEmEdicao] = useState<Operacao | null>(null);
-  const [criando, setCriando] = useState(false);
+  /**
+   * Estado do diálogo de operação. `sessao` cresce a cada abertura e vira a
+   * `key` do <DialogoOperacao>: cada abertura monta um diálogo novo, com
+   * estado de ação zerado e interruptores (`defaultChecked`) lidos da
+   * operação certa. Fechar só baixa `aberto` — a operação fica para a
+   * animação de saída.
+   *
+   * Guarda o id, não o objeto: a operação é relida das listas a cada render,
+   * então depois de um salvamento (revalidatePath) o diálogo vê o dado novo.
+   */
+  const [dialogo, setDialogo] = useState<{ aberto: boolean; operacaoId: string | null; sessao: number }>({
+    aberto: false,
+    operacaoId: null,
+    sessao: 0,
+  });
+  const abrirOperacao = useCallback(
+    (op: Operacao | null) => setDialogo((d) => ({ aberto: true, operacaoId: op?.id ?? null, sessao: d.sessao + 1 })),
+    [],
+  );
+  const fecharDialogo = useCallback(() => setDialogo((d) => ({ ...d, aberto: false })), []);
+  const emEdicao = useMemo(
+    () =>
+      dialogo.operacaoId
+        ? operacoes.find((o) => o.id === dialogo.operacaoId) ??
+          arquivadas.find((o) => o.id === dialogo.operacaoId) ??
+          null
+        : null,
+    [dialogo.operacaoId, operacoes, arquivadas],
+  );
   const [aExcluir, setAExcluir] = useState<Operacao | null>(null);
   const [, transicao] = useTransition();
 
@@ -83,14 +110,14 @@ export function TelaOperacoes(props: {
   const itemDaLista = (op: Operacao, arquivado: boolean) => (
     <ItemDaLista
       key={op.id}
-      aoAbrir={() => setEmEdicao(op)}
+      aoAbrir={() => abrirOperacao(op)}
       rotuloAbrir="Editar operacao"
       acoes={
         <AcoesLinha
           rotuloArquivar={arquivado ? 'Desarquivar' : 'Arquivar'}
           aoArquivar={() => transicao(() => void arquivarOperacao(op.id, !arquivado))}
           aoExcluir={() => setAExcluir(op)}
-          aoEditar={() => setEmEdicao(op)}
+          aoEditar={() => abrirOperacao(op)}
         />
       }
     >
@@ -115,7 +142,7 @@ export function TelaOperacoes(props: {
           Status
         </button>
         <div className="abas__acoes">
-          <Botao variante="primary" onClick={() => setCriando(true)}>
+          <Botao variante="primary" onClick={() => abrirOperacao(null)}>
             <IconeMais tamanho={15} /> Nova Operação
           </Botao>
         </div>
@@ -169,7 +196,8 @@ export function TelaOperacoes(props: {
       ) : null}
 
       <DialogoOperacao
-        aberto={criando || emEdicao !== null}
+        key={dialogo.sessao}
+        aberto={dialogo.aberto}
         operacao={emEdicao}
         clientes={clientes}
         fornecedores={props.fornecedores}
@@ -179,11 +207,10 @@ export function TelaOperacoes(props: {
         etapas={emEdicao ? etapas.filter((e) => e.operacao_id === emEdicao.id) : []}
         observacoes={emEdicao ? props.observacoes.filter((o) => o.operacao_id === emEdicao.id) : []}
         declinios={emEdicao ? props.declinios.filter((d) => d.operacao_id === emEdicao.id).map((d) => d.fornecedor_id) : []}
-        parecerCliente={null}
-        aoFechar={() => {
-          setCriando(false);
-          setEmEdicao(null);
-        }}
+        parecerCliente={
+          (emEdicao?.cliente_id && clientes.find((c) => c.id === emEdicao.cliente_id)?.parecer) || null
+        }
+        aoFechar={fecharDialogo}
       />
 
       <ConfirmarExclusao
@@ -220,14 +247,47 @@ function AbaFornecedor({
   statusEtapa: TabelaApoio[];
 }) {
   const [fundo, setFundo] = useState('');
+  /** '' ou 'todos' = sem filtro (clicar de novo na opção escolhida limpa). */
+  const [filtroStatus, setFiltroStatus] = useState('todos');
 
   const statusPorId = useMemo(() => new Map(statusEtapa.map((s) => [s.id, s])), [statusEtapa]);
   const operacaoPorId = useMemo(() => new Map(operacoes.map((o) => [o.id, o])), [operacoes]);
 
-  const linhas = useMemo(
-    () => (fundo ? etapas.filter((e) => e.fornecedor_id === fundo) : []),
-    [etapas, fundo],
+  const opcoesFundo = useMemo(
+    () =>
+      fornecedores
+        .map((f) => ({ valor: f.id, rotulo: f.nome_fundo }))
+        .sort((a, b) => a.rotulo.localeCompare(b.rotulo, 'pt-BR', { sensitivity: 'base' })),
+    [fornecedores],
   );
+
+  const opcoesStatus = useMemo(
+    () => [
+      { valor: 'todos', rotulo: 'Todos' },
+      ...statusEtapa.map((s) => ({
+        valor: String(s.id),
+        rotulo: s.rotulo,
+        cor: `var(--${tokenDoStatus(s.chave)})`,
+      })),
+    ],
+    [statusEtapa],
+  );
+
+  /** Filtra pelo fundo e pelo status; ordena pelo nome do cliente, sem nome no fim. */
+  const linhas = useMemo(() => {
+    if (!fundo) return [];
+    const semFiltro = !filtroStatus || filtroStatus === 'todos';
+    const nome = (e: EtapaOperacao) => (e.cliente_id && nomeCliente.get(e.cliente_id)) || '';
+    return etapas
+      .filter((e) => e.fornecedor_id === fundo)
+      .filter((e) => semFiltro || String(e.status_id) === filtroStatus)
+      .sort((a, b) => {
+        const na = nome(a);
+        const nb = nome(b);
+        if (!na || !nb) return na ? -1 : nb ? 1 : 0;
+        return na.localeCompare(nb, 'pt-BR', { sensitivity: 'base' });
+      });
+  }, [etapas, fundo, filtroStatus, nomeCliente]);
 
   /**
    * A tabela por fundo é a que mais cresce da tela: são 383 etapas no total e
@@ -241,7 +301,7 @@ function AbaFornecedor({
       <div style={{ marginBottom: 'var(--space-5)' }}>
         <SeletorPopup
           rotulo="Fundo parceiro:"
-          opcoes={fornecedores.map((f) => ({ valor: f.id, rotulo: f.nome_fundo }))}
+          opcoes={opcoesFundo}
           aoEscolher={setFundo}
         />
       </div>
@@ -261,7 +321,19 @@ function AbaFornecedor({
               <th scope="col">Demanda inicial</th>
               <th scope="col">Demanda final</th>
               <th scope="col">Tipo de operação</th>
-              <th scope="col">Status</th>
+              {/* O filtro mora no próprio cabeçalho; o menu é portal, não é cortado. */}
+              <th scope="col" className="th-filtro">
+                <span className="th-filtro__caixa">
+                  <span>Status</span>
+                  <SeletorPopup
+                    className="th-filtro__seletor"
+                    placeholder="Todos"
+                    valorInicial="todos"
+                    opcoes={opcoesStatus}
+                    aoEscolher={setFiltroStatus}
+                  />
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -283,6 +355,15 @@ function AbaFornecedor({
                 </tr>
               );
             })}
+            {linhas.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="apoio">
+                  {filtroStatus && filtroStatus !== 'todos'
+                    ? 'Nenhuma etapa com este status.'
+                    : 'Nenhuma etapa com este fundo.'}
+                </td>
+              </tr>
+            ) : null}
           </tbody>
         </table>
       )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState, useTransition } from 'react';
+import { useActionState, useEffect, useMemo, useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import {
@@ -66,6 +66,13 @@ export function DialogoOperacao({
   parecerCliente: string | null;
   aoFechar: () => void;
 }) {
+  /*
+    O estado da ação é desta abertura só: `tela.tsx` monta o diálogo com uma
+    `key` nova a cada vez que abre. Sem isso o `{ ok: true }` de um salvamento
+    sobrevivia até a próxima abertura e o efeito abaixo fechava o diálogo no
+    mesmo instante — e os interruptores, que são não controlados
+    (`defaultChecked`), podiam carregar o estado da operação anterior.
+  */
   const [estado, agir, gravando] = useActionState(gravarOperacao, null as { erro?: string; ok?: boolean } | null);
 
   useEffect(() => {
@@ -74,13 +81,25 @@ export function DialogoOperacao({
 
   const nova = !operacao;
   const temCliente = Boolean(operacao?.cliente_id);
+  const nomeCliente = operacao?.cliente_id
+    ? clientes.find((c) => c.id === operacao.cliente_id)?.nome_razao ?? null
+    : null;
+
+  // Listas de escolha em ordem alfabética; as de status mantêm a ordem própria (progressão).
+  const clientesOrdenados = useMemo(() => ordenarPtBr(clientes, (c) => c.nome_razao), [clientes]);
+  const fundosOrdenados = useMemo(() => ordenarPtBr(fornecedores, (f) => f.nome_fundo), [fornecedores]);
+  const tiposOrdenados = useMemo(() => ordenarPtBr(tipos, (t) => t.rotulo), [tipos]);
 
   return (
     <Dialogo
       aberto={aberto}
       aoFechar={aoFechar}
       titulo={nova ? 'Nova Operação' : 'Editar operação'}
-      contexto={operacao?.identificador ?? undefined}
+      contexto={
+        nomeCliente
+          ? [nomeCliente, operacao?.identificador].filter(Boolean).join(' · ')
+          : operacao?.identificador ?? undefined
+      }
       largura="lg"
       rodape={
         <>
@@ -109,16 +128,28 @@ export function DialogoOperacao({
       <form id="forma-operacao" action={agir} className="grade">
         <input type="hidden" name="id" value={operacao?.id ?? ''} />
 
-        {/* "Escolher cliente:" só aparece quando a operação é nova. */}
+        {/*
+          "Escolher cliente:" só aparece quando a operação é nova. Em edição o
+          cliente não troca, mas o nome dele aparece — somente leitura.
+        */}
         {nova ? (
           <SeletorPopup
             className="grade__inteiro"
             rotulo="Escolher cliente:"
             nome="cliente_id"
-            opcoes={clientes.map((c) => ({ valor: c.id, rotulo: c.nome_razao }))}
+            opcoes={clientesOrdenados.map((c) => ({ valor: c.id, rotulo: c.nome_razao }))}
           />
         ) : (
-          <input type="hidden" name="cliente_id" value={operacao?.cliente_id ?? ''} />
+          <>
+            <input type="hidden" name="cliente_id" value={operacao?.cliente_id ?? ''} />
+            <Campo
+              className="grade__inteiro"
+              id="operacao-cliente"
+              rotulo="Cliente"
+              somenteLeitura
+              valorInicial={nomeCliente ?? 'Sem cliente'}
+            />
+          </>
         )}
 
         <Campo rotulo="Identificador" nome="identificador" valorInicial={operacao?.identificador ?? ''} placeholder="Digite aqui" />
@@ -132,7 +163,7 @@ export function DialogoOperacao({
         <Campo className="grade__inteiro" rotulo="Garantias sugeridas" nome="garantias_sugeridas" valorInicial={operacao?.garantias_sugeridas ?? ''} placeholder="Digite aqui" />
         <Campo className="grade__inteiro" rotulo="Limites/fundos assinados" nome="limites_fundos_assinados" valorInicial={operacao?.limites_fundos_assinados ?? ''} placeholder="Digite aqui" />
 
-        <Declinios fornecedores={fornecedores} escolhidos={declinios} />
+        <Declinios fornecedores={fundosOrdenados} escolhidos={declinios} />
 
         <Campo rotulo="PMTS" nome="pmts" valorInicial={operacao?.pmts ?? ''} placeholder="Digite aqui" />
         <Campo rotulo="Prazo" nome="prazo" valorInicial={operacao?.prazo ?? ''} placeholder="Digite aqui" />
@@ -149,7 +180,31 @@ export function DialogoOperacao({
         {/* Group VZ do Bubble: Comissão e Destino do recurso lado a lado. */}
         <Campo rotulo="Destino do recurso" nome="destino_recurso" valorInicial={operacao?.destino_recurso ?? ''} placeholder="Digite aqui" />
 
-        <Campo className="grade__inteiro campo-alto" rotulo="Parecer da operação" nome="parecer" multilinha linhas={11} valorInicial={operacao?.parecer ?? ''} placeholder="Digite aqui" />
+        {/*
+          Os dois pareceres lado a lado. O do cliente (ipt.parecercliente no
+          Bubble, documentacao-completa.md:1985–1995 e :2105–2120) é editável
+          e, ao salvar, grava em `cliente.parecer`. Some quando não há cliente.
+        */}
+        <Campo
+          className={temCliente ? 'campo-alto' : 'grade__inteiro campo-alto'}
+          rotulo="Parecer da operação"
+          nome="parecer"
+          multilinha
+          linhas={11}
+          valorInicial={operacao?.parecer ?? ''}
+          placeholder="Digite aqui"
+        />
+        {temCliente ? (
+          <Campo
+            className="campo-alto"
+            rotulo="Parecer do cliente"
+            nome="parecer_cliente"
+            multilinha
+            linhas={11}
+            valorInicial={parecerCliente ?? ''}
+            placeholder="Digite aqui"
+          />
+        ) : null}
 
         {/* Rótulos como no Bubble (Group S / JZZ, documentacao-completa.md:2011–2016). */}
         <div className="grade__inteiro linha" style={{ gap: 'var(--space-6)', flexWrap: 'wrap' }}>
@@ -185,22 +240,19 @@ export function DialogoOperacao({
           <TabelaDeEtapas
             operacaoId={operacao.id}
             etapas={etapas}
-            fornecedores={fornecedores}
-            tipos={tipos}
+            fornecedores={fundosOrdenados}
+            tipos={tiposOrdenados}
             statusEtapa={statusEtapa}
           />
         </>
       ) : null}
-
-      {/* "Parecer Cliente" some quando não há cliente. Vem do cadastro dele. */}
-      {temCliente ? (
-        <>
-          <hr className="grade__regua" />
-          <Campo rotulo="Parecer Cliente" calculado multilinha linhas={4} valorInicial={parecerCliente ?? ''} />
-        </>
-      ) : null}
     </Dialogo>
   );
+}
+
+/** Ordem alfabética pt-BR, sem diferenciar acento nem caixa. Não muda a lista original. */
+function ordenarPtBr<T>(lista: T[], rotulo: (item: T) => string): T[] {
+  return [...lista].sort((a, b) => rotulo(a).localeCompare(rotulo(b), 'pt-BR', { sensitivity: 'base' }));
 }
 
 /* ------------------------------------------------------------ interruptor -- */
@@ -368,8 +420,17 @@ function TabelaDeEtapas({
     return st ? STATUS_DECLINADOS.has(st.chave) : false;
   };
 
-  const principais = etapas.filter((e) => !declinada(e));
-  const declinadas = etapas.filter(declinada);
+  /** Ordem alfabética pelo nome do fundo; etapa sem fundo vai para o fim. */
+  const nomeFundo = new Map(fornecedores.map((f) => [f.id, f.nome_fundo]));
+  const ordenadas = [...etapas].sort((a, b) => {
+    const na = a.fornecedor_id ? nomeFundo.get(a.fornecedor_id) : undefined;
+    const nb = b.fornecedor_id ? nomeFundo.get(b.fornecedor_id) : undefined;
+    if (!na || !nb) return na ? -1 : nb ? 1 : 0;
+    return na.localeCompare(nb, 'pt-BR', { sensitivity: 'base' });
+  });
+
+  const principais = ordenadas.filter((e) => !declinada(e));
+  const declinadas = ordenadas.filter(declinada);
 
   const ferramentas = {
     fornecedores,
@@ -385,11 +446,10 @@ function TabelaDeEtapas({
   };
 
   return (
-    <section>
-      {/* A tabela some quando não há nenhuma etapa — a grade devolve null. */}
-      <GradeDeEtapas titulo="Lista de Etapas" linhas={principais} {...ferramentas} />
+    <section className="secao-etapas">
+      <span className="lc-field__label">Lista de Fornecedores</span>
 
-      {/* Linha de criação de etapa — só na primeira tabela, só master. */}
+      {/* Linha de inclusão — acima das duas tabelas, só master. */}
       <div className="criar-etapa">
         <SeletorPopup
           key={`novo-tipo-${nova.tipo_operacao_id ?? 'vazio'}`}
@@ -442,10 +502,13 @@ function TabelaDeEtapas({
         </Botao>
       </div>
 
+      {/* A tabela some quando não há nenhuma etapa — a grade devolve null. */}
+      <GradeDeEtapas linhas={principais} {...ferramentas} />
+
       {/* Declinados: mesma estrutura, logo abaixo, e some quando a lista é vazia. */}
       {declinadas.length ? (
         <>
-          <GradeDeEtapas titulo="Etapas declinadas" linhas={declinadas} {...ferramentas} />
+          <GradeDeEtapas titulo="Fornecedores declinados" linhas={declinadas} {...ferramentas} />
           <p className="etapas-nota apoio">
             Status referentes à: Já cliente do fundo, Recusado pelo Cliente, Recusado pelo Fundo.
           </p>
@@ -470,7 +533,8 @@ function GradeDeEtapas({
   salvar,
   excluir,
 }: {
-  titulo: string;
+  /** A principal vem sem: o título "Lista de Fornecedores" fica acima da inclusão. */
+  titulo?: string;
   linhas: EtapaOperacao[];
   fornecedores: Fundo[];
   tipos: TabelaApoio[];
@@ -491,15 +555,19 @@ function GradeDeEtapas({
 
   return (
     <>
-      <span className="lc-field__label">{titulo}</span>
+      {titulo ? (
+        <span className="lc-field__label" style={{ display: 'block', marginTop: 'var(--space-5)' }}>
+          {titulo}
+        </span>
+      ) : null}
 
       <table className="lc-table tabela-etapas" style={{ marginTop: 'var(--space-3)' }}>
         {/* "Na mão de" é texto corrido e precisa da maior fatia; Fundo cede. */}
         <colgroup>
           <col style={{ width: '20%' }} />
           <col style={{ width: '18%' }} />
-          <col style={{ width: '26%' }} />
           <col style={{ width: '18%' }} />
+          <col style={{ width: '26%' }} />
           <col style={{ width: '10%' }} />
           <col style={{ width: '8%' }} />
         </colgroup>
@@ -507,8 +575,8 @@ function GradeDeEtapas({
           <tr>
             <th scope="col">Fundo</th>
             <th scope="col">Tipo de operação</th>
-            <th scope="col">Na mão de</th>
             <th scope="col">Status</th>
+            <th scope="col">Na mão de</th>
             <th scope="col" />
             <th scope="col">Alterado em:</th>
           </tr>
@@ -548,21 +616,6 @@ function GradeDeEtapas({
                   )}
                 </td>
 
-                {/* Em leitura quebra linha e mostra tudo; em edição é textarea. */}
-                <td className="na-mao-de">
-                  {emEdicao ? (
-                    <Campo
-                      multilinha
-                      linhas={2}
-                      placeholder="Na mão de"
-                      valor={rascunho?.na_mao_de ?? ''}
-                      aoMudar={(v) => mudarRascunho({ na_mao_de: v || null })}
-                    />
-                  ) : (
-                    e.na_mao_de || '-'
-                  )}
-                </td>
-
                 <td>
                   {emEdicao ? (
                     <SeletorPopup
@@ -580,6 +633,21 @@ function GradeDeEtapas({
                     <span style={{ color: st ? `var(--${tokenDoStatus(st.chave)}-ink)` : undefined, fontWeight: 600 }}>
                       {st?.rotulo || '-'}
                     </span>
+                  )}
+                </td>
+
+                {/* Em leitura quebra linha e mostra tudo; em edição é textarea. */}
+                <td className="na-mao-de">
+                  {emEdicao ? (
+                    <Campo
+                      multilinha
+                      linhas={2}
+                      placeholder="Na mão de"
+                      valor={rascunho?.na_mao_de ?? ''}
+                      aoMudar={(v) => mudarRascunho({ na_mao_de: v || null })}
+                    />
+                  ) : (
+                    e.na_mao_de || '-'
                   )}
                 </td>
 

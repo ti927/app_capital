@@ -28,6 +28,55 @@
   overflow-wrap: anywhere;
 }
 
+/*
+  A linha de inclusão fica entre o título "Lista de Fornecedores" e as tabelas.
+  O `.criar-etapa` de globals.css foi desenhado para ficar *abaixo* da tabela
+  (filete em cima); aqui ele encosta no título e não precisa do filete.
+*/
+.secao-etapas .criar-etapa {
+  margin-top: var(--space-3);
+  padding-top: 0;
+  border-top: 0;
+}
+
+/*
+  Filtro de status no cabeçalho da aba Fornecedor. O `<th>` tem altura fixa e
+  `overflow: hidden`, então o gatilho é o compacto (altura de controle sm) e
+  encolhe com reticências. O menu é portal em `position: fixed` — o recorte
+  do `<th>` não o alcança.
+*/
+.lc-table thead th.th-filtro {
+  padding-right: var(--space-3);
+}
+
+.th-filtro__caixa {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.th-filtro__caixa > span:first-child {
+  flex: none;
+}
+
+.th-filtro__seletor {
+  flex: 1;
+  min-width: 0;
+  max-width: 180px;
+}
+
+.th-filtro__seletor .gatilho {
+  min-height: var(--control-h-sm);
+  height: var(--control-h-sm);
+  padding: 0 var(--space-2);
+  gap: var(--space-1, 4px);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 /* A nota em itálico sob a tabela dos declinados. A cor vem de `.apoio`. */
 .etapas-nota {
   margin-top: var(--space-2);

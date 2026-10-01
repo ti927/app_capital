@@ -13,24 +13,6 @@ menu com o perfil, troca de senha, e o recorte do indicante fechado. Em 21/09
 veio a **rodada de velocidade**: as telas deixaram de esperar a leitura do
 perfil para só então ir ao banco, e listas longas passaram a entrar em lotes
 conforme a pessoa rola. Mediana das quatro telas: 406ms → 375ms.
-**Produção está fora do ar por falta de uma variável na Vercel.**
-
----
-
-## Bloqueio de produção
-
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` **não existe** no projeto da Vercel — só a URL.
-O build passa e o app cai em toda requisição, no middleware, com *"Your
-project's URL and Key are required to create a Supabase client"*.
-
-```powershell
-cd C:\Users\fabio\Downloads\AppLureCapital
-npx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
-# cole o valor que está no .env local (é chave pública, vai no bundle de qualquer jeito)
-npx vercel --prod
-```
-
-Conferir depois com `npx vercel env ls production`.
 
 ---
 

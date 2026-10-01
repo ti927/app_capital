@@ -59,12 +59,41 @@ const COLUNA_REAL = '.funil__coluna:not(.funil__coluna--esqueleto)';
  * e `.lista__item` existe em três delas. Sem conferir o endereço junto, a
  * esteira "media" 24ms — que era a lista de operações ainda na tela.
  */
+/**
+ * `origem` é de onde a navegação parte. O padrão é `/clientes`; a própria tela
+ * de clientes parte do fornecedor, senão não haveria navegação nenhuma para
+ * medir. `link` existe porque `:has-text("Cliente")` também casa com "Funil de
+ * Clientes" — o seletor por `href` não erra.
+ */
 const TELAS = [
+  {
+    rotulo: 'Cliente',
+    rota: '/clientes',
+    conteudo: `${ITEM_REAL}, .lc-empty`,
+    origem: { rota: '/fornecedores', pronto: `${LINHA_REAL}, .lc-empty` },
+    link: '.lc-navitem[href="/clientes"]',
+  },
   { rotulo: 'Funil de Clientes',       rota: '/funil',        conteudo: COLUNA_REAL },
   { rotulo: 'Fornecedor',              rota: '/fornecedores', conteudo: `${LINHA_REAL}, .lc-empty` },
   { rotulo: 'Operação',                rota: '/operacoes',    conteudo: `${ITEM_REAL}, .lc-empty` },
   { rotulo: 'Esteira de Estruturação', rota: '/esteira',      conteudo: `${ITEM_REAL}, .lc-empty` },
 ];
+
+/**
+ * `--tela Cliente` mede só a tela com esse rótulo (ou as que o contêm). Para comparar
+ * uma tela só, com muitas passadas, sem pagar as outras quatro a cada volta.
+ */
+const FILTRO = (() => {
+  const i = process.argv.indexOf('--tela');
+  return i > -1 ? String(process.argv[i + 1] ?? '').toLowerCase() : '';
+})();
+// Rótulo exato ganha de "contém": "Cliente" é uma tela, não também o funil.
+const exata = TELAS.filter((t) => t.rotulo.toLowerCase() === FILTRO);
+const MEDIR = !FILTRO
+  ? TELAS
+  : exata.length
+    ? exata
+    : TELAS.filter((t) => t.rotulo.toLowerCase().includes(FILTRO));
 
 const linha = fs
   .readFileSync('dados/credenciais-provisorias.txt', 'utf8')
@@ -94,11 +123,12 @@ await pagina.waitForSelector(ITEM_REAL, { timeout: 30000 });
 /** Uma passada por todas as telas. */
 async function umaPassada() {
   const desta = [];
-  for (const tela of TELAS) {
+  for (const tela of MEDIR) {
     // Sempre do mesmo ponto de partida, e sem o router guardado da visita
     // anterior — é a PRIMEIRA visita que dói.
-    await pagina.goto(`${BASE}/clientes`, { waitUntil: 'networkidle' });
-    await pagina.waitForSelector(ITEM_REAL, { timeout: 30000 });
+    const origem = tela.origem ?? { rota: '/clientes', pronto: ITEM_REAL };
+    await pagina.goto(`${BASE}${origem.rota}`, { waitUntil: 'networkidle' });
+    await pagina.waitForSelector(origem.pronto, { timeout: 30000 });
 
     // Quanto a tela manda pelo fio: o payload do React Server Component carrega
     // TODO o dado que a página buscou. Tela que consulta a tabela inteira paga
@@ -122,13 +152,30 @@ async function umaPassada() {
       .then(() => Date.now() - inicio)
       .catch(() => null);
 
-    await pagina.click(`.lc-navitem:has-text("${tela.rotulo}")`);
-    await pagina.waitForFunction(
-      ([rota, sel]) => window.location.pathname === rota && document.querySelector(sel) !== null,
-      [tela.rota, tela.conteudo],
-      { timeout: 30000 },
-    );
+    await pagina.click(tela.link ?? `.lc-navitem:has-text("${tela.rotulo}")`);
+
+    /**
+     * Uma amostra que não chega em 30s não derruba a medição inteira: vira
+     * falha contada no relatório e a passada segue. Acontece de vez em quando
+     * de o clique não navegar (a URL fica na origem) — é do robô, não da tela,
+     * e perder sete passadas por isso custava minutos de máquina.
+     */
+    const chegou = await pagina
+      .waitForFunction(
+        ([rota, sel]) => window.location.pathname === rota && document.querySelector(sel) !== null,
+        [tela.rota, tela.conteudo],
+        { timeout: 30000 },
+      )
+      .then(() => true)
+      .catch(() => false);
     const conteudo = Date.now() - inicio;
+
+    if (!chegou) {
+      pagina.off('response', contar);
+      console.warn(`  ! ${tela.rotulo}: conteúdo não apareceu em 30s (ficou em ${pagina.url()})`);
+      desta.push({ tela: tela.rotulo, falhou: true });
+      continue;
+    }
 
     pagina.off('response', contar);
     desta.push({ tela: tela.rotulo, resposta: await esqueleto, conteudo, kb: Math.round(bytes / 1024) });
@@ -146,10 +193,12 @@ await umaPassada();
 const passadas = [];
 for (let i = 0; i < VEZES; i += 1) passadas.push(await umaPassada());
 
-const resultados = TELAS.map(({ rotulo }) => {
-  const minhas = passadas.map((p) => p.find((r) => r.tela === rotulo)).filter(Boolean);
+const resultados = MEDIR.map(({ rotulo }) => {
+  const todas = passadas.map((p) => p.find((r) => r.tela === rotulo)).filter(Boolean);
+  const minhas = todas.filter((r) => !r.falhou);
   return {
     tela: rotulo,
+    falhas: todas.length - minhas.length,
     resposta: mediana(minhas.map((r) => r.resposta)),
     conteudo: mediana(minhas.map((r) => r.conteudo)),
     kb: mediana(minhas.map((r) => r.kb)),
@@ -163,7 +212,8 @@ for (const r of resultados) {
   const resposta = r.resposta === null ? '     —' : `${String(r.resposta).padStart(5)}ms`;
   console.log(
     `  ${r.tela.padEnd(24)} ${resposta}    ${String(r.conteudo).padStart(5)}ms   ` +
-      `${String(r.pior).padStart(5)}ms   ${String(r.kb).padStart(4)} KB`,
+      `${String(r.pior).padStart(5)}ms   ${String(r.kb).padStart(4)} KB` +
+      (r.falhas ? `   (${r.falhas} amostra(s) perdida(s))` : ''),
   );
 }
 console.log(

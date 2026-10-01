@@ -132,7 +132,7 @@ consulta existe só para alimentar o `where` da próxima, ela é um `!inner`.**
 
 Na tela de clientes o mesmo raciocínio tirou outra ida: os ids de
 `cliente_visualizador` saem da lista que já vinha para o diálogo, em vez de uma
-consulta própria filtrada por `perfil_id`.
+consulta própria filtrada por `perfil_id`. (E em 01/10 a consulta de `cliente` deixou de esperar — §3.3b.)
 
 ### 3.3 Perfil e cliente Supabase, uma vez por requisição
 
@@ -145,6 +145,54 @@ sistema uma vez**: a função guardada levava junto o cliente Supabase da
 requisição que a criou, o refresh token vencia, o Supabase revogava a sessão
 inteira e o usuário caía no login no meio do trabalho. Ver a nota em
 `src/lib/perfil.ts`. Não repetir.
+
+### 3.3b Clientes: a carteira não espera mais o perfil (01/10/2026)
+
+Queixa: "a página de clientes está demorando". Era a **única tela com uma
+segunda volta na fila**: as consultas de apoio já corriam junto com o perfil
+(§3.1), mas a de `cliente` esperava o perfil (para saber o recorte do
+indicante) e `cliente_visualizador` (para montar o `id.in.(...)`), e só então
+ia ao banco — ativos e arquivados em duas consultas.
+
+Agora `cliente` sai no mesmo `Promise.all` que o resto, numa consulta só
+(ativos e arquivados juntos, separados pelo campo), e o recorte do indicante
+(`criado_por = eu` ou vínculo em `cliente_visualizador`) é feito **no
+servidor**, em `page.tsx`, sobre a carteira que já veio. O que chega ao
+navegador é o mesmo de antes; a guarda continua antes de qualquer desenho.
+
+Medido com `[T]` no log do servidor (n=123 requisições de cada lado):
+
+| Trecho da página | Antes | Depois |
+|---|---|---|
+| perfil pronto | 91ms | 96ms |
+| todos os dados prontos | **163ms** (p25 151, p75 179) | **97ms** (p25 89, p75 110) |
+
+Do clique ao conteúdo (`medir-navegacao --tela Cliente --vezes 15`, antes e
+depois servidos lado a lado e medidos intercalados, três rodadas):
+**383 / 429 / 389ms → 379 / 409 / 379ms.** Os ~65ms que saíram do servidor
+aparecem só como ~10–20ms no relógio de ponta a ponta — o resto ficou dentro
+do ruído da máquina (outras sessões rodando build e QA ao mesmo tempo; o
+esqueleto chegou a levar 380ms numa rodada). **Ponto em aberto:** não
+consegui confirmar onde o resto some; a próxima medição deve instrumentar
+também o `layout.tsx` de `(app)` (perfil → `perfil` em série para o master)
+para saber se ele roda na navegação interna e cobre o ganho da página.
+
+Comparada às outras telas, Cliente já estava na mesma faixa (mediana de 7
+passadas, mesma rodada: Cliente 437ms, Funil 511ms, Fornecedor 525ms, Operação
+699ms, Esteira 394ms) — a queixa não era um outlier grosseiro, era a fila
+extra. Payload: 12 KB, sem mudança.
+
+⚠️ `db/003_rls.sql` — a policy `cliente_le` só conhece `cliente_visualizador`,
+não `criado_por`. Ligada como está, o indicante deixa de ver os clientes que
+ele mesmo cadastrou. Não é desta mudança (a consulta antiga tinha o mesmo
+problema), mas precisa ser ajustada antes de aplicar a RLS.
+
+Nenhum índice foi necessário: 51 clientes, e o tempo é ida e volta (§5.5).
+
+`scripts/medir-navegacao.mjs` ganhou nesta rodada: a tela **Cliente** (antes
+era só o ponto de partida, nunca medida — parte de `/fornecedores`), `--tela
+<rótulo>` para medir uma tela só, e amostra que não chega em 30s vira falha
+contada em vez de derrubar a execução inteira.
 
 ### 3.4 Esqueleto de carregamento (`loading.tsx`)
 

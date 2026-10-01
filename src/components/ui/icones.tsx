@@ -166,6 +166,16 @@ export const IconeConfiguracoes = (p: IconeProps) => (
   </Base>
 );
 
+/** Sincronizar — duas setas em ciclo. */
+export const IconeSincronizar = (p: IconeProps) => (
+  <Base {...p}>
+    <path d="M20 11a8 8 0 0 0-14.3-4.9L4 8" />
+    <path d="M4 4v4h4" />
+    <path d="M4 13a8 8 0 0 0 14.3 4.9L20 16" />
+    <path d="M20 20v-4h-4" />
+  </Base>
+);
+
 export const IconeTemaClaro = (p: IconeProps) => (
   <Base {...p}>
     <circle cx="12" cy="12" r="4" />

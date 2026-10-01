@@ -6,6 +6,7 @@
 |---|---|
 | `bubble/documentacao-completa.md` | mapeamento do app Bubble atual, 2.540 linhas |
 | `bubble/fase1-inventario.md` | inventário de páginas, data types, option sets e plugins |
+| `10-sincronizacao-bubble.md` | botão de dev que coleta do Bubble só cadastros novos |
 
 A documentação do Bubble é a fonte de verdade do comportamento atual. Tem 2.540
 linhas: consulte a seção do módulo que estiver implementando, nunca o arquivo

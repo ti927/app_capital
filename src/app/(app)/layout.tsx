@@ -7,6 +7,8 @@ import { BotaoConfiguracoes, type UsuarioDoAcesso } from '@/components/configura
 import { IconeSair, IconeSenha } from '@/components/ui/icones';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
+import { podeSincronizar } from '@/lib/bubble/permissao';
+import { BotaoSincronizarBubble } from '@/components/sincronizacao-bubble';
 import { sair } from '../entrar/actions';
 
 /**
@@ -56,6 +58,9 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
                 usuarios={usuarios}
               />
             ) : null}
+            {/* Ferramenta de dev: só a conta de SINCRONIZACAO_EMAIL. A ação
+                confere de novo no servidor (src/lib/bubble/acao.ts). */}
+            {podeSincronizar(perfil, process.env.SINCRONIZACAO_EMAIL) ? <BotaoSincronizarBubble /> : null}
           </>
         }
       />

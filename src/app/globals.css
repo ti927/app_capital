@@ -890,6 +890,17 @@ textarea {
   margin: var(--space-6) 0 0;
 }
 
+/* Sincronização com o Bubble: erros e pulados abaixo da lista de tabelas. */
+.sincronizacao__aviso {
+  margin-top: var(--space-6);
+}
+
+.sincronizacao__aviso ul {
+  margin: 0;
+  padding-left: var(--space-6);
+  overflow-wrap: anywhere;
+}
+
 /* Linha por página. Parecida com `.lista`, mas sem o salto no hover: aqui nada
    abre — o painel é de leitura. */
 .acessos {

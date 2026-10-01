@@ -22,6 +22,7 @@
 //   node scripts/extrair-bubble.mjs --live
 import fs from 'node:fs';
 import path from 'node:path';
+import { buscarTipo, urlDaRaiz } from '../src/lib/bubble/api.ts';
 
 const env = Object.fromEntries(
   fs.readFileSync('.env', 'utf8').split(/\r?\n/)
@@ -31,7 +32,7 @@ const env = Object.fromEntries(
 const KEY = env.BUBBLE_API_KEY;
 const APP = env.BUBBLE_APP_URL || 'https://planilha-lurecapital.bubbleapps.io';
 const LIVE = process.argv.includes('--live');
-const RAIZ = LIVE ? APP : `${APP}/version-test`;
+const RAIZ = urlDaRaiz(APP, LIVE ? 'live' : 'version-test');
 if (!KEY) { console.error('BUBBLE_API_KEY ausente no .env'); process.exit(1); }
 console.log(`raiz: ${LIVE ? 'LIVE' : 'version-test'}  (${RAIZ})
 `);
@@ -46,21 +47,11 @@ const destino = 'dados/bruto';
 fs.mkdirSync(destino, { recursive: true });
 
 for (const tipo of TIPOS) {
-  const linhas = [];
-  let cursor = 0;
   process.stdout.write(`${tipo.padEnd(38)} `);
-  for (;;) {
-    const r = await fetch(`${RAIZ}/api/1.1/obj/${tipo}?limit=100&cursor=${cursor}`,
-                          { headers: { Authorization: `Bearer ${KEY}` } });
-    if (!r.ok) { console.log(`HTTP ${r.status} — pulado`); break; }
-    const { response } = await r.json();
-    linhas.push(...response.results);
-    if (response.remaining === 0) {
-      fs.writeFileSync(path.join(destino, `${tipo}.json`), JSON.stringify(linhas, null, 2));
-      console.log(`${String(linhas.length).padStart(4)} registros`);
-      break;
-    }
-    cursor += response.count;
-  }
+  // Mesma leitura paginada do botao de sincronizacao (src/lib/bubble/api.ts).
+  const r = await buscarTipo(RAIZ, KEY, tipo);
+  if (!r.ok) { console.log(`HTTP ${r.status} — pulado`); continue; }
+  fs.writeFileSync(path.join(destino, `${tipo}.json`), JSON.stringify(r.linhas, null, 2));
+  console.log(`${String(r.linhas.length).padStart(4)} registros`);
 }
-console.log(`\nGravado em ${destino}/ (fora do git).`);
+

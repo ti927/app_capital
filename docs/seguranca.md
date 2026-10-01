@@ -39,8 +39,16 @@ Rotacionar sem apagar deixa a pista; apagar sem rotacionar não invalida nada.
 ## RLS desligada — risco aberto desde 17/09/2026
 
 Decisão do projeto: seguir sem RLS por enquanto, para não travar o
-desenvolvimento. As policies estão escritas e versionadas em `db/003_rls.sql`;
-aplicar é rodar o arquivo, não precisa mexer em tabela.
+desenvolvimento. As policies estão em **`db/009_rls.sql`** (01/10/2026), que
+substitui a `003` — essa nunca foi aplicada e quebrava o indicante. Aplicar é
+rodar o arquivo: `node scripts/aplicar-migration.mjs db/009_rls.sql`.
+
+**Atualização 01/10/2026: os dois momentos abaixo já passaram** — os dados do
+Bubble estão no banco e o app está publicado na Vercel. A 009 foi medida
+antes de aplicar (master +0,15ms por consulta, indicante < 0,7ms, anon sem
+acesso nenhum) e não muda nada para quem está logado; ver
+`docs/estado-do-projeto.md`, seção Banco. Os scripts de carga e o MCP
+conectam por `DIRECT_URL`, como dono das tabelas, e não são afetados.
 
 O que isso significa na prática, enquanto estiver assim: o Supabase publica toda
 tabela sem RLS pela API REST, e a `anon key` que autentica essa API é embutida no

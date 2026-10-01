@@ -4,6 +4,48 @@ Uma seção por rodada, a mais recente no topo. Escrito para quem usa o sistema.
 
 ---
 
+## 01/10/2026 — ajustes da operação
+
+### Operação
+
+- **As flags salvam.** "Com fee", "NDA assinado", os dois mandatos e
+  "Estruturação em Andamento" já gravavam — mas depois do primeiro
+  salvamento o diálogo fechava sozinho toda vez que era reaberto, e parecia
+  que nada tinha ficado. Agora cada abertura começa do zero e mostra o que
+  está no banco.
+- **O nome do cliente aparece ao editar** — no topo do diálogo e na linha
+  de contexto ("Grupo STA · Along Dív").
+- **Parecer da operação e parecer do cliente, lado a lado.** O do cliente
+  passou a ser editável ali mesmo e grava no cadastro do cliente.
+- **"Lista de Fornecedores"** no lugar de "Lista de Etapas". A linha para
+  incluir um fornecedor fica no alto, antes das duas tabelas; Status vem
+  antes de "Na mão de"; fundos em ordem alfabética.
+- **Aba Fornecedor com filtro de status** no cabeçalho da coluna Status.
+- **Lista de operações em ordem alfabética e com busca.** A busca acha pelo
+  cliente, pelo identificador ou pelo tipo, sem ligar para acento —
+  "agronegocios" acha "Garcia Agronegócios".
+- Listas de clientes, fundos e tipos do diálogo em ordem alfabética.
+
+### Clientes
+
+- **Abre mais rápido.** Era a única tela que esperava uma pergunta ao banco
+  terminar para fazer a próxima. No servidor: de 163ms para 97ms.
+
+### Para o TI
+
+- **Botão "Bubble"** na barra do topo, só para a conta do Fabio TI: traz do
+  Bubble os cadastros que ainda não existem aqui. Não altera nem apaga nada.
+  Hoje só alcança fornecedor e funil — cliente, operação e etapas precisam
+  ser liberados na API do Bubble de produção.
+- **Ícone da Lure na aba do navegador.**
+
+### Bastidores
+
+- Proteção do banco (RLS) reescrita e medida, pronta para ligar — ainda não
+  ligada. Ver `docs/seguranca.md`.
+
+---
+
 ## 21/09/2026 — rodada de velocidade
 
 ### Em todas as telas

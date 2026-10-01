@@ -18,8 +18,8 @@ quem usa hoje; banco e lógica são refeitos.
 ## Regras não negociáveis
 
 1. **RLS está DESLIGADA** — decisão do projeto em 17/09/2026, para não travar o
-   desenvolvimento. As policies estão escritas em `db/003_rls.sql`, prontas para
-   aplicar. Enquanto não rodarem, toda tabela é legível e gravável pela API REST
+   desenvolvimento. As policies estão em `db/009_rls.sql` (substitui a `003`),
+   prontas e medidas. Enquanto não rodarem, toda tabela é legível e gravável pela API REST
    com a `anon key`, que sai no bundle do navegador. Isso precisa ser resolvido
    antes de qualquer dado real de cliente entrar. Ver `docs/seguranca.md`.
 2. **`service_role` nunca sai do servidor.** Não existe `NEXT_PUBLIC_` em chave de
@@ -66,7 +66,7 @@ docs: decisão sobre o de-para de status
 | `specs/00-` … `07-` | especificação por assunto — **ainda não escritas**, ver `specs/LEIA-ME.md` |
 | `db/001` … `002` | fundação e as 24 tabelas de domínio — **aplicadas** |
 | `db/004` … `008` | correções, tarefas do funil, esteira, `cliente.criado_por` — **aplicadas** |
-| `db/003_rls.sql` | policies — **não aplicado**, por decisão |
+| `db/009_rls.sql` | policies — **não aplicada**, por decisão; substitui a `003`, que não se aplica |
 | `design/` | marca, tokens e o brief para o Claude Design |
 | `docs/estado-do-projeto.md` | **onde o app está hoje** — leia primeiro |
 | `docs/aprendizados.md` | o que as rodadas ensinaram, e o que mudou por causa disso |
@@ -74,6 +74,7 @@ docs: decisão sobre o de-para de status
 | `docs/otimizacao-de-carregamento.md` | de onde vem o tempo de tela, como medir, e o que já foi medido e **descartado** — leia antes de otimizar |
 | `docs/` | handoff, fluxo de trabalho, primeiro prompt, segurança |
 | `specs/08-melhorias-qol.md` · `09-ordem-de-merge.md` | a rodada de QOL e o protocolo de trabalho em paralelo |
+| `specs/10-sincronizacao-bubble.md` | botão de sincronizar com o Bubble: o que traz, quem vê, limitações |
 | `scripts/` | bootstrap do repo e extração do Bubble |
 
 ## Economia de contexto

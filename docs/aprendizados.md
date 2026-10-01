@@ -253,3 +253,48 @@ valores.
 > segundos: abrir a esteira no Bubble de produção e olhar. Se lá tiver dado,
 > marque o tipo em Settings → API e rode
 > `node scripts/extrair-bubble.mjs --live` seguido de `npm run carregar`.
+
+## 12. Diálogo que nunca desmonta guarda a resposta da última ação
+
+"As flags não salvam." Salvavam: o banco, o select e a action estavam certos,
+e um teste com Playwright mostrou o valor persistindo depois de recarregar.
+O defeito era o diálogo de operação ficar **montado** a vida inteira da tela.
+O `useActionState` guardava o `{ ok: true }` do último salvamento, e o efeito
+`if (estado?.ok) aoFechar()` — dependendo de um `aoFechar` recriado a cada
+render — fechava toda reabertura no mesmo instante. Quem testava via o
+diálogo piscar e sumir, e concluía que nada tinha gravado.
+
+**O que mudou:** cada abertura ganha `key` nova (o diálogo remonta, com
+estado de ação zerado e `defaultChecked` lido da operação certa), `aoFechar`
+é estável, e a operação aberta é relida pelo id em vez de guardada como
+cópia. Vale para qualquer diálogo com `useActionState` que não desmonta.
+
+## 13. RLS: função por linha custa caro, e não enxerga o próprio insert
+
+A primeira versão da `009` chamava `ve_cliente(id)` em cada linha. Medida
+dentro de uma transação desfeita no fim: o indicante levava **140ms** para
+ler as etapas. Pior, **cadastrar cliente e criar cartão falhavam** —
+`insert … returning` exige que a linha nova passe na policy de leitura, e a
+função (`stable`) roda com o retrato do início do comando, onde a linha
+ainda não existe.
+
+**O que mudou:** o recorte virou um conjunto de ids montado uma vez por
+consulta (`id in (select public.clientes_vinculados())`), e o "quem criou
+enxerga" compara a coluna da própria linha (`criado_por = (select
+auth.uid())`). Indicante caiu para < 0,7ms e todas as gravações passaram.
+Medir dentro de transação desfeita custou um bloco `do` que termina em
+`raise exception` com o resultado — nada fica gravado, e o número volta na
+mensagem de erro.
+
+## 14. `git worktree remove --force` segue junction e apaga o alvo
+
+Para rodar o `verify` só com parte das mudanças, criou-se um worktree
+temporário com uma *junction* do Windows apontando para o `node_modules` do
+repositório. Na hora de limpar, `git worktree remove --force` entrou na
+junction e começou a apagar o `node_modules` **de verdade** — `.bin`,
+`@eslint-community` e outros — até falhar no meio com "Invalid argument". Os
+outros agentes viram `tsc` e `next` sumirem sem explicação.
+
+**O que mudou:** junction se remove **antes** e sozinha, com `cmd /c rmdir
+<link>` (que apaga só o link), e só depois a pasta. Conserto do estrago:
+`npm install`, que repôs os 23 pacotes a partir do lockfile.

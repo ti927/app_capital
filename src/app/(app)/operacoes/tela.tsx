@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Botao, Vazio } from '@/components/ui/base';
 import { TopoDaTela } from '@/components/ui/casca';
-import { AcoesLinha, BlocoArquivados, ConfirmarExclusao, ItemDaLista } from '@/components/listas';
+import { AcoesLinha, BlocoArquivados, Busca, ConfirmarExclusao, ItemDaLista } from '@/components/listas';
 import { IconeMais } from '@/components/ui/icones';
 import { SeletorPopup } from '@/components/ui/seletor-popup';
 import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
@@ -14,6 +14,9 @@ import type { ClienteResumo, Declinio, Observacao, Visualizador } from './page';
 import './operacao.css';
 
 type Aba = 'cliente' | 'fornecedor' | 'status';
+
+/** Para busca: "agronegócios" casa com "AGRONEGOCIOS". */
+const semAcento = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
 
 export function TelaOperacoes(props: {
   operacoes: Operacao[];
@@ -70,9 +73,6 @@ export function TelaOperacoes(props: {
   );
   const rotuloTipo = useMemo(() => new Map(tipos.map((t) => [t.id, t.rotulo])), [tipos]);
 
-  /** As duas listas entram em lotes conforme rola — ver `ui/rolagem.tsx`. */
-  const lista = useListaIncremental(operacoes);
-  const listaArquivadas = useListaIncremental(arquivadas);
   const nomePerfil = useMemo(() => new Map(props.perfis.map((p) => [p.id, p.nome])), [props.perfis]);
 
   /**
@@ -107,6 +107,45 @@ export function TelaOperacoes(props: {
     [props.visualizadores, nomePerfil],
   );
 
+  /** O nome que a linha mostra: o cliente, ou o identificador quando não há cliente. */
+  const nomeDaLinha = useCallback(
+    (op: Operacao) => (op.cliente_id && nomeCliente.get(op.cliente_id)) || op.identificador || '',
+    [nomeCliente],
+  );
+
+  /**
+   * Ordem alfabética pelo nome da linha, depois pelo tipo — duas operações do
+   * mesmo cliente ficam juntas. A busca casa cliente, identificador e tipo,
+   * sem diferenciar acento nem caixa.
+   */
+  const [busca, setBusca] = useState('');
+  const ordenarEFiltrar = useCallback(
+    (lista: Operacao[]) => {
+      const alvo = semAcento(busca.trim());
+      const comChave = lista.map((op) => ({ op, nome: nomeDaLinha(op), tipo: tipoDaOperacao(op) }));
+      const filtradas = alvo
+        ? comChave.filter(({ op, nome, tipo }) =>
+            [nome, tipo, op.identificador ?? ''].some((v) => semAcento(v).includes(alvo)),
+          )
+        : comChave;
+      return filtradas
+        .sort(
+          (a, b) =>
+            (!a.nome ? 1 : 0) - (!b.nome ? 1 : 0) ||
+            a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }) ||
+            a.tipo.localeCompare(b.tipo, 'pt-BR', { sensitivity: 'base' }),
+        )
+        .map(({ op }) => op);
+    },
+    [busca, nomeDaLinha, tipoDaOperacao],
+  );
+  const ativasVisiveis = useMemo(() => ordenarEFiltrar(operacoes), [operacoes, ordenarEFiltrar]);
+  const arquivadasVisiveis = useMemo(() => ordenarEFiltrar(arquivadas), [arquivadas, ordenarEFiltrar]);
+
+  /** As duas listas entram em lotes conforme rola — ver `ui/rolagem.tsx`. */
+  const lista = useListaIncremental(ativasVisiveis);
+  const listaArquivadas = useListaIncremental(arquivadasVisiveis);
+
   const itemDaLista = (op: Operacao, arquivado: boolean) => (
     <ItemDaLista
       key={op.id}
@@ -129,7 +168,12 @@ export function TelaOperacoes(props: {
 
   return (
     <>
-      <TopoDaTela titulo="Detalhes da operação" />
+      <TopoDaTela titulo="Detalhes da operação">
+        {/* A busca vale para a lista por cliente; nas outras abas não há lista. */}
+        {aba === 'cliente' ? (
+          <Busca valor={busca} aoMudar={setBusca} placeholder="Buscar operações" />
+        ) : null}
+      </TopoDaTela>
 
       <div className="abas" role="tablist">
         <button type="button" role="tab" className="abas__item" aria-selected={aba === 'cliente'} onClick={() => setAba('cliente')}>
@@ -150,9 +194,13 @@ export function TelaOperacoes(props: {
 
       {aba === 'cliente' ? (
         <>
-          {operacoes.length === 0 ? (
+          {ativasVisiveis.length === 0 ? (
             <div className="vazio-tela">
-              <Vazio titulo="Nenhuma operação ainda" />
+              <Vazio
+                titulo={operacoes.length ? 'Nenhuma operação com esse nome' : 'Nenhuma operação ainda'}
+                escondidos={operacoes.length - ativasVisiveis.length || undefined}
+                aoLimpar={busca ? () => setBusca('') : undefined}
+              />
             </div>
           ) : (
             <>
@@ -164,7 +212,7 @@ export function TelaOperacoes(props: {
               />
             </>
           )}
-          <BlocoArquivados quantidade={arquivadas.length}>
+          <BlocoArquivados quantidade={arquivadasVisiveis.length}>
             <ul className="lista">{listaArquivadas.visiveis.map((op) => itemDaLista(op, true))}</ul>
             <CarregarMais
               faltam={listaArquivadas.faltam}

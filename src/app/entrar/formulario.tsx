@@ -2,89 +2,90 @@
 
 import { useActionState, useState } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
-import { Dialogo } from '@/components/ui/dialogo';
 import { clienteNavegador } from '@/lib/supabase/navegador';
-import { entrarComSenha, pedirTrocaDeSenha } from './actions';
+import { entrarComSenha } from './actions';
 
-export function FormularioDeEntrada({ de }: { de: string }) {
+/**
+ * Entrada pelo Google. As contas foram criadas com `email_confirm`, então o
+ * login por Google cai nelas pelo e-mail.
+ *
+ * O formulário de senha só aparece com `ENTRADA_COM_SENHA=1` no servidor — é
+ * por ele que `npm run qa` e a medição entram, já que um robô não passa pelo
+ * Google. Em produção a variável não existe e a tela mostra só o Google.
+ */
+export function FormularioDeEntrada({
+  de,
+  comSenha,
+  erroOauth,
+}: {
+  de: string;
+  comSenha: boolean;
+  erroOauth: boolean;
+}) {
+  const [indo, setIndo] = useState(false);
+  const [erroAoIr, setErroAoIr] = useState(false);
 
-  const [estado, agir, enviando] = useActionState(entrarComSenha, null as { erro?: string } | null);
-  const [trocaAberta, setTrocaAberta] = useState(false);
-
-  /**
-   * Google. O provedor ainda não está ligado no Supabase — quando estiver, este
-   * botão passa a funcionar sem mais nenhuma mudança: as cinco contas foram
-   * criadas com `email_confirm`, então o login por Google cai nelas pelo e-mail.
-   */
   async function entrarComGoogle() {
+    setIndo(true);
+    setErroAoIr(false);
     const supabase = clienteNavegador();
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/retorno?de=${encodeURIComponent(de)}` },
     });
+    // Sem erro o navegador já está indo para o Google; com erro, fica aqui.
+    if (error) {
+      setIndo(false);
+      setErroAoIr(true);
+    }
   }
 
   return (
     <div className="entrada__caixa">
       <h1 className="t-public-title">Bem vindo de volta!</h1>
-      <p className="t-public-subtitle apoio">Faça login na sua conta</p>
+      <p className="t-public-subtitle apoio">Entre com a sua conta Google</p>
 
-      <form action={agir} className="pilha entrada__campos">
-        <input type="hidden" name="de" value={de} />
-
-        <Campo rotulo="Email" nome="email" tipo="email" placeholder="voce@exemplo.com" tamanho="lg" />
-        <Campo rotulo="Senha" nome="senha" tipo="password" placeholder="*********" tamanho="lg" />
-
-        {estado?.erro ? (
-          <p className="lc-field__msg" role="alert">
-            {estado.erro}
-          </p>
-        ) : null}
-
-        <Botao variante="primary" tamanho="lg" type="submit" disabled={enviando}>
-          {enviando ? 'Entrando…' : 'Log in'}
-        </Botao>
-      </form>
-
-      <Botao variante="secondary" tamanho="lg" onClick={entrarComGoogle} className="entrada__google">
-        Entrar com Google
+      <Botao
+        variante="primary"
+        tamanho="lg"
+        onClick={entrarComGoogle}
+        disabled={indo}
+        className="entrada__google"
+      >
+        {indo ? 'Abrindo o Google…' : 'Entrar com Google'}
       </Botao>
 
-      <button type="button" className="entrada__link" onClick={() => setTrocaAberta(true)}>
-        Esqueceu a senha?
-      </button>
+      {erroOauth || erroAoIr ? (
+        <p className="lc-field__msg entrada__erro" role="alert">
+          Não foi possível entrar com o Google. Tente de novo; se persistir, fale com o
+          administrador.
+        </p>
+      ) : null}
 
-      <DialogoTrocaDeSenha aberto={trocaAberta} aoFechar={() => setTrocaAberta(false)} />
+      {comSenha ? <EntradaComSenha de={de} /> : null}
     </div>
   );
 }
 
-function DialogoTrocaDeSenha({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void }) {
-  const [estado, agir, enviando] = useActionState(
-    pedirTrocaDeSenha,
-    null as { erro?: string; aviso?: string } | null,
-  );
+function EntradaComSenha({ de }: { de: string }) {
+  const [estado, agir, enviando] = useActionState(entrarComSenha, null as { erro?: string } | null);
 
   return (
-    <Dialogo
-      aberto={aberto}
-      aoFechar={aoFechar}
-      titulo="Esqueci minha senha"
-      largura="sm"
-      rodape={
-        <Botao variante="primary" type="submit" form="forma-troca-senha" disabled={enviando}>
-          Enviar solicitação
-        </Botao>
-      }
-    >
-      <form id="forma-troca-senha" action={agir} className="pilha">
-        <p className="apoio">
-          Digite seu email para que mandemos uma solicitação de troca de senha.
+    <form action={agir} className="pilha entrada__campos">
+      <input type="hidden" name="de" value={de} />
+
+      <Campo rotulo="Email" nome="email" tipo="email" placeholder="voce@exemplo.com" tamanho="lg" />
+      <Campo rotulo="Senha" nome="senha" tipo="password" placeholder="*********" tamanho="lg" />
+
+      {estado?.erro ? (
+        <p className="lc-field__msg" role="alert">
+          {estado.erro}
         </p>
-        <Campo rotulo="Email" nome="email" tipo="email" placeholder="voce@exemplo.com" />
-        {estado?.erro ? <p className="lc-field__msg">{estado.erro}</p> : null}
-        {estado?.aviso ? <p className="apoio">{estado.aviso}</p> : null}
-      </form>
-    </Dialogo>
+      ) : null}
+
+      <Botao variante="secondary" tamanho="lg" type="submit" disabled={enviando}>
+        {enviando ? 'Entrando…' : 'Entrar com senha'}
+      </Botao>
+    </form>
   );
 }

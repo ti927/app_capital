@@ -135,6 +135,26 @@ Para não haver retrabalho, a Fase 0 já deve: usar `signInWithOAuth` ao lado do
 `signInWithPassword` na mesma tela, e nunca tratar senha como parte da identidade
 do usuário no código da aplicação.
 
+**Decidido em 02/10/2026: a entrada é só Google.** A tela `/entrar` mostra um
+botão "Entrar com Google" e nada mais — sem e-mail/senha e sem "Esqueceu a
+senha?". A tela de trocar senha (`/conta/senha`) continua existindo. O
+formulário de senha só aparece com `ENTRADA_COM_SENHA=1` no servidor, para o
+`npm run qa` e a medição entrarem; essa variável fica no `.env` local e nunca
+na Vercel.
+
+Configuração do provedor:
+
+- Google Cloud, cliente OAuth, URI de redirecionamento autorizado:
+  `https://gepfmvdujcyahwhlrqah.supabase.co/auth/v1/callback`.
+- Supabase, Authentication → Providers → Google: ligado, com o Client ID e o
+  secret (o secret só no painel, nunca no repositório).
+- Supabase, Authentication → URL Configuration: Site URL
+  `https://app-capital-psi.vercel.app`; Redirect URLs
+  `https://app-capital-psi.vercel.app/auth/retorno**` e
+  `http://localhost:3000/auth/retorno**`.
+- Conta Google sem perfil em `perfil` entra no auth mas cai em `/sem-acesso`.
+  Para nem criar a conta, desligar "Allow new users to sign up" no Supabase.
+
 ---
 
 ## Risco aberto

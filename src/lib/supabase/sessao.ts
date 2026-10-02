@@ -1,8 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-/** Rotas que não exigem sessão. */
-const PUBLICAS = ['/entrar', '/auth'];
+/**
+ * Rotas que não exigem sessão de navegador. O MCP (`/api/mcp`) se autentica
+ * pelo token OAuth no cabeçalho, e `/.well-known` é a descoberta do login
+ * dele (specs/12) — nenhum dos dois tem cookie.
+ */
+const PUBLICAS = ['/entrar', '/auth', '/api/mcp', '/.well-known'];
 
 /**
  * Renova a sessão a cada navegação e barra quem não está autenticado.
@@ -57,7 +61,10 @@ export async function renovarSessao(requisicao: NextRequest) {
   if (!usuario && !ehPublica) {
     const url = requisicao.nextUrl.clone();
     url.pathname = '/entrar';
-    url.searchParams.set('de', caminho);
+    // Com a query: a tela de autorização do OAuth (/oauth/consent) depende do
+    // `authorization_id` para continuar depois do login.
+    url.search = '';
+    url.searchParams.set('de', caminho + requisicao.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

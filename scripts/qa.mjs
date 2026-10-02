@@ -602,6 +602,17 @@ await passo(pagina, 'esteira-fechada-de-novo', async () => {
   await pagina.waitForTimeout(400);
 });
 
+// ------------------------------------------------------------- oauth (MCP) ---
+await passo(pagina, 'oauth-consent-sem-pedido', async () => {
+  // Sem authorization_id a tela tem que explicar, não ficar em branco nem
+  // oferecer "Permitir" (specs/12). O fluxo completo só se testa pelo Claude.
+  await pagina.goto(`${BASE}/oauth/consent`, { waitUntil: 'networkidle' });
+  await pagina.waitForSelector('text=veio sem identificador', { timeout: 15000 });
+  if (await pagina.locator('button:has-text("Permitir")').count()) {
+    throw new Error('ofereceu "Permitir" sem pedido de autorização');
+  }
+});
+
 // ----------------------------------------------------------------- agenda ---
 await passo(pagina, 'conta-agenda', async () => {
   await pagina.goto(`${BASE}/conta/agenda`, { waitUntil: 'networkidle' });

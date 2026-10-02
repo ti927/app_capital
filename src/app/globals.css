@@ -271,6 +271,11 @@ textarea {
   grid-template-columns: 1fr 1fr;
 }
 
+/* Só a coluna da forma — tela de autorização do OAuth (specs/12). */
+.entrada--sozinha {
+  grid-template-columns: 1fr;
+}
+
 .entrada__marca {
   background: var(--neutral-950);
   color: var(--neutral-0);

@@ -5,6 +5,7 @@ import { headers } from 'next/headers';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
 import { apagarEventoDaTarefa, sincronizarEventoDaTarefa } from '@/lib/google/agenda';
+import { criarClienteDoCartaoCom } from '@/lib/funil/cliente-do-cartao';
 
 /** O endereço do app nesta requisição — vai no link de volta do evento. */
 async function origem() {
@@ -273,79 +274,19 @@ export async function excluirTarefa(id: string) {
 /* -------------------------------------------------------- cartão → cliente */
 
 /**
- * De-para do cartão do funil para o cadastro de cliente — os seis campos que o
- * pedido lista, e só eles. O resto do cadastro fica para quem preencher.
- */
-function clienteDoCartao(cartao: {
-  empresa: string;
-  contato: string | null;
-  faturamento: string | null;
-  segmento: string | null;
-  parecer: string | null;
-  indicante: string | null;
-}) {
-  return {
-    nome_razao: cartao.empresa,
-    diretor_gerente: cartao.contato,
-    faturamento_anual: cartao.faturamento,
-    atividade_cia: cartao.segmento,
-    parecer: cartao.parecer,
-    quem_indicou: cartao.indicante,
-  };
-}
-
-/**
- * Cria o cliente a partir do cartão e guarda o vínculo em
- * `funil_cartao.cliente_id`.
- *
- * Sem cliente duplicado: se já existe um com o mesmo nome/razão (ignorando
- * caixa), a ação **não cria** — devolve o que achou para a tela avisar. Com
- * `forcar`, o usuário já viu o aviso e decidiu criar assim mesmo.
+ * Cria o cliente a partir do cartão e guarda o vínculo. A regra (de-para dos
+ * campos, sem duplicado por nome) mora em `src/lib/funil/cliente-do-cartao.ts`,
+ * que o MCP também usa.
  */
 export async function criarClienteDoCartao(cartaoId: string, forcar = false) {
   const perfil = await perfilAtual();
   const supabase = await clienteServidor();
-
-  const { data: cartao } = await supabase
-    .from('funil_cartao')
-    .select('id, empresa, contato, faturamento, segmento, parecer, indicante, cliente_id')
-    .eq('id', cartaoId)
-    .single();
-
-  if (!cartao) return { erro: 'Não achei o cartão.' };
-  if (cartao.cliente_id) return { ok: true, clienteId: cartao.cliente_id as string };
-
-  const nome = (cartao.empresa ?? '').trim();
-  if (!nome) return { erro: 'O cartão precisa ter empresa para virar cliente.' };
-
-  if (!forcar) {
-    // `ilike` sem curinga é igualdade ignorando caixa — é o que "mesmo nome" quer dizer.
-    const { data: iguais } = await supabase
-      .from('cliente')
-      .select('id, nome_razao')
-      .ilike('nome_razao', nome)
-      .limit(1);
-
-    const achado = iguais?.[0];
-    if (achado) {
-      return { duplicado: { id: achado.id as string, nome: achado.nome_razao as string } };
-    }
+  const resultado = await criarClienteDoCartaoCom(supabase, perfil.id, cartaoId, forcar);
+  if ('ok' in resultado) {
+    revalidatePath('/funil');
+    revalidatePath('/clientes');
   }
-
-  const { data: novo, error } = await supabase
-    .from('cliente')
-    .insert(clienteDoCartao(cartao as Parameters<typeof clienteDoCartao>[0]))
-    .select('id')
-    .single();
-  if (error || !novo) return { erro: 'Não consegui cadastrar o cliente.' };
-
-  // Quem cria enxerga — a mesma regra de `clientes/acoes.ts`.
-  await supabase.from('cliente_visualizador').insert({ cliente_id: novo.id, perfil_id: perfil.id });
-  await supabase.from('funil_cartao').update({ cliente_id: novo.id }).eq('id', cartaoId);
-
-  revalidatePath('/funil');
-  revalidatePath('/clientes');
-  return { ok: true, clienteId: novo.id as string };
+  return resultado;
 }
 
 /** Liga o cartão a um cliente que já existe, sem criar nada. */

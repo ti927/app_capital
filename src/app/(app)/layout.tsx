@@ -4,7 +4,7 @@ import { NavLateral } from '@/components/ui/navlateral';
 import { BotaoDeTema } from '@/components/ui/tema';
 import { Transicao } from '@/components/ui/transicao';
 import { BotaoConfiguracoes, type UsuarioDoAcesso } from '@/components/configuracoes';
-import { IconeSair, IconeSenha } from '@/components/ui/icones';
+import { IconeAgenda, IconeSair, IconeSenha } from '@/components/ui/icones';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
 import { podeSincronizar } from '@/lib/bubble/permissao';
@@ -43,6 +43,10 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
                 <span className="casca__acao-rotulo">Sair</span>
               </button>
             </form>
+            <Link className="lc-btn lc-btn--tertiary lc-btn--sm casca__acao" href="/conta/agenda" title="Google Agenda">
+              <IconeAgenda tamanho={16} />
+              <span className="casca__acao-rotulo">Agenda</span>
+            </Link>
             <Link className="lc-btn lc-btn--tertiary lc-btn--sm casca__acao" href="/conta/senha" title="Trocar senha">
               <IconeSenha tamanho={16} />
               <span className="casca__acao-rotulo">Senha</span>

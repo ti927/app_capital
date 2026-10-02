@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useActionState, useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
 import { Botao, Campo, Vazio } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
@@ -16,7 +17,7 @@ import type { FunilCartao } from '@/lib/dominio';
 import { Calendario } from './calendario';
 import { alternarTarefa, criarTarefa, excluirTarefa, gravarTarefa } from './acoes';
 import { GRUPOS, TIPOS_TAREFA, grupoDa, prazoCurto, rotuloDoTipo, type ChaveGrupo } from './tarefas-apoio';
-import type { Tarefa } from './page';
+import type { PerfilDoFunil, Tarefa } from './page';
 
 /**
  * Painel "Tarefas" da página do funil.
@@ -376,8 +377,8 @@ export function DialogoTarefa({
   aberto: boolean;
   tarefa: Tarefa | null;
   quadroId: string;
-  cartoes: FunilCartao[];
-  perfis: Array<{ id: string; nome: string }>;
+  cartoes: Array<FunilCartao & { email_cliente?: string | null }>;
+  perfis: PerfilDoFunil[];
   perfilId: string;
   /** Quando o diálogo abre de dentro de um cartão, o cartão não se escolhe. */
   cartaoFixo?: string;
@@ -386,17 +387,25 @@ export function DialogoTarefa({
 }) {
   const [estado, agir, gravando] = useActionState(
     tarefa ? gravarTarefa : criarTarefa,
-    null as { erro?: string; ok?: boolean } | null,
+    null as { erro?: string; ok?: boolean; aviso?: string } | null,
   );
   const [cartaoId, setCartaoId] = useState(tarefa?.cartao_id ?? cartaoFixo ?? '');
+  const [tipo, setTipo] = useState<string>(tarefa?.tipo ?? '');
+  const [responsavelId, setResponsavelId] = useState(tarefa?.responsavel_id ?? perfilId);
+  const [convidar, setConvidar] = useState(tarefa?.convidar_contato ?? false);
 
+  // Com aviso da agenda, o diálogo fica aberto para a pessoa ler: a tarefa já
+  // salvou, e o rodapé vira só "Fechar" — "Criar" de novo duplicaria.
+  const salvouComAviso = Boolean(estado?.ok && estado.aviso);
   useEffect(() => {
-    if (estado?.ok) aoFechar();
+    if (estado?.ok && !estado.aviso) aoFechar();
   }, [estado, aoFechar]);
 
   if (!aberto) return null;
 
-  const nomeDoCartao = cartoes.find((c) => c.id === (cartaoFixo ?? cartaoId))?.empresa;
+  const cartaoAtual = cartoes.find((c) => c.id === (cartaoFixo ?? cartaoId));
+  const nomeDoCartao = cartaoAtual?.empresa;
+  const responsavel = perfis.find((p) => p.id === responsavelId);
 
   return (
     <Dialogo
@@ -406,14 +415,20 @@ export function DialogoTarefa({
       contexto={cartaoFixo ? nomeDoCartao || 'Cartão em branco' : undefined}
       largura="sm"
       rodape={
-        <>
-          <Botao variante="secondary" onClick={aoFechar}>
-            Cancelar
+        salvouComAviso ? (
+          <Botao variante="primary" onClick={aoFechar}>
+            Fechar
           </Botao>
-          <Botao variante="primary" type="submit" form="forma-tarefa" disabled={gravando || !cartaoId}>
-            {gravando ? 'Gravando…' : tarefa ? 'Salvar' : 'Criar tarefa'}
-          </Botao>
-        </>
+        ) : (
+          <>
+            <Botao variante="secondary" onClick={aoFechar}>
+              Cancelar
+            </Botao>
+            <Botao variante="primary" type="submit" form="forma-tarefa" disabled={gravando || !cartaoId}>
+              {gravando ? 'Gravando…' : tarefa ? 'Salvar' : 'Criar tarefa'}
+            </Botao>
+          </>
+        )
       }
     >
       <form id="forma-tarefa" action={agir} className="grade">
@@ -453,12 +468,14 @@ export function DialogoTarefa({
           nome="tipo"
           valorInicial={tarefa?.tipo ?? ''}
           opcoes={TIPOS_TAREFA.map((t) => ({ valor: t.valor, rotulo: t.rotulo }))}
+          aoEscolher={setTipo}
         />
         <SeletorPopup
           rotulo="Responsável"
           nome="responsavel_id"
           valorInicial={tarefa?.responsavel_id ?? perfilId}
           opcoes={perfis.map((p) => ({ valor: p.id, rotulo: p.nome }))}
+          aoEscolher={setResponsavelId}
         />
 
         <Campo
@@ -479,6 +496,41 @@ export function DialogoTarefa({
           placeholder="Digite aqui"
         />
 
+        {tipo === 'reuniao' ? (
+          <div className="grade__inteiro pilha">
+            <SituacaoNaAgenda
+              meetLink={tarefa?.meet_link ?? null}
+              responsavel={responsavel}
+              ehVoce={responsavelId === perfilId}
+            />
+            <label className="interruptor">
+              <input
+                type="checkbox"
+                name="convidar_contato"
+                checked={convidar}
+                onChange={(e) => setConvidar(e.target.checked)}
+              />
+              <span>Convidar o contato do cliente</span>
+            </label>
+            {convidar ? (
+              <Campo
+                rotulo="E-mail do convidado"
+                nome="email_convidado"
+                tipo="email"
+                valorInicial={tarefa?.email_convidado ?? cartaoAtual?.email_cliente ?? ''}
+                placeholder="contato@empresa.com.br"
+              />
+            ) : null}
+          </div>
+        ) : null}
+
+        {salvouComAviso ? (
+          <div className="lc-notice lc-notice--neutral grade__inteiro" role="status">
+            <p className="lc-notice__title">Tarefa salva, mas não foi para a agenda</p>
+            <div className="lc-notice__body">{estado?.aviso}</div>
+          </div>
+        ) : null}
+
         {!cartaoId ? (
           <p className="apoio grade__inteiro">
             Toda tarefa pertence a um cartão — escolha o cartão para poder salvar.
@@ -492,5 +544,52 @@ export function DialogoTarefa({
         ) : null}
       </form>
     </Dialogo>
+  );
+}
+
+/**
+ * Uma linha dizendo onde a reunião está no Google (specs/11). Não decide nada
+ * — quem decide é o servidor ao salvar —; só antecipa o que vai acontecer, para
+ * ninguém esperar um evento que não vai nascer.
+ */
+function SituacaoNaAgenda({
+  meetLink,
+  responsavel,
+  ehVoce,
+}: {
+  meetLink: string | null;
+  responsavel: PerfilDoFunil | undefined;
+  ehVoce: boolean;
+}) {
+  if (meetLink) {
+    return (
+      <p className="apoio">
+        Na agenda do Google ·{' '}
+        <a href={meetLink} target="_blank" rel="noreferrer">
+          entrar no Meet
+        </a>
+      </p>
+    );
+  }
+  if (!responsavel) return null;
+  if (!responsavel.agenda) {
+    return (
+      <p className="apoio">
+        {ehVoce ? (
+          <>
+            Sua agenda do Google não está conectada — a reunião fica só no app.{' '}
+            <Link href="/conta/agenda">Conectar</Link>
+          </>
+        ) : (
+          <>{responsavel.nome} ainda não conectou o Google Agenda — a reunião fica só no app.</>
+        )}
+      </p>
+    );
+  }
+  return (
+    <p className="apoio">
+      Com data e hora, vira evento {ehVoce ? 'na sua agenda' : `na agenda de ${responsavel.nome}`}, com
+      link do Meet.
+    </p>
   );
 }

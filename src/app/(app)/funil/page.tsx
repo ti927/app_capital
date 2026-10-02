@@ -1,5 +1,6 @@
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
+import { perfisConectados } from '@/lib/google/conexao';
 import type { FunilCartao } from '@/lib/dominio';
 import { TelaFunil } from './tela';
 
@@ -24,7 +25,18 @@ export interface TagFunil {
  * 006). Fica aqui, e não em `src/lib/dominio.ts`, porque por ora só o funil
  * usa — e porque `dominio.ts` é de outra frente nesta rodada.
  */
-export type CartaoDoFunil = FunilCartao & { cliente_id: string | null };
+export type CartaoDoFunil = FunilCartao & {
+  cliente_id: string | null;
+  /** E-mail do cliente que o cartão virou — preenche o convite da reunião (specs/11). */
+  email_cliente?: string | null;
+};
+
+/** Perfil com a marca de quem conectou o Google Agenda (specs/11). */
+export interface PerfilDoFunil {
+  id: string;
+  nome: string;
+  agenda?: boolean;
+}
 
 /** Os cinco tipos de tarefa. `text` no banco, lista fixa em `./tarefas-apoio.ts`. */
 export type TipoTarefa = 'reuniao' | 'ligacao' | 'follow_up' | 'documento' | 'outro';
@@ -43,6 +55,11 @@ export interface Tarefa {
   concluida: boolean;
   data_conclusao: string | null;
   responsavel_id: string | null;
+  /** Google Agenda (specs/11): o interruptor de convite e onde o evento está. */
+  convidar_contato: boolean;
+  email_convidado: string | null;
+  google_evento_id: string | null;
+  meet_link: string | null;
 }
 
 export default async function PaginaFunil() {
@@ -73,12 +90,15 @@ export default async function PaginaFunil() {
         .from('funil_tarefa')
         .select(
           'id, cartao_id, quadro_id, titulo, descricao, tipo, prazo, hora, concluida, ' +
-            'data_conclusao, responsavel_id',
+            'data_conclusao, responsavel_id, convidar_contato, email_convidado, google_evento_id, meet_link',
         )
         .order('prazo'),
-      supabase.from('cliente').select('id, nome_razao').order('nome_razao'),
+      supabase.from('cliente').select('id, nome_razao, email').order('nome_razao'),
     ]);
   pedidos.catch(() => {});
+  // Quem conectou a agenda. Se a leitura falhar (ex.: sem service_role no
+  // ambiente local), o funil abre igual — só sem a marca de agenda.
+  const conectadosP = perfisConectados().catch(() => new Set<string>());
 
   const perfil = await perfilAtual();
   const [quadros, etapas, tags, cartoes, cartaoTags, cartaoUsuarios, perfis, tarefas, clientes] =
@@ -90,7 +110,14 @@ export default async function PaginaFunil() {
       .filter((v) => v.perfil_id === perfil.id)
       .map((v) => v.cartao_id as string),
   );
-  const todos = (cartoes.data ?? []) as unknown as CartaoDoFunil[];
+  const emailDoCliente = new Map(
+    ((clientes.data ?? []) as Array<{ id: string; email: string | null }>).map((c) => [c.id, c.email]),
+  );
+  const todos = ((cartoes.data ?? []) as unknown as CartaoDoFunil[]).map((c) => ({
+    ...c,
+    email_cliente: c.cliente_id ? (emailDoCliente.get(c.cliente_id) ?? null) : null,
+  }));
+  const conectados = await conectadosP;
   const ehMaster = perfil.nivel_acesso === 'master';
   const visiveis = ehMaster ? todos : todos.filter((c) => meus.has(c.id));
 
@@ -115,7 +142,9 @@ export default async function PaginaFunil() {
       cartaoUsuarios={
         (cartaoUsuarios.data ?? []) as unknown as Array<{ cartao_id: string; perfil_id: string }>
       }
-      perfis={(perfis.data ?? []) as unknown as Array<{ id: string; nome: string }>}
+      perfis={((perfis.data ?? []) as Array<{ id: string; nome: string }>).map(
+        (p): PerfilDoFunil => ({ ...p, agenda: conectados.has(p.id) }),
+      )}
       tarefas={tarefasVisiveis}
       clientes={(clientes.data ?? []) as unknown as Array<{ id: string; nome_razao: string }>}
       perfilId={perfil.id}

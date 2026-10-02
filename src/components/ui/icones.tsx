@@ -159,6 +159,16 @@ export const IconeSenha = (p: IconeProps) => (
   </Base>
 );
 
+/** Agenda — folha de calendário. */
+export const IconeAgenda = (p: IconeProps) => (
+  <Base {...p}>
+    <rect x="4" y="5" width="16" height="15" rx="2" />
+    <path d="M4 10h16" />
+    <path d="M8.5 3v4" />
+    <path d="M15.5 3v4" />
+  </Base>
+);
+
 export const IconeConfiguracoes = (p: IconeProps) => (
   <Base {...p}>
     <circle cx="12" cy="12" r="3" />

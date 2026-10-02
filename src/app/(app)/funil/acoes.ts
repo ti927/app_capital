@@ -1,8 +1,20 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
+import { apagarEventoDaTarefa, sincronizarEventoDaTarefa } from '@/lib/google/agenda';
+
+/** O endereço do app nesta requisição — vai no link de volta do evento. */
+async function origem() {
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000';
+  const protocolo = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
+  return `${protocolo}://${host}`;
+}
+
+const COLUNAS_DO_EVENTO = 'google_evento_id, google_agenda_de, convidar_contato';
 
 const texto = (dados: FormData, chave: string) => {
   const v = String(dados.get(chave) ?? '').trim();
@@ -95,6 +107,15 @@ export async function arquivarCartao(id: string, arquivado: boolean) {
 
 export async function excluirCartao(id: string) {
   const supabase = await clienteServidor();
+  // As tarefas caem em cascata com o cartão; os eventos delas, não — tira da
+  // agenda antes, senão sobra reunião marcada de cartão que não existe mais.
+  const { data: comEvento } = await supabase
+    .from('funil_tarefa')
+    .select(COLUNAS_DO_EVENTO)
+    .eq('cartao_id', id)
+    .not('google_evento_id', 'is', null);
+  await Promise.all((comEvento ?? []).map((t) => apagarEventoDaTarefa(t)));
+
   await supabase.from('funil_cartao').delete().eq('id', id);
   revalidatePath('/funil');
 }
@@ -176,10 +197,19 @@ function camposDaTarefa(dados: FormData) {
     prazo: texto(dados, 'prazo'),
     hora: texto(dados, 'hora'),
     responsavel_id: texto(dados, 'responsavel_id'),
+    // O interruptor só manda valor quando ligado (checkbox de formulário).
+    convidar_contato: dados.get('convidar_contato') === 'on',
+    email_convidado: texto(dados, 'email_convidado'),
   };
 }
 
-export async function criarTarefa(_anterior: unknown, dados: FormData) {
+/**
+ * Criar e gravar devolvem `aviso` quando a tarefa salvou mas a agenda do
+ * Google não acompanhou — a agenda nunca impede salvar (specs/11).
+ */
+type RespostaDaTarefa = { erro?: string; ok?: boolean; aviso?: string } | null;
+
+export async function criarTarefa(_anterior: unknown, dados: FormData): Promise<RespostaDaTarefa> {
   const supabase = await clienteServidor();
 
   const cartaoId = texto(dados, 'cartao_id');
@@ -187,16 +217,20 @@ export async function criarTarefa(_anterior: unknown, dados: FormData) {
   if (!cartaoId) return { erro: 'Escolha o cartão a que a tarefa pertence.' };
   if (!quadroId) return { erro: 'Não consegui identificar o quadro.' };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('funil_tarefa')
-    .insert({ ...camposDaTarefa(dados), cartao_id: cartaoId, quadro_id: quadroId });
-  if (error) return { erro: 'Não consegui criar a tarefa.' };
+    .insert({ ...camposDaTarefa(dados), cartao_id: cartaoId, quadro_id: quadroId })
+    .select('id')
+    .single();
+  if (error || !data) return { erro: 'Não consegui criar a tarefa.' };
+
+  const { aviso } = await sincronizarEventoDaTarefa(data.id as string, await origem());
 
   revalidatePath('/funil');
-  return { ok: true };
+  return { ok: true, aviso };
 }
 
-export async function gravarTarefa(_anterior: unknown, dados: FormData) {
+export async function gravarTarefa(_anterior: unknown, dados: FormData): Promise<RespostaDaTarefa> {
   const supabase = await clienteServidor();
 
   const id = texto(dados, 'id');
@@ -212,8 +246,10 @@ export async function gravarTarefa(_anterior: unknown, dados: FormData) {
     .eq('id', id);
   if (error) return { erro: 'Não consegui salvar a tarefa.' };
 
+  const { aviso } = await sincronizarEventoDaTarefa(id, await origem());
+
   revalidatePath('/funil');
-  return { ok: true };
+  return { ok: true, aviso };
 }
 
 /** Concluir e reabrir. `data_conclusao` anda junto com `concluida`. */
@@ -228,6 +264,8 @@ export async function alternarTarefa(id: string, concluida: boolean) {
 
 export async function excluirTarefa(id: string) {
   const supabase = await clienteServidor();
+  const { data } = await supabase.from('funil_tarefa').select(COLUNAS_DO_EVENTO).eq('id', id).maybeSingle();
+  if (data) await apagarEventoDaTarefa(data);
   await supabase.from('funil_tarefa').delete().eq('id', id);
   revalidatePath('/funil');
 }

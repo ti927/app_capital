@@ -164,6 +164,9 @@ await passo(pagina, 'login', async () => {
 });
 
 await passo(pagina, 'login-preenchido', async () => {
+  if (!(await pagina.locator('input[name="senha"]').count())) {
+    throw new Error('sem formulário de senha — ponha ENTRADA_COM_SENHA=1 no .env e reinicie o servidor');
+  }
   await pagina.fill('input[name="email"]', email);
   await pagina.fill('input[name="senha"]', senha);
 });
@@ -449,6 +452,20 @@ await passo(pagina, 'funil-tarefa-nova', async () => {
   await pagina.waitForTimeout(200);
 });
 
+await passo(pagina, 'funil-tarefa-reuniao-convite', async () => {
+  // Tipo "Reunião" mostra a situação na agenda e o interruptor de convite;
+  // ligar o interruptor mostra o e-mail (specs/11). Sem hora, nenhum evento
+  // nasce no Google quando a tarefa de teste for criada no passo seguinte.
+  if (!(await pagina.locator('#forma-tarefa').count())) return;
+  await pagina.locator('#forma-tarefa .lc-field:has-text("Tipo") .gatilho').click();
+  await pagina.locator('.opcoes__item:visible:has-text("Reunião")').first().click();
+  const interruptor = pagina.locator('#forma-tarefa label:has-text("Convidar o contato do cliente") input');
+  await interruptor.waitFor({ timeout: 5000 });
+  await interruptor.check();
+  await pagina.waitForSelector('#forma-tarefa input[name="email_convidado"]', { timeout: 5000 });
+  await conferePopUp(pagina, 'diálogo de reunião com convite');
+});
+
 await passo(pagina, 'funil-tarefa-criada', async () => {
   const criar = pagina.locator('.lc-dialog__foot button:has-text("Criar tarefa")');
   if (!(await criar.count())) return;
@@ -583,6 +600,16 @@ await passo(pagina, 'esteira-instrumento-escolhido', async () => {
 await passo(pagina, 'esteira-fechada-de-novo', async () => {
   await pagina.keyboard.press('Escape');
   await pagina.waitForTimeout(400);
+});
+
+// ----------------------------------------------------------------- agenda ---
+await passo(pagina, 'conta-agenda', async () => {
+  await pagina.goto(`${BASE}/conta/agenda`, { waitUntil: 'networkidle' });
+  // Conectada ou não, a tela tem que dizer qual dos dois e oferecer a ação.
+  await pagina.waitForSelector(
+    'button:has-text("Conectar Google Agenda"), button:has-text("Reconectar Google Agenda"), button:has-text("Desconectar")',
+    { timeout: 15000 },
+  );
 });
 
 await navegador.close();

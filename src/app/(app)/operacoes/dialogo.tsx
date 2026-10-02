@@ -184,16 +184,9 @@ export function DialogoOperacao({
           Os dois pareceres lado a lado. O do cliente (ipt.parecercliente no
           Bubble, documentacao-completa.md:1985–1995 e :2105–2120) é editável
           e, ao salvar, grava em `cliente.parecer`. Some quando não há cliente.
+          O do cliente vem primeiro (pedido de 02/10/2026): é o contexto para
+          ler o da operação.
         */}
-        <Campo
-          className={temCliente ? 'campo-alto' : 'grade__inteiro campo-alto'}
-          rotulo="Parecer da operação"
-          nome="parecer"
-          multilinha
-          linhas={11}
-          valorInicial={operacao?.parecer ?? ''}
-          placeholder="Digite aqui"
-        />
         {temCliente ? (
           <Campo
             className="campo-alto"
@@ -205,6 +198,15 @@ export function DialogoOperacao({
             placeholder="Digite aqui"
           />
         ) : null}
+        <Campo
+          className={temCliente ? 'campo-alto' : 'grade__inteiro campo-alto'}
+          rotulo="Parecer da operação"
+          nome="parecer"
+          multilinha
+          linhas={11}
+          valorInicial={operacao?.parecer ?? ''}
+          placeholder="Digite aqui"
+        />
 
         {/* Rótulos como no Bubble (Group S / JZZ, documentacao-completa.md:2011–2016). */}
         <div className="grade__inteiro linha" style={{ gap: 'var(--space-6)', flexWrap: 'wrap' }}>

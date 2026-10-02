@@ -36,7 +36,28 @@ Rotacionar sem apagar deixa a pista; apagar sem rotacionar não invalida nada.
 - A chave do Bubble usada na migração deve ser revogada — não só rotacionada —
   depois do corte, quando o app antigo sair do ar.
 
-## RLS desligada — risco aberto desde 17/09/2026
+## RLS ligada em 02/10/2026
+
+`db/009_rls.sql` aplicada. Conferido logo depois, no banco de produção:
+
+| Quem | Resultado |
+|---|---|
+| `anon` (a chave do navegador) | 0 linhas em toda tabela |
+| indicante (Igor, sessão simulada) | 12 clientes e 19 cartões — o mesmo que as telas já mostravam; log, formulário e `google_conexao` recusados |
+| master | `npm run qa:tudo` 54/54 nas três formas |
+
+O que o indicante ainda lê pela API, por desenho da 009: as **operações e
+etapas dos clientes dele** (as telas são só de master, mas a policy herda do
+cliente) e o **catálogo** (fornecedores, tipos, status). Fechar isso é uma
+decisão de negócio, não um defeito.
+
+Desfazer, se algo quebrar: `alter table public.<tabela> disable row level
+security` em cada tabela — as policies ficam inertes. Não desligue a da
+`google_conexao`, que já era fechada antes (db/010).
+
+O histórico abaixo fica como registro de por que a 009 existe.
+
+## RLS desligada — risco aberto de 17/09 a 02/10/2026
 
 Decisão do projeto: seguir sem RLS por enquanto, para não travar o
 desenvolvimento. As policies estão em **`db/009_rls.sql`** (01/10/2026), que

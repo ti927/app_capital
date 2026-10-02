@@ -17,11 +17,10 @@ quem usa hoje; banco e lógica são refeitos.
 
 ## Regras não negociáveis
 
-1. **RLS está DESLIGADA** — decisão do projeto em 17/09/2026, para não travar o
-   desenvolvimento. As policies estão em `db/009_rls.sql` (substitui a `003`),
-   prontas e medidas. Enquanto não rodarem, toda tabela é legível e gravável pela API REST
-   com a `anon key`, que sai no bundle do navegador. Isso precisa ser resolvido
-   antes de qualquer dado real de cliente entrar. Ver `docs/seguranca.md`.
+1. **RLS está LIGADA desde 02/10/2026** (`db/009_rls.sql`). A `anon key` não
+   lê nem grava nada; o indicante só alcança os clientes e cartões dele. Toda
+   tabela nova nasce com RLS e policy na mesma migration — tabela sem policy
+   fica ilegível para quem está logado e quebra a tela. Ver `docs/seguranca.md`.
 2. **`service_role` nunca sai do servidor.** Não existe `NEXT_PUBLIC_` em chave de
    servidor, não existe service role em componente client.
 3. **Trigger de log em `evento`**, com `UPDATE` e `DELETE` revogados na tabela.
@@ -66,7 +65,8 @@ docs: decisão sobre o de-para de status
 | `specs/00-` … `07-` | especificação por assunto — **ainda não escritas**, ver `specs/LEIA-ME.md` |
 | `db/001` … `002` | fundação e as 24 tabelas de domínio — **aplicadas** |
 | `db/004` … `008` | correções, tarefas do funil, esteira, `cliente.criado_por` — **aplicadas** |
-| `db/009_rls.sql` | policies — **não aplicada**, por decisão; substitui a `003`, que não se aplica |
+| `db/009_rls.sql` | policies — **aplicada em 02/10/2026**; substitui a `003`, que não se aplica |
+| `db/010_google_agenda.sql` | tokens do Google Agenda e colunas do evento na tarefa — **aplicada** |
 | `design/` | marca, tokens e o brief para o Claude Design |
 | `docs/estado-do-projeto.md` | **onde o app está hoje** — leia primeiro |
 | `docs/aprendizados.md` | o que as rodadas ensinaram, e o que mudou por causa disso |

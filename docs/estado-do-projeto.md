@@ -30,12 +30,13 @@ Produção está no ar em `app-capital-psi.vercel.app`, com `main` = `34dc200`.
 | `007_operacao_esteira` | índice da esteira | sim |
 | `008_cliente_criado_por` | `cliente.criado_por` | sim |
 | `003_rls` | policies — **substituída pela 009, não aplicar** | não |
-| `009_rls` | RLS espelhando o recorte da aplicação; `funil_cartao.criado_por` | **não** — pronta e medida |
+| `009_rls` | RLS espelhando o recorte da aplicação; `funil_cartao.criado_por` | **sim — 02/10/2026** |
+| `010_google_agenda` | `google_conexao` (tokens, fechada por GRANT) e colunas do evento em `funil_tarefa` | sim |
 
-**A RLS continua desligada, e o app já está publicado.** Toda tabela é
-legível e gravável com a `anon key`, que está no bundle do navegador.
+**A RLS está ligada desde 02/10/2026.** Conferência pós-aplicação em
+`docs/seguranca.md`. O que segue é o registro de antes de aplicar.
 
-`db/009_rls.sql` está pronta. Foi testada inteira dentro de uma transação
+`db/009_rls.sql` foi testada inteira dentro de uma transação
 desfeita no fim (01/10), com os perfis reais:
 
 | | antes | depois |
@@ -95,7 +96,7 @@ rodar com `!` ou aprovar no modo manual. Ver `docs/seguranca.md`.
 3. **"Enviar Email"** existe no Bubble (`documentacao-completa.md:1997`, fluxo
    em `:2210`) e não existe aqui. O app não tem serviço de e-mail; a proposta
    é o Resend, com a chave só no servidor. **Aguardando o ok.**
-4. **RLS**: `db/009` pronta — falta aplicar (ver Banco).
+4. **RLS**: ligada em 02/10/2026 (ver Banco).
 5. **Sincronização com o Bubble** (`specs/10-sincronizacao-bubble.md`):
    - cliente, operação e etapas **não estão expostos na Data API do live** —
      alguém precisa marcá-los em Settings › API no Bubble; até lá o botão só

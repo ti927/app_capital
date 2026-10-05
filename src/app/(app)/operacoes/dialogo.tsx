@@ -29,6 +29,7 @@ import {
   type DadosEtapa,
 } from './acoes';
 import type { ClienteResumo, Observacao } from './page';
+import { DialogoEmail } from './email';
 
 type Fundo = Pick<Fornecedor, 'id' | 'nome_fundo'>;
 
@@ -79,6 +80,7 @@ export function DialogoOperacao({
     if (estado?.ok) aoFechar();
   }, [estado, aoFechar]);
 
+  const [emailAberto, setEmailAberto] = useState(false);
   const nova = !operacao;
   const temCliente = Boolean(operacao?.cliente_id);
   const nomeCliente = operacao?.cliente_id
@@ -91,6 +93,7 @@ export function DialogoOperacao({
   const tiposOrdenados = useMemo(() => ordenarPtBr(tipos, (t) => t.rotulo), [tipos]);
 
   return (
+    <>
     <Dialogo
       aberto={aberto}
       aoFechar={aoFechar}
@@ -119,6 +122,12 @@ export function DialogoOperacao({
             form="forma-operacao"
             className="rodape-toggle"
           />
+          {/* Button E do Bubble (:1993); a tela de operações já é só de master. */}
+          {operacao && temCliente ? (
+            <Botao variante="secondary" onClick={() => setEmailAberto(true)}>
+              Enviar Email
+            </Botao>
+          ) : null}
           <Botao variante="primary" type="submit" form="forma-operacao" disabled={gravando}>
             {nova ? 'Cadastrar' : 'Salvar'}
           </Botao>
@@ -249,6 +258,17 @@ export function DialogoOperacao({
         </>
       ) : null}
     </Dialogo>
+
+    {/* Fora do diálogo da operação, como o de tarefa sobre o cartão: abre por
+        cima e fechar o envio não fecha a operação. */}
+    {emailAberto && operacao ? (
+      <DialogoEmail
+        operacaoId={operacao.id}
+        contexto={[nomeCliente, operacao.identificador].filter(Boolean).join(' · ') || undefined}
+        aoFechar={() => setEmailAberto(false)}
+      />
+    ) : null}
+    </>
   );
 }
 

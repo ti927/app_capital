@@ -327,6 +327,25 @@ await passo(pagina, 'operacao-dialogo', async () => {
   await conferePopUp(pagina, 'diálogo de operação');
 });
 
+await passo(pagina, 'operacao-email', async () => {
+  // Abre o envio e confere que carregou os destinatários (ou diz que não há)
+  // e as três chaves. Não envia nada (specs/13).
+  const botao = pagina.locator('.lc-dialog__foot button:has-text("Enviar Email")');
+  if (!(await botao.count())) return; // operação sem cliente não tem envio
+  await botao.click();
+  await pagina.waitForSelector('text=Envio de Email', { timeout: 5000 });
+  await pagina.waitForSelector('text=Carregando os e-mails do cliente', { state: 'detached', timeout: 15000 });
+  await pagina.waitForSelector('text=Fundos (Resumido)', { timeout: 5000 });
+});
+
+await passo(pagina, 'operacao-email-fechado', async () => {
+  if (!(await pagina.locator('text=Envio de Email').count())) return;
+  await pagina.locator('.lc-dialog__foot button:has-text("Cancelar")').last().click();
+  await pagina.waitForTimeout(400);
+  if (await pagina.locator('text=Envio de Email').count()) throw new Error('o envio não fechou');
+  if (!(await pagina.locator('text=Editar operação').count())) throw new Error('fechar o envio fechou a operação');
+});
+
 await passo(pagina, 'operacao-fechado', async () => {
   await pagina.keyboard.press('Escape');
   await pagina.waitForTimeout(400);

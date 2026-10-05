@@ -106,3 +106,20 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* --- envio de e-mail de status (specs/13-email.md) ------------------------ */
+
+.email-status__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.email-status__grupo .interruptor {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

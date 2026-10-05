@@ -4,6 +4,42 @@ Uma seção por rodada, a mais recente no topo. Escrito para quem usa o sistema.
 
 ---
 
+## 02/10/2026 — integrações
+
+### Entrada
+
+- **Entrar é só com o Google.** A conta é a mesma de antes; não há mais
+  senha na tela de entrada.
+
+### Funil
+
+- **Reunião vai para o Google Agenda.** Conecte sua agenda em **Agenda**,
+  na barra de cima. Toda tarefa do tipo Reunião, com data e hora, em que
+  você é responsável vira evento na sua agenda, com link do Google Meet.
+  Editar ou excluir a tarefa atualiza o evento.
+- **Convidar o cliente.** Na tarefa de reunião, ligue "Convidar o contato do
+  cliente": o e-mail vem preenchido quando o cartão já virou cliente, e o
+  Google manda o convite.
+
+### Operação
+
+- **Parecer do cliente vem antes do parecer da operação.**
+
+### Claude
+
+- **O Claude agora lê e escreve no app.** No claude.ai, em Conectores,
+  adicione `https://app-capital-psi.vercel.app/api/mcp` e entre com a sua
+  conta. Ele consulta funil, clientes e tarefas, cria e atualiza cartões,
+  anota no histórico e marca reuniões — com o mesmo acesso que você tem no
+  app. Ele não exclui nada.
+
+### Segurança
+
+- **Cada um vê só o que é seu, também no banco.** Até aqui o limite valia nas
+  telas; agora vale no banco, para qualquer caminho de acesso.
+
+---
+
 ## 01/10/2026 — ajustes da operação
 
 ### Operação

@@ -1,4 +1,4 @@
-# Estado do projeto — 01/10/2026
+# Estado do projeto — 02/10/2026
 
 Onde o app está ao fim do dia, o que está bloqueado e por onde continuar.
 Atualize este arquivo ao fim de cada rodada.
@@ -16,8 +16,12 @@ conforme a pessoa rola. Mediana das quatro telas: 406ms → 375ms.
 Em 01/10 veio a **rodada de ajustes da operação**: flags que não salvavam,
 cliente e os dois pareceres no diálogo, "Lista de Fornecedores", filtro de
 status, busca e ordem alfabética, clientes mais rápido, botão de
-sincronizar com o Bubble e a RLS reescrita (`db/009`, **ainda não aplicada**).
-Produção está no ar em `app-capital-psi.vercel.app`, com `main` = `34dc200`.
+sincronizar com o Bubble e a RLS reescrita (`db/009`).
+Em 02/10 veio a **rodada de integrações**: entrada só com Google, tarefa de
+reunião vira evento com Meet no Google Agenda (`specs/11`), **RLS ligada**
+(`db/009`), parecer do cliente antes do da operação, e o **MCP do sistema**
+para o Claude ler e escrever no app com a conta de cada pessoa (`specs/12`).
+Produção está no ar em `app-capital-psi.vercel.app`, com `main` = `f280edf`.
 
 ---
 
@@ -93,9 +97,24 @@ rodar com `!` ou aprovar no modo manual. Ver `docs/seguranca.md`.
    **Confirmado no live em 01/10:** no app oficial só o Garcia Agronegócios
    está configurado na esteira, e sem nenhum dado dentro. É o que esta tela
    mostra — não há o que puxar.
-3. **"Enviar Email"** existe no Bubble (`documentacao-completa.md:1997`, fluxo
-   em `:2210`) e não existe aqui. O app não tem serviço de e-mail; a proposta
-   é o Resend, com a chave só no servidor. **Aguardando o ok.**
+3. **E-mails pelo Resend — aprovado em 02/10, é o próximo passo.**
+   "Enviar Email" existe no Bubble (`documentacao-completa.md:1997`, fluxo em
+   `:2210`) e não existe aqui. Plano:
+   1. Reautenticar o conector do Resend no claude.ai (pediu login de novo em
+      02/10) e conferir a conta: domínios e chaves.
+   2. Verificar o domínio de envio (`lureconsultoria.com.br` ou um subdomínio,
+      ex. `mail.`) — registros DNS no provedor do domínio.
+   3. Criar uma chave só de envio, `RESEND_API_KEY`, no `.env` e na Vercel;
+      nome em `.env.example`. Chave só no servidor (regra 2).
+   4. Ler a seção do Bubble (`:1997` e `:2210`) e escrever `specs/13-email.md`
+      com remetente, destinatários, assunto e corpo — **não inventar** (regra 9).
+   5. Fatia vertical: ação no servidor que envia, botão "Enviar Email" na tela,
+      teste da montagem do e-mail, passo no QA.
+5. **Read.ai → funil** (`specs/12`): decidido por webhook do Read.ai **Pro**;
+   fica para quando a Lure assinar. Inclui a fila "a revisar" no funil.
+6. **Indicante pela API**: com a RLS, o Igor ainda lê as operações dos
+   clientes dele e a lista de fornecedores (as telas escondem). Fechar é
+   decisão de negócio — ver `docs/seguranca.md`.
 4. **RLS**: ligada em 02/10/2026 (ver Banco).
 5. **Sincronização com o Bubble** (`specs/10-sincronizacao-bubble.md`):
    - cliente, operação e etapas **não estão expostos na Data API do live** —

@@ -2,39 +2,12 @@
  * Monta o e-mail "Status atual de suas operações." (specs/13-email.md).
  *
  * Pura — sem banco e sem rede — para ser testada (`status-operacao.test.ts`).
- * Como no Bubble, observações e fundos vão como **imagens** (prints das
- * tabelas, desenhados em `imagens.tsx`): anexadas, e mostradas no corpo pelo
- * `cid:` de cada anexo.
+ * Como no Bubble, observações e fundos vão como **prints** das tabelas da
+ * tela (tirados em `capturar.ts`): anexados, e mostrados no corpo pelo `cid:`
+ * de cada anexo.
  */
 
 export const ASSUNTO = 'Status atual de suas operações.';
-
-export interface EtapaDoEmail {
-  fundo: string;
-  tipo: string | null;
-  status: string | null;
-  naMaoDe: string | null;
-  atualizadoEm: string | null;
-}
-
-export interface ObservacaoDoEmail {
-  texto: string;
-  criadoEm: string;
-}
-
-export interface Incluir {
-  observacoes: boolean;
-  /** Fundos: a tabela completa (`ops-table` no Bubble). */
-  fundos: boolean;
-  /** Fundos (resumido): fundo, status e na mão de (`ops-table2` no Bubble). */
-  resumo: boolean;
-}
-
-/**
- * Etapas que o Bubble tirava da tabela — e portanto do print
- * (`documentacao-completa.md:1840–1844`).
- */
-export const STATUS_FORA_DO_EMAIL = ['ja_cliente_do_fundo', 'declinado_pelo_fundo', 'declinado_pelo_cliente'];
 
 /** Texto de usuário dentro de HTML: nada vira tag. */
 export function escapar(texto: string) {

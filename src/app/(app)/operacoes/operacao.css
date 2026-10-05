@@ -123,3 +123,10 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+.email-status__previa img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: var(--border-w) solid var(--border);
+}

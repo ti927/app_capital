@@ -338,6 +338,18 @@ await passo(pagina, 'operacao-email', async () => {
   await pagina.waitForSelector('text=Fundos (Resumido)', { timeout: 5000 });
 });
 
+await passo(pagina, 'operacao-email-previa', async () => {
+  // Liga as três chaves e pede a prévia: os prints são os da tela da
+  // operação, como o Convert To PNG do Bubble (specs/13).
+  if (!(await pagina.locator('text=Envio de Email').count())) return;
+  for (const rotulo of ['Observação', 'Fundos', 'Fundos (Resumido)']) {
+    await pagina.locator(`.email-status label.interruptor:has-text("${rotulo}") input`).first().check();
+  }
+  await pagina.locator('button:has-text("Ver prévia dos prints")').click();
+  await pagina.waitForSelector('.email-status__previa', { timeout: 20000 });
+  await pagina.locator('.email-status__previa').scrollIntoViewIfNeeded();
+});
+
 await passo(pagina, 'operacao-email-fechado', async () => {
   if (!(await pagina.locator('text=Envio de Email').count())) return;
   await pagina.locator('.lc-dialog__foot button:has-text("Cancelar")').last().click();

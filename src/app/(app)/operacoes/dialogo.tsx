@@ -342,7 +342,7 @@ function BlocoObservacoes({ operacaoId, observacoes }: { operacaoId: string; obs
       <Campo multilinha linhas={2} valor={nova} aoMudar={setNova} placeholder="Escreva a observação" />
 
       {observacoes.length ? (
-        <ul className="lista" style={{ marginTop: 'var(--space-3)' }}>
+        <ul className="lista" data-print="observacoes" style={{ marginTop: 'var(--space-3)' }}>
           {observacoes.map((o) => (
             <li key={o.id} className="lista__item" style={{ alignItems: 'flex-start' }}>
               <span className="lista__texto">
@@ -525,7 +525,12 @@ function TabelaDeEtapas({
       </div>
 
       {/* A tabela some quando não há nenhuma etapa — a grade devolve null. */}
-      <GradeDeEtapas linhas={principais} {...ferramentas} />
+      <GradeDeEtapas linhas={principais} print="fundos" {...ferramentas} />
+
+      {/* A "tbl.etapasEmail" do Bubble (:2006): cópia escondida da tabela, em três
+          colunas, que só existe para virar a imagem "Fundos (Resumido)" do
+          e-mail de status (specs/13-email.md). */}
+      <ResumoParaEmail linhas={principais} fornecedores={fornecedores} statusEtapa={statusEtapa} />
 
       {/* Declinados: mesma estrutura, logo abaixo, e some quando a lista é vazia. */}
       {declinadas.length ? (
@@ -540,9 +545,62 @@ function TabelaDeEtapas({
   );
 }
 
+/**
+ * Cópia escondida da tabela principal, só com fundo, status e na mão de — o
+ * "Fundos3Colunas" / tbl.etapasEmail do Bubble. Fica fora da tela e não é
+ * lida por leitor de tela; o envio de e-mail a fotografa (specs/13-email.md).
+ */
+function ResumoParaEmail({
+  linhas,
+  fornecedores,
+  statusEtapa,
+}: {
+  linhas: EtapaOperacao[];
+  fornecedores: Fundo[];
+  statusEtapa: TabelaApoio[];
+}) {
+  if (!linhas.length) return null;
+  const nomeFundo = new Map(fornecedores.map((f) => [f.id, f.nome_fundo]));
+  const statusPorId = new Map(statusEtapa.map((s) => [s.id, s]));
+
+  return (
+    <table className="lc-table tabela-etapas resumo-para-email" data-print="fundos-resumo" aria-hidden="true">
+      <colgroup>
+        <col style={{ width: '34%' }} />
+        <col style={{ width: '26%' }} />
+        <col style={{ width: '40%' }} />
+      </colgroup>
+      <thead>
+        <tr>
+          <th scope="col">Fundo</th>
+          <th scope="col">Status</th>
+          <th scope="col">Na mão de</th>
+        </tr>
+      </thead>
+      <tbody>
+        {linhas.map((e) => {
+          const st = e.status_id ? statusPorId.get(e.status_id) : undefined;
+          return (
+            <tr key={e.id}>
+              <td style={{ fontWeight: 600 }}>{(e.fornecedor_id && nomeFundo.get(e.fornecedor_id)) || '-'}</td>
+              <td>
+                <span style={{ color: st ? `var(--${tokenDoStatus(st.chave)}-ink)` : undefined, fontWeight: 600 }}>
+                  {st?.rotulo || '-'}
+                </span>
+              </td>
+              <td className="na-mao-de">{e.na_mao_de || '-'}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
 /** Uma grade de etapas. Devolve `null` sem linha — as duas somem quando vazias. */
 function GradeDeEtapas({
   titulo,
+  print,
   linhas,
   fornecedores,
   tipos,
@@ -557,6 +615,8 @@ function GradeDeEtapas({
 }: {
   /** A principal vem sem: o título "Lista de Fornecedores" fica acima da inclusão. */
   titulo?: string;
+  /** Marca a tabela para o print do e-mail de status (specs/13-email.md). */
+  print?: string;
   linhas: EtapaOperacao[];
   fornecedores: Fundo[];
   tipos: TabelaApoio[];
@@ -583,7 +643,7 @@ function GradeDeEtapas({
         </span>
       ) : null}
 
-      <table className="lc-table tabela-etapas" style={{ marginTop: 'var(--space-3)' }}>
+      <table className="lc-table tabela-etapas" data-print={print} style={{ marginTop: 'var(--space-3)' }}>
         {/* "Na mão de" é texto corrido e precisa da maior fatia; Fundo cede. */}
         <colgroup>
           <col style={{ width: '20%' }} />

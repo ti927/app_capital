@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
+import { ALVOS, capturar, type Alvo } from '@/lib/email/capturar';
 import { emailsDaOperacao, enviarEmailDeStatus } from './acoes';
 
 /**
@@ -27,6 +28,7 @@ export function DialogoEmail({
   const [texto, setTexto] = useState('');
   const [incluir, setIncluir] = useState({ observacoes: false, fundos: false, resumo: false });
   const [resultado, setResultado] = useState<{ ok?: true; erro?: string } | null>(null);
+  const [previa, setPrevia] = useState<Array<{ id: Alvo; png: string }> | null>(null);
   const [enviando, transicao] = useTransition();
 
   useEffect(() => {
@@ -41,10 +43,39 @@ export function DialogoEmail({
   const alternar = (email: string) =>
     setEscolhidos((atual) => (atual.includes(email) ? atual.filter((e) => e !== email) : [...atual, email]));
 
+  const alvos = (): Alvo[] => [
+    ...(incluir.observacoes ? (['observacoes'] as const) : []),
+    ...(incluir.fundos ? (['fundos'] as const) : []),
+    ...(incluir.resumo ? (['fundos-resumo'] as const) : []),
+  ];
+
+  /** Os mesmos prints do envio, mostrados aqui antes de mandar. */
+  function verPrevia() {
+    setResultado(null);
+    transicao(async () => {
+      try {
+        setPrevia(await capturar(alvos()));
+      } catch {
+        setResultado({ erro: 'Não consegui tirar o print das tabelas. Tente de novo.' });
+      }
+    });
+  }
+
+  /**
+   * Como o Bubble: antes de enviar, fotografa na tela da operação (aberta por
+   * baixo deste diálogo) os elementos escolhidos, e só então envia.
+   */
   function enviar() {
     setResultado(null);
     transicao(async () => {
-      setResultado(await enviarEmailDeStatus({ operacaoId, destinatarios: escolhidos, extra, texto, incluir }));
+      let imagens: Array<{ id: string; png: string }> = [];
+      try {
+        imagens = await capturar(alvos());
+      } catch {
+        setResultado({ erro: 'Não consegui tirar o print das tabelas. Tente de novo.' });
+        return;
+      }
+      setResultado(await enviarEmailDeStatus({ operacaoId, destinatarios: escolhidos, extra, texto, imagens }));
     });
   }
 
@@ -149,8 +180,29 @@ export function DialogoEmail({
 
         <p className="apoio">
           Assunto: “Status atual de suas operações.” — sai como Lure Capital, com cópia oculta para o
-          responsável.
+          responsável. Observação e Fundos vão como print das tabelas desta operação.
         </p>
+
+        {incluir.observacoes || incluir.fundos || incluir.resumo ? (
+          <div className="linha">
+            <Botao variante="tertiary" tamanho="sm" onClick={verPrevia} disabled={enviando}>
+              Ver prévia dos prints
+            </Botao>
+          </div>
+        ) : null}
+
+        {previa ? (
+          <div className="pilha email-status__previa">
+            {previa.length ? (
+              previa.map((p) => (
+                // eslint-disable-next-line @next/next/no-img-element -- é um data: URL gerado aqui, não há o que otimizar
+                <img key={p.id} src={`data:image/png;base64,${p.png}`} alt={ALVOS[p.id].titulo} />
+              ))
+            ) : (
+              <p className="apoio">Nada para fotografar: esta operação não tem observação nem fundo.</p>
+            )}
+          </div>
+        ) : null}
 
         {resultado?.erro ? (
           <p className="lc-field__msg" role="alert">

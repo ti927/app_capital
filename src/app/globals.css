@@ -985,3 +985,12 @@ textarea {
     align-items: flex-start;
   }
 }
+
+/* Durante o print do e-mail de status (src/lib/email/capturar.ts): a troca
+   para o tema claro tem de valer na hora, sem transição no meio da foto. */
+:root[data-capturando] *,
+:root[data-capturando] *::before,
+:root[data-capturando] *::after {
+  transition: none !important;
+  animation: none !important;
+}

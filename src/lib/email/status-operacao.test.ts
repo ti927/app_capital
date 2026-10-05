@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ASSUNTO, emailValido, escapar, montarEmailDeStatus, STATUS_FORA_DO_EMAIL } from './status-operacao.ts';
+import { ASSUNTO, emailValido, escapar, montarEmailDeStatus } from './status-operacao.ts';
 
 const texto = 'Olá, João.\n\nSegue o status.';
 
@@ -34,10 +34,6 @@ test('texto da pessoa não vira HTML', () => {
   assert.doesNotMatch(r.html, /<script>|<b>F/);
   assert.match(r.html, /&lt;script&gt;/);
   assert.equal(escapar(`"a" & 'b'`), '&quot;a&quot; &amp; &#39;b&#39;');
-});
-
-test('os três status que o Bubble tirava da tabela', () => {
-  assert.deepEqual(STATUS_FORA_DO_EMAIL, ['ja_cliente_do_fundo', 'declinado_pelo_fundo', 'declinado_pelo_cliente']);
 });
 
 test('emailValido', () => {

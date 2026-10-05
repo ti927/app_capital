@@ -26,13 +26,22 @@ Abre o diálogo **Envio de Email**:
 | Observações e fundos | **imagens** PNG das tabelas (`obs`, `ops-table`, `ops-table2`) | **imagens** PNG, anexadas e mostradas no corpo |
 | Etapas na imagem | sem "já cliente do fundo", "declinado pelo fundo", "declinado pelo cliente" (`:1840`) | igual |
 
-Como no Bubble, vão **prints** das tabelas (pedido de 05/10/2026, que
-substituiu a primeira versão em tabelas de texto). Aqui o servidor desenha o
-PNG (`src/lib/email/imagens.tsx`, com `next/og`) em vez de fotografar a tela:
-sai igual para todos, sem depender de navegador nem de tema. Cada imagem vai
-como anexo e aparece no corpo pelo `cid:`. Com "Fundos" e "Fundos
-(Resumido)" ligados juntos, vão as duas imagens — como a maioria dos fluxos
-do Bubble. Seção sem linha não gera imagem.
+Como no Bubble, vão **prints dos elementos da tela da operação** (pedido de
+05/10/2026): o navegador fotografa, no momento do envio, a lista de
+observações, a tabela "Lista de Fornecedores" — a mesma que se vê no diálogo
+— e uma cópia escondida dela em três colunas (a `tbl.etapasEmail` do Bubble).
+Código em `src/lib/email/capturar.ts` (biblioteca `html-to-image`).
+
+- O print sai sempre **claro** (troca de tema só durante a foto, sem
+  transição) e sempre com **960px** de largura, mesmo no celular.
+- Lápis e lixeira não entram.
+- "Ver prévia dos prints" mostra no diálogo exatamente o que vai.
+- Cada imagem vai como anexo e aparece no corpo pelo `cid:`. Com "Fundos" e
+  "Fundos (Resumido)" ligados juntos, vão as duas — como a maioria dos fluxos
+  do Bubble. Elemento que não existe (operação sem observação ou sem fundo)
+  não gera imagem.
+- O servidor só aceita os três prints conhecidos, só PNG de verdade, até 4 MB
+  cada.
 
 Fundos (completa): fundo, tipo de operação, status, na mão de, alterado em.
 Fundos (resumido): fundo, status, na mão de — o "Fundos3Colunas" do Bubble.
@@ -55,7 +64,7 @@ enviar.
 ## Código
 
 - `src/lib/email/status-operacao.ts` — monta assunto, HTML e texto (puro, testado).
-- `src/lib/email/imagens.tsx` — desenha os PNGs das tabelas.
+- `src/lib/email/capturar.ts` — tira os prints na tela (navegador).
 - `src/lib/email/resend.ts` — POST na API do Resend.
 - `src/app/(app)/operacoes/acoes.ts` — `emailsDaOperacao`, `enviarEmailDeStatus`.
 - `src/app/(app)/operacoes/email.tsx` — o diálogo.

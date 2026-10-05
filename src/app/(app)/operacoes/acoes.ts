@@ -3,9 +3,16 @@
 import { revalidatePath } from 'next/cache';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
-import { emailValido, montarEmailDeStatus, STATUS_FORA_DO_EMAIL, type Incluir } from '@/lib/email/status-operacao';
-import { desenharImagens } from '@/lib/email/imagens';
+import { emailValido, montarEmailDeStatus } from '@/lib/email/status-operacao';
 import { enviar, ErroDeEnvio, faltaConfigurar } from '@/lib/email/resend';
+
+/** Os prints que o e-mail de status aceita — os mesmos de `capturar.ts`. */
+const TITULO_DO_PRINT: Record<string, string> = {
+  observacoes: 'Observações',
+  fundos: 'Fundos',
+  'fundos-resumo': 'Fundos (resumido)',
+};
+const ASSINATURA_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 const texto = (dados: FormData, chave: string) => {
   const v = String(dados.get(chave) ?? '').trim();
@@ -184,7 +191,8 @@ export async function enviarEmailDeStatus(entrada: {
   destinatarios: string[];
   extra: string;
   texto: string;
-  incluir: Incluir;
+  /** Os prints tirados na tela (`src/lib/email/capturar.ts`), PNG em base64. */
+  imagens: Array<{ id: string; png: string }>;
 }): Promise<{ ok?: true; erro?: string }> {
   const perfil = await perfilAtual();
   if (perfil.nivel_acesso !== 'master') return { erro: 'Só master envia e-mail de status.' };
@@ -199,38 +207,20 @@ export async function enviarEmailDeStatus(entrada: {
   const para = entrada.destinatarios.map((e) => e.trim().toLowerCase()).filter((e) => emails.includes(e));
   if (!para.length && !extra) return { erro: 'Escolha ao menos um destinatário.' };
 
-  const supabase = await clienteServidor();
-  const [{ data: op }, { data: obs }, { data: etapas }] = await Promise.all([
-    supabase.from('operacao').select('identificador, cliente(nome_razao)').eq('id', entrada.operacaoId).maybeSingle(),
-    supabase.from('operacao_observacao').select('texto, criado_em').eq('operacao_id', entrada.operacaoId).order('criado_em'),
-    supabase
-      .from('etapa_operacao')
-      .select('na_mao_de, atualizado_em, fornecedor(nome_fundo), tipo_operacao(rotulo), status_etapa(rotulo, chave)')
-      .eq('operacao_id', entrada.operacaoId),
-  ]);
-  if (!op) return { erro: 'Operação não encontrada.' };
+  // Só os três prints conhecidos, só PNG de verdade e de tamanho razoável:
+  // o que chega aqui veio do navegador e é entrada como qualquer outra.
+  const imagens: Array<{ id: string; titulo: string; png: Buffer }> = [];
+  for (const i of entrada.imagens) {
+    const titulo = TITULO_DO_PRINT[i.id];
+    if (!titulo) continue;
+    const png = Buffer.from(i.png, 'base64');
+    if (png.length > 4_000_000) return { erro: `O print "${titulo}" ficou grande demais para anexar.` };
+    if (!png.subarray(0, 8).equals(ASSINATURA_PNG)) return { erro: `O print "${titulo}" não é uma imagem válida.` };
+    imagens.push({ id: i.id, titulo, png });
+  }
 
-  const nome = <T,>(v: unknown, campo: keyof T) => ((v as T | null)?.[campo] as string | undefined) ?? null;
-  const dados = {
-    cliente: nome<{ nome_razao: string }>(op.cliente, 'nome_razao'),
-    identificador: (op.identificador as string | null) ?? null,
-    observacoes: (obs ?? []).map((o) => ({ texto: o.texto as string, criadoEm: o.criado_em as string })),
-    etapas: (etapas ?? [])
-      // Como a tabela do Bubble: sem os declinados nem quem já é cliente do fundo.
-      .filter((e) => !STATUS_FORA_DO_EMAIL.includes(nome<{ chave: string }>(e.status_etapa, 'chave') ?? ''))
-      .map((e) => ({
-        fundo: nome<{ nome_fundo: string }>(e.fornecedor, 'nome_fundo') ?? 'Sem fundo',
-        tipo: nome<{ rotulo: string }>(e.tipo_operacao, 'rotulo'),
-        status: nome<{ rotulo: string }>(e.status_etapa, 'rotulo'),
-        naMaoDe: (e.na_mao_de as string | null) ?? null,
-        atualizadoEm: (e.atualizado_em as string | null) ?? null,
-      }))
-      .sort((a, b) => a.fundo.localeCompare(b.fundo, 'pt-BR')),
-    incluir: entrada.incluir,
-  };
-  const imagens = await desenharImagens(dados);
   const email = montarEmailDeStatus({ texto, imagens });
-  const anexos = imagens.map((i) => ({ arquivo: i.arquivo, conteudo: i.png, contentId: i.id }));
+  const anexos = imagens.map((i) => ({ arquivo: `${i.id}.png`, conteudo: i.png, contentId: i.id }));
 
   const copia = process.env.EMAIL_COPIA_OCULTA?.trim();
   try {

@@ -26,16 +26,19 @@ Abre o diálogo **Envio de Email**:
 | Observações e fundos | **imagens** PNG das tabelas (`obs`, `ops-table`, `ops-table2`) | **imagens** PNG, anexadas e mostradas no corpo |
 | Etapas na imagem | sem "já cliente do fundo", "declinado pelo fundo", "declinado pelo cliente" (`:1840`) | igual |
 
-Como no Bubble, vão **prints dos elementos da tela da operação** (pedido de
-05/10/2026): o navegador fotografa, no momento do envio, a lista de
-observações, a tabela "Lista de Fornecedores" — a mesma que se vê no diálogo
-— e uma cópia escondida dela em três colunas (a `tbl.etapasEmail` do Bubble).
-Código em `src/lib/email/capturar.ts` (biblioteca `html-to-image`).
+Como no Bubble, vão **prints dos elementos da operação** (pedido de
+05/10/2026): a lista de observações, a tabela "Lista de Fornecedores" — a
+mesma que se vê no diálogo — e a versão dela em três colunas (a
+`tbl.etapasEmail` do Bubble). Código em `src/lib/email/capturar.ts`
+(biblioteca `html-to-image`) e `PrintsParaEmail` em `operacoes/dialogo.tsx`.
 
-- O print sai sempre **claro** (troca de tema só durante a foto, sem
-  transição) e sempre com **960px** de largura, mesmo no celular.
+- **Marcar a caixa já mostra o print** como vai no e-mail ("Como vai no
+  e-mail"), sem botão de prévia; o envio usa esses mesmos prints.
+- **A tela não muda durante o print** (pedido de 05/10/2026, depois de a
+  primeira versão piscar): fotografam-se cópias montadas fora da área
+  visível, já claras (classe `.tema-claro`, gerada em `tokens.css`) e com
+  **960px** de largura. Nada troca de tema nem de tamanho na página.
 - Lápis e lixeira não entram.
-- "Ver prévia dos prints" mostra no diálogo exatamente o que vai.
 - Cada imagem vai como anexo e aparece no corpo pelo `cid:`. Com "Fundos" e
   "Fundos (Resumido)" ligados juntos, vão as duas — como a maioria dos fluxos
   do Bubble. Elemento que não existe (operação sem observação ou sem fundo)

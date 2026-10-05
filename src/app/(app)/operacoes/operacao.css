@@ -130,3 +130,33 @@
   height: auto;
   border: var(--border-w) solid var(--border);
 }
+
+/* Cópias que o e-mail de status fotografa: fora da tela, largura fixa de
+   computador, sempre claras (.tema-claro). Ver PrintsParaEmail. */
+.prints-email {
+  position: fixed;
+  left: -20000px;
+  top: 0;
+  width: 960px;
+  pointer-events: none;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.prints-email > * + * {
+  margin-top: var(--space-4);
+}
+
+.email-status__print {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Cada peça fotografada contém as próprias margens — sem isso a margem do topo
+   da tabela "vaza" para fora e o fim da última linha sai cortado no print. */
+.prints-email [data-print] {
+  display: flow-root;
+  padding-bottom: var(--space-2);
+}

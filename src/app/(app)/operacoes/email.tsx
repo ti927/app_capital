@@ -6,11 +6,22 @@ import { Dialogo } from '@/components/ui/dialogo';
 import { ALVOS, capturar, type Alvo } from '@/lib/email/capturar';
 import { emailsDaOperacao, enviarEmailDeStatus } from './acoes';
 
+/** As chaves "Dados a serem incluídos", na ordem em que os prints vão no e-mail. */
+const CHAVES: Array<{ alvo: Alvo; rotulo: string }> = [
+  { alvo: 'observacoes', rotulo: 'Observação' },
+  { alvo: 'fundos', rotulo: 'Fundos' },
+  { alvo: 'fundos-resumo', rotulo: 'Fundos (Resumido)' },
+];
+
+/** `undefined`: não pedido · `'carregando'` · `null`: não há o que fotografar · string: o PNG. */
+type Print = 'carregando' | string | null;
+
 /**
  * O Pop.email do Bubble (`documentacao-completa.md:2028`, specs/13-email.md):
  * destinatários entre os e-mails do cliente, um destinatário adicional, o
- * texto, e o que entra junto — observações, fundos ou fundos resumidos.
- * Assunto fixo e cópia oculta ficam no servidor.
+ * texto, e os prints que vão junto. Marcar uma chave já mostra o print como vai
+ * no e-mail; o envio usa esses mesmos prints. Assunto fixo e cópia oculta
+ * ficam no servidor.
  */
 export function DialogoEmail({
   operacaoId,
@@ -26,9 +37,9 @@ export function DialogoEmail({
   const [escolhidos, setEscolhidos] = useState<string[]>([]);
   const [extra, setExtra] = useState('');
   const [texto, setTexto] = useState('');
-  const [incluir, setIncluir] = useState({ observacoes: false, fundos: false, resumo: false });
+  const [marcados, setMarcados] = useState<Alvo[]>([]);
+  const [prints, setPrints] = useState<Partial<Record<Alvo, Print>>>({});
   const [resultado, setResultado] = useState<{ ok?: true; erro?: string } | null>(null);
-  const [previa, setPrevia] = useState<Array<{ id: Alvo; png: string }> | null>(null);
   const [enviando, transicao] = useTransition();
 
   useEffect(() => {
@@ -40,41 +51,34 @@ export function DialogoEmail({
     });
   }, [operacaoId]);
 
-  const alternar = (email: string) =>
+  const alternarEmail = (email: string) =>
     setEscolhidos((atual) => (atual.includes(email) ? atual.filter((e) => e !== email) : [...atual, email]));
 
-  const alvos = (): Alvo[] => [
-    ...(incluir.observacoes ? (['observacoes'] as const) : []),
-    ...(incluir.fundos ? (['fundos'] as const) : []),
-    ...(incluir.resumo ? (['fundos-resumo'] as const) : []),
-  ];
-
-  /** Os mesmos prints do envio, mostrados aqui antes de mandar. */
-  function verPrevia() {
-    setResultado(null);
-    transicao(async () => {
-      try {
-        setPrevia(await capturar(alvos()));
-      } catch {
-        setResultado({ erro: 'Não consegui tirar o print das tabelas. Tente de novo.' });
-      }
-    });
+  /** Marcar fotografa (uma vez só); desmarcar só tira do e-mail. */
+  async function alternarPrint(alvo: Alvo, marcar: boolean) {
+    setMarcados((atual) => (marcar ? [...atual, alvo] : atual.filter((a) => a !== alvo)));
+    if (!marcar || prints[alvo] !== undefined) return;
+    setPrints((p) => ({ ...p, [alvo]: 'carregando' }));
+    try {
+      const png = await capturar(alvo);
+      setPrints((p) => ({ ...p, [alvo]: png }));
+    } catch {
+      setPrints((p) => ({ ...p, [alvo]: undefined }));
+      setMarcados((atual) => atual.filter((a) => a !== alvo));
+      setResultado({ erro: `Não consegui tirar o print de "${ALVOS[alvo].titulo}". Tente marcar de novo.` });
+    }
   }
 
-  /**
-   * Como o Bubble: antes de enviar, fotografa na tela da operação (aberta por
-   * baixo deste diálogo) os elementos escolhidos, e só então envia.
-   */
+  const naOrdem = CHAVES.filter((c) => marcados.includes(c.alvo));
+  const preparando = naOrdem.some((c) => prints[c.alvo] === 'carregando');
+
   function enviar() {
     setResultado(null);
+    const imagens = naOrdem.flatMap((c) => {
+      const png = prints[c.alvo];
+      return typeof png === 'string' && png !== 'carregando' ? [{ id: c.alvo, png }] : [];
+    });
     transicao(async () => {
-      let imagens: Array<{ id: string; png: string }> = [];
-      try {
-        imagens = await capturar(alvos());
-      } catch {
-        setResultado({ erro: 'Não consegui tirar o print das tabelas. Tente de novo.' });
-        return;
-      }
       setResultado(await enviarEmailDeStatus({ operacaoId, destinatarios: escolhidos, extra, texto, imagens }));
     });
   }
@@ -101,7 +105,9 @@ export function DialogoEmail({
             <Botao
               variante="primary"
               onClick={enviar}
-              disabled={enviando || Boolean(falta) || (!escolhidos.length && !extra.trim()) || !texto.trim()}
+              disabled={
+                enviando || preparando || Boolean(falta) || (!escolhidos.length && !extra.trim()) || !texto.trim()
+              }
             >
               {enviando ? 'Enviando…' : 'Enviar'}
             </Botao>
@@ -124,7 +130,7 @@ export function DialogoEmail({
           ) : emails.length ? (
             emails.map((e) => (
               <label key={e} className="interruptor">
-                <input type="checkbox" checked={escolhidos.includes(e)} onChange={() => alternar(e)} />
+                <input type="checkbox" checked={escolhidos.includes(e)} onChange={() => alternarEmail(e)} />
                 <span>{e}</span>
               </label>
             ))
@@ -141,68 +147,52 @@ export function DialogoEmail({
           placeholder="alguem@empresa.com.br"
         />
 
-        <fieldset className="email-status__grupo">
-          <legend className="lc-field__label">Dados a serem incluídos</legend>
-          <label className="interruptor">
-            <input
-              type="checkbox"
-              checked={incluir.observacoes}
-              onChange={(e) => setIncluir((i) => ({ ...i, observacoes: e.target.checked }))}
-            />
-            <span>Observação</span>
-          </label>
-          <label className="interruptor">
-            <input
-              type="checkbox"
-              checked={incluir.fundos}
-              onChange={(e) => setIncluir((i) => ({ ...i, fundos: e.target.checked }))}
-            />
-            <span>Fundos</span>
-          </label>
-          <label className="interruptor">
-            <input
-              type="checkbox"
-              checked={incluir.resumo}
-              onChange={(e) => setIncluir((i) => ({ ...i, resumo: e.target.checked }))}
-            />
-            <span>Fundos (Resumido)</span>
-          </label>
-        </fieldset>
-
         <Campo
           rotulo="Email"
           multilinha
-          linhas={8}
+          linhas={6}
           valor={texto}
           aoMudar={setTexto}
           placeholder="Texto do e-mail para o cliente"
         />
 
-        <p className="apoio">
-          Assunto: “Status atual de suas operações.” — sai como Lure Capital, com cópia oculta para o
-          responsável. Observação e Fundos vão como print das tabelas desta operação.
-        </p>
+        <fieldset className="email-status__grupo">
+          <legend className="lc-field__label">Dados a serem incluídos</legend>
+          {CHAVES.map((c) => (
+            <label key={c.alvo} className="interruptor">
+              <input
+                type="checkbox"
+                checked={marcados.includes(c.alvo)}
+                onChange={(e) => void alternarPrint(c.alvo, e.target.checked)}
+              />
+              <span>{c.rotulo}</span>
+            </label>
+          ))}
+        </fieldset>
 
-        {incluir.observacoes || incluir.fundos || incluir.resumo ? (
-          <div className="linha">
-            <Botao variante="tertiary" tamanho="sm" onClick={verPrevia} disabled={enviando}>
-              Ver prévia dos prints
-            </Botao>
-          </div>
-        ) : null}
-
-        {previa ? (
+        {naOrdem.length ? (
           <div className="pilha email-status__previa">
-            {previa.length ? (
-              previa.map((p) => (
-                // eslint-disable-next-line @next/next/no-img-element -- é um data: URL gerado aqui, não há o que otimizar
-                <img key={p.id} src={`data:image/png;base64,${p.png}`} alt={ALVOS[p.id].titulo} />
-              ))
-            ) : (
-              <p className="apoio">Nada para fotografar: esta operação não tem observação nem fundo.</p>
-            )}
+            <span className="lc-field__label">Como vai no e-mail</span>
+            {naOrdem.map((c) => {
+              const png = prints[c.alvo];
+              return (
+                <figure key={c.alvo} className="email-status__print">
+                  <figcaption className="apoio">{ALVOS[c.alvo].titulo}</figcaption>
+                  {png === 'carregando' || png === undefined ? (
+                    <p className="apoio">Preparando o print…</p>
+                  ) : png === null ? (
+                    <p className="apoio">Nada para mostrar: esta operação não tem {c.alvo === 'observacoes' ? 'observação' : 'fundo'}.</p>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element -- data: URL gerado aqui, não há o que otimizar
+                    <img src={`data:image/png;base64,${png}`} alt={ALVOS[c.alvo].titulo} />
+                  )}
+                </figure>
+              );
+            })}
           </div>
         ) : null}
+
+        <p className="apoio">Assunto: “Status atual de suas operações.” — sai como Lure Capital, com cópia oculta para o responsável.</p>
 
         {resultado?.erro ? (
           <p className="lc-field__msg" role="alert">

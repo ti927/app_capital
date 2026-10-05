@@ -14,6 +14,8 @@ const t = JSON.parse(fs.readFileSync(ORIGEM, 'utf8'));
 const linhas = [];
 const claro = [];
 const escuro = [];
+/** Só os tokens que mudam com o tema, no valor claro — para `.tema-claro`. */
+const claroDosTemas = [];
 
 // --- cor: valor simples ou { light, dark } ---------------------------------
 for (const tk of t.color.tokens) {
@@ -22,6 +24,7 @@ for (const tk of t.color.tokens) {
   } else {
     claro.push(`  --${tk.name}: ${tk.value.light};`);
     escuro.push(`  --${tk.name}: ${tk.value.dark};`);
+    claroDosTemas.push(`  --${tk.name}: ${tk.value.light};`);
   }
 }
 
@@ -53,6 +56,14 @@ linhas.push('}');
 linhas.push('');
 linhas.push(':root[data-theme="dark"] {');
 linhas.push(...escuro);
+linhas.push('}');
+linhas.push('');
+
+// Um pedaço da tela que é sempre claro, qualquer que seja o tema — os prints
+// do e-mail de status (src/lib/email/capturar.ts). Vem depois do escuro para
+// ganhar dele nos descendentes.
+linhas.push('.tema-claro {');
+linhas.push(...claroDosTemas);
 linhas.push('}');
 linhas.push('');
 

@@ -339,14 +339,21 @@ await passo(pagina, 'operacao-email', async () => {
 });
 
 await passo(pagina, 'operacao-email-previa', async () => {
-  // Liga as três chaves e pede a prévia: os prints são os da tela da
-  // operação, como o Convert To PNG do Bubble (specs/13).
+  // Marcar cada chave já mostra o print como vai no e-mail (specs/13) — sem
+  // botão de prévia — e a página não muda de tema durante o print.
   if (!(await pagina.locator('text=Envio de Email').count())) return;
+  const temaAntes = await pagina.evaluate(() => document.documentElement.getAttribute('data-theme'));
   for (const rotulo of ['Observação', 'Fundos', 'Fundos (Resumido)']) {
     await pagina.locator(`.email-status label.interruptor:has-text("${rotulo}") input`).first().check();
   }
-  await pagina.locator('button:has-text("Ver prévia dos prints")').click();
-  await pagina.waitForSelector('.email-status__previa', { timeout: 20000 });
+  if (await pagina.locator('button:has-text("Ver prévia")').count()) throw new Error('voltou o botão de prévia');
+  await pagina.waitForFunction(
+    () => document.querySelectorAll('.email-status__print').length === 3 && !document.body.innerText.includes('Preparando o print'),
+    null,
+    { timeout: 20000 },
+  );
+  const temaDepois = await pagina.evaluate(() => document.documentElement.getAttribute('data-theme'));
+  if (temaAntes !== temaDepois) throw new Error(`o tema da página mudou durante o print (${temaAntes} -> ${temaDepois})`);
   await pagina.locator('.email-status__previa').scrollIntoViewIfNeeded();
 });
 

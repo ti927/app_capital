@@ -262,6 +262,15 @@ export function DialogoOperacao({
     {/* Fora do diálogo da operação, como o de tarefa sobre o cartão: abre por
         cima e fechar o envio não fecha a operação. */}
     {emailAberto && operacao ? (
+      <PrintsParaEmail
+        observacoes={observacoes}
+        etapas={etapas}
+        fornecedores={fornecedores}
+        tipos={tipos}
+        statusEtapa={statusEtapa}
+      />
+    ) : null}
+    {emailAberto && operacao ? (
       <DialogoEmail
         operacaoId={operacao.id}
         contexto={[nomeCliente, operacao.identificador].filter(Boolean).join(' · ') || undefined}
@@ -342,7 +351,7 @@ function BlocoObservacoes({ operacaoId, observacoes }: { operacaoId: string; obs
       <Campo multilinha linhas={2} valor={nova} aoMudar={setNova} placeholder="Escreva a observação" />
 
       {observacoes.length ? (
-        <ul className="lista" data-print="observacoes" style={{ marginTop: 'var(--space-3)' }}>
+        <ul className="lista" style={{ marginTop: 'var(--space-3)' }}>
           {observacoes.map((o) => (
             <li key={o.id} className="lista__item" style={{ alignItems: 'flex-start' }}>
               <span className="lista__texto">
@@ -380,6 +389,29 @@ const STATUS_DECLINADOS = new Set([
 ]);
 
 /**
+ * Principais e declinadas, cada uma em ordem alfabética do fundo (etapa sem
+ * fundo vai para o fim). Usada pela tabela da tela e pelos prints do e-mail —
+ * que precisam mostrar exatamente as mesmas linhas.
+ */
+function separarEtapas(etapas: EtapaOperacao[], fornecedores: Fundo[], statusEtapa: TabelaApoio[]) {
+  const statusPorId = new Map(statusEtapa.map((s) => [s.id, s]));
+  const declinada = (e: EtapaOperacao) => {
+    const st = e.status_id ? statusPorId.get(e.status_id) : undefined;
+    return st ? STATUS_DECLINADOS.has(st.chave) : false;
+  };
+
+  const nomeFundo = new Map(fornecedores.map((f) => [f.id, f.nome_fundo]));
+  const ordenadas = [...etapas].sort((a, b) => {
+    const na = a.fornecedor_id ? nomeFundo.get(a.fornecedor_id) : undefined;
+    const nb = b.fornecedor_id ? nomeFundo.get(b.fornecedor_id) : undefined;
+    if (!na || !nb) return na ? -1 : nb ? 1 : 0;
+    return na.localeCompare(nb, 'pt-BR', { sensitivity: 'base' });
+  });
+
+  return { principais: ordenadas.filter((e) => !declinada(e)), declinadas: ordenadas.filter(declinada) };
+}
+
+/**
  * Cada célula tem duas formas: texto em leitura, campo em edição. A edição é
  * **por linha**, acionada pelo lápis; as ações são salvar · editar · deletar.
  *
@@ -409,8 +441,6 @@ function TabelaDeEtapas({
   });
   const [, transicao] = useTransition();
 
-  const statusPorId = new Map(statusEtapa.map((s) => [s.id, s]));
-
   const abrirEdicao = (e: EtapaOperacao) => {
     setEditando(e.id);
     setRascunho({
@@ -437,22 +467,7 @@ function TabelaDeEtapas({
 
   const excluir = (id: string) => transicao(() => void excluirEtapa(id));
 
-  const declinada = (e: EtapaOperacao) => {
-    const st = e.status_id ? statusPorId.get(e.status_id) : undefined;
-    return st ? STATUS_DECLINADOS.has(st.chave) : false;
-  };
-
-  /** Ordem alfabética pelo nome do fundo; etapa sem fundo vai para o fim. */
-  const nomeFundo = new Map(fornecedores.map((f) => [f.id, f.nome_fundo]));
-  const ordenadas = [...etapas].sort((a, b) => {
-    const na = a.fornecedor_id ? nomeFundo.get(a.fornecedor_id) : undefined;
-    const nb = b.fornecedor_id ? nomeFundo.get(b.fornecedor_id) : undefined;
-    if (!na || !nb) return na ? -1 : nb ? 1 : 0;
-    return na.localeCompare(nb, 'pt-BR', { sensitivity: 'base' });
-  });
-
-  const principais = ordenadas.filter((e) => !declinada(e));
-  const declinadas = ordenadas.filter(declinada);
+  const { principais, declinadas } = separarEtapas(etapas, fornecedores, statusEtapa);
 
   const ferramentas = {
     fornecedores,
@@ -525,12 +540,7 @@ function TabelaDeEtapas({
       </div>
 
       {/* A tabela some quando não há nenhuma etapa — a grade devolve null. */}
-      <GradeDeEtapas linhas={principais} print="fundos" {...ferramentas} />
-
-      {/* A "tbl.etapasEmail" do Bubble (:2006): cópia escondida da tabela, em três
-          colunas, que só existe para virar a imagem "Fundos (Resumido)" do
-          e-mail de status (specs/13-email.md). */}
-      <ResumoParaEmail linhas={principais} fornecedores={fornecedores} statusEtapa={statusEtapa} />
+      <GradeDeEtapas linhas={principais} {...ferramentas} />
 
       {/* Declinados: mesma estrutura, logo abaixo, e some quando a lista é vazia. */}
       {declinadas.length ? (
@@ -542,6 +552,67 @@ function TabelaDeEtapas({
         </>
       ) : null}
     </section>
+  );
+}
+
+/**
+ * O que o e-mail de status fotografa (specs/13-email.md): as mesmas peças da
+ * tela — a lista de observações e a "Lista de Fornecedores" — e a cópia em três
+ * colunas. Ficam **fora da área visível**, sempre claras (`.tema-claro`) e com
+ * a largura de um computador, e só existem enquanto o envio está aberto.
+ *
+ * Fotografar cópias, e não a tela, é o que evita a página piscar: nada do que
+ * a pessoa vê muda de tema ou de tamanho durante o print.
+ */
+function PrintsParaEmail({
+  observacoes,
+  etapas,
+  fornecedores,
+  tipos,
+  statusEtapa,
+}: {
+  observacoes: Observacao[];
+  etapas: EtapaOperacao[];
+  fornecedores: Fundo[];
+  tipos: TabelaApoio[];
+  statusEtapa: TabelaApoio[];
+}) {
+  const { principais } = separarEtapas(etapas, fornecedores, statusEtapa);
+  const nada = () => {};
+
+  return (
+    <div className="prints-email tema-claro" aria-hidden="true">
+      {observacoes.length ? (
+        <ul className="lista" data-print="observacoes">
+          {observacoes.map((o) => (
+            <li key={o.id} className="lista__item" style={{ alignItems: 'flex-start' }}>
+              <span className="lista__texto">
+                <span className="lista__meta">Modificado em: {dataCurta(o.criado_em)}</span>
+                {o.texto}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div data-print="fundos">
+        <GradeDeEtapas
+          linhas={principais}
+          fornecedores={fornecedores}
+          tipos={tipos}
+          statusEtapa={statusEtapa}
+          editando={null}
+          rascunho={null}
+          mudarRascunho={nada}
+          abrirEdicao={nada}
+          cancelar={nada}
+          salvar={nada}
+          excluir={nada}
+        />
+      </div>
+
+      <ResumoParaEmail linhas={principais} fornecedores={fornecedores} statusEtapa={statusEtapa} />
+    </div>
   );
 }
 
@@ -564,7 +635,7 @@ function ResumoParaEmail({
   const statusPorId = new Map(statusEtapa.map((s) => [s.id, s]));
 
   return (
-    <table className="lc-table tabela-etapas resumo-para-email" data-print="fundos-resumo" aria-hidden="true">
+    <table className="lc-table tabela-etapas" data-print="fundos-resumo">
       <colgroup>
         <col style={{ width: '34%' }} />
         <col style={{ width: '26%' }} />
@@ -600,7 +671,6 @@ function ResumoParaEmail({
 /** Uma grade de etapas. Devolve `null` sem linha — as duas somem quando vazias. */
 function GradeDeEtapas({
   titulo,
-  print,
   linhas,
   fornecedores,
   tipos,
@@ -615,8 +685,6 @@ function GradeDeEtapas({
 }: {
   /** A principal vem sem: o título "Lista de Fornecedores" fica acima da inclusão. */
   titulo?: string;
-  /** Marca a tabela para o print do e-mail de status (specs/13-email.md). */
-  print?: string;
   linhas: EtapaOperacao[];
   fornecedores: Fundo[];
   tipos: TabelaApoio[];
@@ -643,7 +711,7 @@ function GradeDeEtapas({
         </span>
       ) : null}
 
-      <table className="lc-table tabela-etapas" data-print={print} style={{ marginTop: 'var(--space-3)' }}>
+      <table className="lc-table tabela-etapas" style={{ marginTop: 'var(--space-3)' }}>
         {/* "Na mão de" é texto corrido e precisa da maior fatia; Fundo cede. */}
         <colgroup>
           <col style={{ width: '20%' }} />

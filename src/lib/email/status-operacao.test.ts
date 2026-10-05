@@ -1,67 +1,43 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ASSUNTO, emailValido, escapar, montarEmailDeStatus } from './status-operacao.ts';
+import { ASSUNTO, emailValido, escapar, montarEmailDeStatus, STATUS_FORA_DO_EMAIL } from './status-operacao.ts';
 
-const base = {
-  texto: 'Olá, João.\n\nSegue o status.',
-  cliente: 'ACME',
-  identificador: 'CRA 2026',
-  observacoes: [{ texto: 'Docs recebidos', criadoEm: '2026-10-01T15:00:00Z' }],
-  etapas: [
-    { fundo: 'Fundo X', tipo: 'CRA', status: 'Em análise', naMaoDe: 'Maicon', atualizadoEm: '2026-10-02T12:00:00Z' },
-  ],
-};
-const nada = { observacoes: false, fundos: false, resumo: false };
+const texto = 'Olá, João.\n\nSegue o status.';
 
 test('assunto fixo, como no Bubble', () => {
-  assert.equal(montarEmailDeStatus({ ...base, incluir: nada }).assunto, ASSUNTO);
+  assert.equal(montarEmailDeStatus({ texto, imagens: [] }).assunto, ASSUNTO);
 });
 
-test('sem chave ligada, só o texto — em parágrafos', () => {
-  const { html, texto } = montarEmailDeStatus({ ...base, incluir: nada });
-  assert.match(html, /<p[^>]*>Olá, João\.<\/p><p[^>]*>Segue o status\.<\/p>/);
-  assert.doesNotMatch(html, /<table/);
-  assert.equal(texto, 'Olá, João.\n\nSegue o status.');
+test('sem imagem, só o texto — em parágrafos', () => {
+  const r = montarEmailDeStatus({ texto, imagens: [] });
+  assert.match(r.html, /<p[^>]*>Olá, João\.<\/p><p[^>]*>Segue o status\.<\/p>/);
+  assert.doesNotMatch(r.html, /<img/);
+  assert.equal(r.texto, texto);
 });
 
-test('observações e fundos completos entram como tabelas', () => {
-  const { html } = montarEmailDeStatus({ ...base, incluir: { observacoes: true, fundos: true, resumo: false } });
-  assert.match(html, /Observações/);
-  assert.match(html, /Docs recebidos/);
-  assert.match(html, /Tipo de operação/);
-  assert.match(html, /Fundo X/);
-  assert.match(html, /01\/10\/2026/);
-});
-
-test('resumido tem três colunas; com fundos ligado, a completa ganha', () => {
-  const resumo = montarEmailDeStatus({ ...base, incluir: { observacoes: false, fundos: false, resumo: true } }).html;
-  assert.match(resumo, /Na mão de/);
-  assert.doesNotMatch(resumo, /Tipo de operação/);
-  const ambos = montarEmailDeStatus({ ...base, incluir: { observacoes: false, fundos: true, resumo: true } }).html;
-  assert.equal(ambos.match(/<table/g)?.length, 1);
-  assert.match(ambos, /Tipo de operação/);
-});
-
-test('seção sem linha não entra', () => {
-  const { html } = montarEmailDeStatus({
-    ...base,
-    observacoes: [],
-    etapas: [],
-    incluir: { observacoes: true, fundos: true, resumo: true },
+test('cada imagem aparece no corpo pelo cid do anexo, com título', () => {
+  const r = montarEmailDeStatus({
+    texto,
+    imagens: [
+      { id: 'observacoes', titulo: 'Observações' },
+      { id: 'fundos', titulo: 'Fundos' },
+    ],
   });
-  assert.doesNotMatch(html, /<table/);
+  assert.match(r.html, /src="cid:observacoes"/);
+  assert.match(r.html, /src="cid:fundos"/);
+  assert.ok(r.html.indexOf('cid:observacoes') < r.html.indexOf('cid:fundos'));
+  assert.match(r.texto, /Anexos: Observações, Fundos\./);
 });
 
-test('texto da pessoa e dos dados não vira HTML', () => {
-  const { html } = montarEmailDeStatus({
-    ...base,
-    texto: '<script>x</script>',
-    etapas: [{ fundo: '<b>F</b>', tipo: null, status: null, naMaoDe: null, atualizadoEm: null }],
-    incluir: { observacoes: false, fundos: true, resumo: false },
-  });
-  assert.doesNotMatch(html, /<script>|<b>F/);
-  assert.match(html, /&lt;script&gt;/);
+test('texto da pessoa não vira HTML', () => {
+  const r = montarEmailDeStatus({ texto: '<script>x</script>', imagens: [{ id: 'f', titulo: '<b>F</b>' }] });
+  assert.doesNotMatch(r.html, /<script>|<b>F/);
+  assert.match(r.html, /&lt;script&gt;/);
   assert.equal(escapar(`"a" & 'b'`), '&quot;a&quot; &amp; &#39;b&#39;');
+});
+
+test('os três status que o Bubble tirava da tabela', () => {
+  assert.deepEqual(STATUS_FORA_DO_EMAIL, ['ja_cliente_do_fundo', 'declinado_pelo_fundo', 'declinado_pelo_cliente']);
 });
 
 test('emailValido', () => {

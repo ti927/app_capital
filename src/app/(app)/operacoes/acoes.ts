@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
-import { emailValido, montarEmailDeStatus, type Incluir } from '@/lib/email/status-operacao';
+import { emailValido, montarEmailDeStatus, STATUS_FORA_DO_EMAIL, type Incluir } from '@/lib/email/status-operacao';
+import { desenharImagens } from '@/lib/email/imagens';
 import { enviar, ErroDeEnvio, faltaConfigurar } from '@/lib/email/resend';
 
 const texto = (dados: FormData, chave: string) => {
@@ -204,18 +205,19 @@ export async function enviarEmailDeStatus(entrada: {
     supabase.from('operacao_observacao').select('texto, criado_em').eq('operacao_id', entrada.operacaoId).order('criado_em'),
     supabase
       .from('etapa_operacao')
-      .select('na_mao_de, atualizado_em, fornecedor(nome_fundo), tipo_operacao(rotulo), status_etapa(rotulo)')
+      .select('na_mao_de, atualizado_em, fornecedor(nome_fundo), tipo_operacao(rotulo), status_etapa(rotulo, chave)')
       .eq('operacao_id', entrada.operacaoId),
   ]);
   if (!op) return { erro: 'Operação não encontrada.' };
 
   const nome = <T,>(v: unknown, campo: keyof T) => ((v as T | null)?.[campo] as string | undefined) ?? null;
-  const email = montarEmailDeStatus({
-    texto,
+  const dados = {
     cliente: nome<{ nome_razao: string }>(op.cliente, 'nome_razao'),
     identificador: (op.identificador as string | null) ?? null,
     observacoes: (obs ?? []).map((o) => ({ texto: o.texto as string, criadoEm: o.criado_em as string })),
     etapas: (etapas ?? [])
+      // Como a tabela do Bubble: sem os declinados nem quem já é cliente do fundo.
+      .filter((e) => !STATUS_FORA_DO_EMAIL.includes(nome<{ chave: string }>(e.status_etapa, 'chave') ?? ''))
       .map((e) => ({
         fundo: nome<{ nome_fundo: string }>(e.fornecedor, 'nome_fundo') ?? 'Sem fundo',
         tipo: nome<{ rotulo: string }>(e.tipo_operacao, 'rotulo'),
@@ -225,15 +227,18 @@ export async function enviarEmailDeStatus(entrada: {
       }))
       .sort((a, b) => a.fundo.localeCompare(b.fundo, 'pt-BR')),
     incluir: entrada.incluir,
-  });
+  };
+  const imagens = await desenharImagens(dados);
+  const email = montarEmailDeStatus({ texto, imagens });
+  const anexos = imagens.map((i) => ({ arquivo: i.arquivo, conteudo: i.png, contentId: i.id }));
 
   const copia = process.env.EMAIL_COPIA_OCULTA?.trim();
   try {
     if (para.length) {
-      await enviar({ ...email, para, copiaOculta: copia ? [copia] : undefined });
+      await enviar({ ...email, anexos, para, copiaOculta: copia ? [copia] : undefined });
     }
     if (extra) {
-      await enviar({ ...email, para: [extra], responderPara: copia || undefined });
+      await enviar({ ...email, anexos, para: [extra], responderPara: copia || undefined });
     }
   } catch (e) {
     return { erro: `Não consegui enviar: ${e instanceof ErroDeEnvio ? e.message : 'erro inesperado'}.` };

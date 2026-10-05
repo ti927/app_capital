@@ -11,6 +11,8 @@ export interface Mensagem {
   assunto: string;
   html: string;
   texto: string;
+  /** Com `contentId`, o corpo HTML mostra o anexo por `cid:<contentId>`. */
+  anexos?: Array<{ arquivo: string; conteudo: Buffer; contentId?: string }>;
 }
 
 export class ErroDeEnvio extends Error {}
@@ -40,6 +42,13 @@ export async function enviar(m: Mensagem): Promise<{ id: string }> {
       subject: m.assunto,
       html: m.html,
       text: m.texto,
+      attachments: m.anexos?.length
+        ? m.anexos.map((a) => ({
+            filename: a.arquivo,
+            content: a.conteudo.toString('base64'),
+            content_id: a.contentId,
+          }))
+        : undefined,
     }),
   });
 

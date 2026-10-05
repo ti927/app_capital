@@ -2,9 +2,9 @@
  * Monta o e-mail "Status atual de suas operações." (specs/13-email.md).
  *
  * Pura — sem banco e sem rede — para ser testada (`status-operacao.test.ts`).
- * No Bubble, observações e fundos iam como **imagens** das tabelas; aqui vão
- * como tabelas dentro do corpo (decisão de 05/10/2026): leem no celular, dá
- * para copiar, e não dependem de gerar PNG.
+ * Como no Bubble, observações e fundos vão como **imagens** (prints das
+ * tabelas, desenhados em `imagens.tsx`): anexadas, e mostradas no corpo pelo
+ * `cid:` de cada anexo.
  */
 
 export const ASSUNTO = 'Status atual de suas operações.';
@@ -24,11 +24,17 @@ export interface ObservacaoDoEmail {
 
 export interface Incluir {
   observacoes: boolean;
-  /** Fundos: tabela completa (fundo, tipo, status, na mão de, alterado em). */
+  /** Fundos: a tabela completa (`ops-table` no Bubble). */
   fundos: boolean;
-  /** Fundos (resumido): só fundo, status e na mão de — "Fundos3Colunas" do Bubble. */
+  /** Fundos (resumido): fundo, status e na mão de (`ops-table2` no Bubble). */
   resumo: boolean;
 }
+
+/**
+ * Etapas que o Bubble tirava da tabela — e portanto do print
+ * (`documentacao-completa.md:1840–1844`).
+ */
+export const STATUS_FORA_DO_EMAIL = ['ja_cliente_do_fundo', 'declinado_pelo_fundo', 'declinado_pelo_cliente'];
 
 /** Texto de usuário dentro de HTML: nada vira tag. */
 export function escapar(texto: string) {
@@ -40,72 +46,36 @@ export function escapar(texto: string) {
     .replace(/'/g, '&#39;');
 }
 
-const data = (iso: string | null) =>
-  iso ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo' }).format(new Date(iso)) : '-';
-
-const TABELA = 'border-collapse:collapse;width:100%;font-size:14px;margin:8px 0 20px';
-const CELULA = 'border:1px solid #d9d9d9;padding:6px 8px;text-align:left;vertical-align:top';
-const CABECA = `${CELULA};background:#f2f2f2;font-weight:600`;
-
-function tabela(cabecalho: string[], linhas: string[][]) {
-  const th = cabecalho.map((c) => `<th style="${CABECA}">${escapar(c)}</th>`).join('');
-  const tr = linhas
-    .map((l) => `<tr>${l.map((c) => `<td style="${CELULA}">${escapar(c)}</td>`).join('')}</tr>`)
-    .join('');
-  return `<table style="${TABELA}"><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
-}
-
-const titulo = (t: string) => `<h3 style="font-size:15px;margin:16px 0 4px">${escapar(t)}</h3>`;
-
 /**
- * Corpo do e-mail: o texto que a pessoa escreveu e, conforme as chaves, as
- * tabelas. Seção sem linha nenhuma não entra — tabela vazia só confunde.
+ * Corpo do e-mail: o texto que a pessoa escreveu e, embaixo, cada imagem com o
+ * título. A versão em texto puro só cita os anexos — quem lê sem HTML abre os
+ * arquivos.
  */
-export function montarEmailDeStatus(entrada: {
-  texto: string;
-  cliente: string | null;
-  identificador: string | null;
-  observacoes: ObservacaoDoEmail[];
-  etapas: EtapaDoEmail[];
-  incluir: Incluir;
-}) {
-  const { texto, observacoes, etapas, incluir } = entrada;
-  const partes: string[] = [];
-  const partesTexto: string[] = [texto.trim()];
-
-  const paragrafos = texto
+export function montarEmailDeStatus(entrada: { texto: string; imagens: Array<{ id: string; titulo: string }> }) {
+  const paragrafos = entrada.texto
     .trim()
     .split(/\n{2,}/)
     .map((p) => `<p style="margin:0 0 12px">${escapar(p).replace(/\n/g, '<br>')}</p>`)
     .join('');
-  partes.push(paragrafos);
 
-  if (incluir.observacoes && observacoes.length) {
-    partes.push(titulo('Observações'));
-    partes.push(tabela(['Data', 'Observação'], observacoes.map((o) => [data(o.criadoEm), o.texto])));
-    partesTexto.push('Observações:', ...observacoes.map((o) => `- ${data(o.criadoEm)}: ${o.texto}`));
-  }
-
-  if (incluir.fundos && etapas.length) {
-    partes.push(titulo('Fundos'));
-    partes.push(
-      tabela(
-        ['Fundo', 'Tipo de operação', 'Status', 'Na mão de', 'Alterado em'],
-        etapas.map((e) => [e.fundo, e.tipo ?? '-', e.status ?? '-', e.naMaoDe ?? '-', data(e.atualizadoEm)]),
-      ),
-    );
-    partesTexto.push('Fundos:', ...etapas.map((e) => `- ${e.fundo}: ${e.status ?? '-'} (${e.naMaoDe ?? '-'})`));
-  } else if (incluir.resumo && etapas.length) {
-    // Com as duas chaves ligadas, a tabela completa já contém a resumida.
-    partes.push(titulo('Fundos'));
-    partes.push(tabela(['Fundo', 'Status', 'Na mão de'], etapas.map((e) => [e.fundo, e.status ?? '-', e.naMaoDe ?? '-'])));
-    partesTexto.push('Fundos:', ...etapas.map((e) => `- ${e.fundo}: ${e.status ?? '-'}`));
-  }
+  const figuras = entrada.imagens
+    .map(
+      (i) =>
+        `<p style="margin:20px 0 6px;font-weight:600">${escapar(i.titulo)}</p>` +
+        `<img src="cid:${i.id}" alt="${escapar(i.titulo)}" width="700" style="display:block;max-width:100%;height:auto;border:1px solid #e5e5e5">`,
+    )
+    .join('');
 
   const html =
     `<div style="font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;font-size:14px;line-height:1.5;max-width:720px">` +
-    `${partes.join('')}</div>`;
-  return { assunto: ASSUNTO, html, texto: partesTexto.join('\n') };
+    `${paragrafos}${figuras}</div>`;
+
+  const texto = [
+    entrada.texto.trim(),
+    ...(entrada.imagens.length ? ['', `Anexos: ${entrada.imagens.map((i) => i.titulo).join(', ')}.`] : []),
+  ].join('\n');
+
+  return { assunto: ASSUNTO, html, texto };
 }
 
 /** Confere o formato, não a existência. */

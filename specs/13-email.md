@@ -12,8 +12,26 @@ Abre o diálogo **Envio de Email**:
 - **Destinatários**: os e-mails do cliente (`cliente.email` +
   `cliente_email`), um por caixa de marcar. Com um só, já vem marcado.
 - **Destinatário adicional**: um e-mail qualquer.
+- **Status**: vem preenchido com o "Status Atual da Operação"; editável.
+- **Week Update**: liga o cabeçalho "WEEK UPDATE" no texto.
+- **Email**: já vem com o **texto padrão do Bubble** (`:1859–1881`), editável
+  por inteiro:
+
+  ```
+  Olá, segue atualizações de status de suas operações:
+
+  Cliente: <cliente>
+  Identificador: <identificador>
+
+  Status: <campo Status>
+
+  att. Lure Capital
+  ```
+
+  Enquanto a pessoa não mexe no texto, ele acompanha Status e Week Update;
+  depois da primeira edição, o texto é dela ("Voltar ao texto padrão"
+  desfaz).
 - **Dados a serem incluídos**: Observação · Fundos · Fundos (Resumido).
-- **Email**: o texto, escrito na hora.
 
 ## O envio
 

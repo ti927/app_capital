@@ -100,6 +100,19 @@ export async function moverCartao(cartaoId: string, etapaId: string | null, orde
   revalidatePath('/funil');
 }
 
+/**
+ * Soltar o cartão numa posição exata: vai para a coluna `etapaId` e a coluna
+ * inteira é renumerada na ordem que a tela mostrou na prévia pontilhada
+ * (`ids`, já com o cartão no lugar). Com a RLS, só mexe no que a pessoa pode.
+ */
+export async function reposicionarCartao(cartaoId: string, etapaId: string, ids: string[]) {
+  if (!ids.includes(cartaoId)) return;
+  const supabase = await clienteServidor();
+  await supabase.from('funil_cartao').update({ etapa_id: etapaId }).eq('id', cartaoId);
+  await Promise.all(ids.map((id, ordem) => supabase.from('funil_cartao').update({ ordem }).eq('id', id)));
+  revalidatePath('/funil');
+}
+
 export async function arquivarCartao(id: string, arquivado: boolean) {
   const supabase = await clienteServidor();
   await supabase.from('funil_cartao').update({ arquivado }).eq('id', id);

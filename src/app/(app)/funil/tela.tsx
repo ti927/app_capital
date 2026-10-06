@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
 import {
@@ -19,9 +19,10 @@ import {
   criarCartaoVazio,
   criarColuna,
   excluirColuna,
-  moverCartao,
+  reposicionarCartao,
   trocarOrdemColunas,
 } from './acoes';
+import { useArrastoDeCartoes, type Vaga } from './arrastar';
 import { DialogoCartao } from './dialogo';
 import { DialogoColunas, DialogoTags } from './gestao';
 import { PainelTarefas } from './tarefas';
@@ -74,8 +75,24 @@ export function TelaFunil({
   const [vendoArquivados, setVendoArquivados] = useState<string[]>([]);
   const [colunaAExcluir, setColunaAExcluir] = useState<EtapaFunil | null>(null);
   const [aVirarCliente, setAVirarCliente] = useState<CartaoDoFunil | null>(null);
-  const [arrastado, setArrastado] = useState<string | null>(null);
+  /**
+   * Ordem nova logo ao soltar, antes de o servidor responder — senão o cartão
+   * voltava ao lugar antigo por um instante. Some quando a lista chega nova.
+   */
+  const [otimista, setOtimista] = useState<Map<string, { etapa_id: string; ordem: number }> | null>(null);
+  /** O cartão que acabou de pousar, para o quique de chegada. */
+  const [pousou, setPousou] = useState<string | null>(null);
   const [, transicao] = useTransition();
+
+  useEffect(() => setOtimista(null), [cartoes]);
+
+  /** Os cartões como o quadro deve mostrar: com a ordem otimista aplicada. */
+  const cartoesExibidos = useMemo(() => {
+    if (!otimista) return cartoes;
+    return cartoes
+      .map((c) => (otimista.has(c.id) ? { ...c, ...otimista.get(c.id) } : c))
+      .sort((a, b) => a.ordem - b.ordem);
+  }, [cartoes, otimista]);
 
   /**
    * A aba de tarefas só é montada depois de aberta pela primeira vez — e daí
@@ -136,11 +153,6 @@ export function TelaFunil({
     [busca, tagFiltro, tagsDe],
   );
 
-  const visiveis = useMemo(
-    () => cartoes.filter((c) => !c.arquivado && passaNoFiltro(c)),
-    [cartoes, passaNoFiltro],
-  );
-
   const colunas = useMemo(
     () => etapas.filter((e) => e.no_fluxo).sort((a, b) => a.ordem - b.ordem),
     [etapas],
@@ -152,12 +164,28 @@ export function TelaFunil({
   /** Cartões que a aba de tarefas oferece: os não arquivados, sem filtro de tela. */
   const cartoesParaTarefa = useMemo(() => cartoes.filter((c) => !c.arquivado), [cartoes]);
 
-  const soltarEm = (etapaId: string | null) => {
-    if (!arrastado) return;
-    const naColuna = visiveis.filter((c) => c.etapa_id === etapaId).length;
-    transicao(() => void moverCartao(arrastado, etapaId, naColuna));
-    setArrastado(null);
-  };
+  /**
+   * Soltar: o cartão entra na coluna da vaga, antes do cartão que a vaga
+   * apontou (ou no fim), e a coluna é renumerada nessa ordem.
+   */
+  const aoSoltar = useCallback(
+    (id: string, vaga: Vaga) => {
+      const ids = cartoesExibidos
+        .filter((c) => c.etapa_id === vaga.etapaId && !c.arquivado && c.id !== id)
+        .map((c) => c.id);
+      const pos = vaga.antesDe ? ids.indexOf(vaga.antesDe) : -1;
+      ids.splice(pos < 0 ? ids.length : pos, 0, id);
+
+      setOtimista(new Map(ids.map((cid, ordem) => [cid, { etapa_id: vaga.etapaId, ordem }])));
+      setPousou(id);
+      window.setTimeout(() => setPousou((p) => (p === id ? null : p)), 700);
+      transicao(() => void reposicionarCartao(id, vaga.etapaId, ids));
+    },
+    [cartoesExibidos],
+  );
+
+  const { arrasto, pegar, flutuante } = useArrastoDeCartoes(aoSoltar);
+  const cartaoNaMao = arrasto ? cartoesExibidos.find((c) => c.id === arrasto.id) : undefined;
 
   /** Cria o cartão no banco e abre o diálogo já nele — nada se perde no meio. */
   const criarAqui = async (etapaId: string) => {
@@ -258,17 +286,22 @@ export function TelaFunil({
         <div className="funil__quadro">
           {colunas.map((coluna, i) => {
             const vendoArquivadosAqui = vendoArquivados.includes(coluna.id);
-            const ativosAqui = cartoes.filter((c) => c.etapa_id === coluna.id && !c.arquivado).length;
-            const arquivadosAqui = cartoes.filter((c) => c.etapa_id === coluna.id && c.arquivado).length;
+            const ativosAqui = cartoesExibidos.filter((c) => c.etapa_id === coluna.id && !c.arquivado).length;
+            const arquivadosAqui = cartoesExibidos.filter((c) => c.etapa_id === coluna.id && c.arquivado).length;
+            const vagaAqui = arrasto?.vaga?.etapaId === coluna.id ? arrasto.vaga : null;
 
             return (
               <section
                 key={coluna.id}
-                className={['funil__coluna', vendoArquivadosAqui && 'funil__coluna--arquivados']
+                data-etapa={coluna.id}
+                data-arquivados={vendoArquivadosAqui ? 'true' : undefined}
+                className={[
+                  'funil__coluna',
+                  vendoArquivadosAqui && 'funil__coluna--arquivados',
+                  vagaAqui && 'funil__coluna--alvo',
+                ]
                   .filter(Boolean)
                   .join(' ')}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => soltarEm(coluna.id)}
               >
                 <header className="funil__coluna-topo">
                   <div className="funil__coluna-acoes">
@@ -353,15 +386,19 @@ export function TelaFunil({
                 </p>
 
                 <CartoesDaColuna
-                  cartoes={cartoes}
+                  cartoes={cartoesExibidos}
                   etapaId={coluna.id}
                   arquivados={vendoArquivadosAqui}
                   passaNoFiltro={passaNoFiltro}
                   tagsDe={tagsDe}
                   tarefas={tarefas}
+                  naMao={arrasto?.id ?? null}
+                  vaga={vagaAqui}
+                  alturaDaVaga={arrasto?.altura ?? 0}
+                  pousou={pousou}
                   aoAbrir={setAbertoId}
                   aoArquivar={(c) => transicao(() => void arquivarCartao(c.id, !c.arquivado))}
-                  aoArrastar={setArrastado}
+                  aoPegar={pegar}
                   aoVirarCliente={setAVirarCliente}
                 />
 
@@ -381,6 +418,36 @@ export function TelaFunil({
           })}
         </div>
       </div>
+
+      {/* O cartão na mão: pendurado no ponto onde foi pego, balançando
+          (src/app/(app)/funil/arrastar.ts). Três camadas porque são três
+          movimentos: o pêndulo (JS), o "pegar" de entrada e o debater (CSS). */}
+      {arrasto && cartaoNaMao ? (
+        <div
+          ref={flutuante}
+          className="funil__flutuante"
+          aria-hidden="true"
+          style={{
+            width: arrasto.largura,
+            transformOrigin: `${arrasto.pegaX}px ${arrasto.pegaY}px`,
+            transform: `translate3d(${arrasto.x0 - arrasto.pegaX}px, ${arrasto.y0 - arrasto.pegaY}px, 0)`,
+          }}
+        >
+          <div className="funil__flutuante-pega" style={{ transformOrigin: `${arrasto.pegaX}px ${arrasto.pegaY}px` }}>
+            <div className="funil__flutuante-corpo" style={{ transformOrigin: `${arrasto.pegaX}px ${arrasto.pegaY}px` }}>
+              <Cartao
+                cartao={cartaoNaMao}
+                tags={tagsDe.get(cartaoNaMao.id) ?? []}
+                tarefasEmAberto={tarefas.filter((t) => t.cartao_id === cartaoNaMao.id && !t.concluida).length}
+                aoAbrir={() => {}}
+                aoArquivar={() => {}}
+                aoPegar={() => {}}
+                aoVirarCliente={() => {}}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div hidden={aba !== 'tarefas'}>
         {tarefasAbertas ? (
@@ -481,9 +548,13 @@ function CartoesDaColuna({
   passaNoFiltro,
   tagsDe,
   tarefas,
+  naMao,
+  vaga,
+  alturaDaVaga,
+  pousou,
   aoAbrir,
   aoArquivar,
-  aoArrastar,
+  aoPegar,
   aoVirarCliente,
 }: {
   cartoes: CartaoDoFunil[];
@@ -492,9 +563,15 @@ function CartoesDaColuna({
   passaNoFiltro: (c: CartaoDoFunil) => boolean;
   tagsDe: Map<string, TagFunil[]>;
   tarefas: Tarefa[];
+  /** O cartão que está sendo arrastado: sai da coluna enquanto está na mão. */
+  naMao: string | null;
+  /** Onde ele vai cair, se for nesta coluna — a vaga pontilhada. */
+  vaga: Vaga | null;
+  alturaDaVaga: number;
+  pousou: string | null;
   aoAbrir: (id: string) => void;
   aoArquivar: (c: CartaoDoFunil) => void;
-  aoArrastar: (id: string) => void;
+  aoPegar: (e: React.PointerEvent<HTMLElement>, id: string) => void;
   aoVirarCliente: (c: CartaoDoFunil) => void;
 }) {
   const raiz = useRef<HTMLDivElement>(null);
@@ -509,20 +586,32 @@ function CartoesDaColuna({
 
   const lote = useListaIncremental(daColuna, 15);
 
+  const vagaPontilhada = (
+    <div key="vaga" className="funil__vaga" style={{ height: alturaDaVaga }} aria-hidden="true" />
+  );
+
   return (
     <div className="funil__cartoes" ref={raiz}>
-      {lote.visiveis.map((c) => (
-        <Cartao
-          key={c.id}
-          cartao={c}
-          tags={tagsDe.get(c.id) ?? []}
-          tarefasEmAberto={tarefas.filter((t) => t.cartao_id === c.id && !t.concluida).length}
-          aoAbrir={() => aoAbrir(c.id)}
-          aoArquivar={() => aoArquivar(c)}
-          aoArrastar={() => aoArrastar(c.id)}
-          aoVirarCliente={() => aoVirarCliente(c)}
-        />
-      ))}
+      {lote.visiveis.map((c) =>
+        c.id === naMao ? (
+          vaga?.antesDe === c.id ? vagaPontilhada : null
+        ) : (
+          <Fragment key={c.id}>
+            {vaga?.antesDe === c.id ? vagaPontilhada : null}
+            <Cartao
+              cartao={c}
+              tags={tagsDe.get(c.id) ?? []}
+              tarefasEmAberto={tarefas.filter((t) => t.cartao_id === c.id && !t.concluida).length}
+              pousou={pousou === c.id}
+              aoAbrir={() => aoAbrir(c.id)}
+              aoArquivar={() => aoArquivar(c)}
+              aoPegar={(e) => aoPegar(e, c.id)}
+              aoVirarCliente={() => aoVirarCliente(c)}
+            />
+          </Fragment>
+        ),
+      )}
+      {vaga && vaga.antesDe === null ? vagaPontilhada : null}
       <CarregarMais
         faltam={lote.faltam}
         aoCarregar={lote.carregarMais}
@@ -545,21 +634,29 @@ function Cartao({
   cartao,
   tags,
   tarefasEmAberto,
+  pousou = false,
   aoAbrir,
   aoArquivar,
-  aoArrastar,
+  aoPegar,
   aoVirarCliente,
 }: {
   cartao: CartaoDoFunil;
   tags: TagFunil[];
   tarefasEmAberto: number;
+  /** Acabou de ser solto aqui: quique de chegada. */
+  pousou?: boolean;
   aoAbrir: () => void;
   aoArquivar: () => void;
-  aoArrastar: () => void;
+  /** Ponteiro desceu no cartão — pode virar arrasto (`arrastar.ts`). */
+  aoPegar: (e: React.PointerEvent<HTMLElement>) => void;
   aoVirarCliente: () => void;
 }) {
   return (
-    <article className="funil__cartao" draggable onDragStart={aoArrastar}>
+    <article
+      className={pousou ? 'funil__cartao funil__cartao--pousou' : 'funil__cartao'}
+      data-cartao={cartao.id}
+      onPointerDown={aoPegar}
+    >
       <div className="funil__cartao-tags">
         {tags.length ? (
           tags.map((t) => (

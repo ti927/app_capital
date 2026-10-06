@@ -419,6 +419,47 @@ await passo(pagina, 'funil-quadro', async () => {
   await pagina.waitForSelector(COLUNA_REAL, { timeout: 20000 });
 });
 
+let arrastando = false;
+await passo(pagina, 'funil-arrastando', async () => {
+  // Pega o primeiro cartão e o segura sobre a segunda coluna: a captura sai
+  // no meio do arrasto — cartão pendurado e inclinado, vaga pontilhada na
+  // coluna de destino (arrastar.ts). O passo seguinte cancela com Esc: o QA
+  // não muda cartão de lugar.
+  const colunas = pagina.locator('.funil__coluna[data-etapa]');
+  if ((await colunas.count()) < 2) return;
+  const cartao = colunas.nth(0).locator('[data-cartao]').first();
+  if (!(await cartao.count())) return;
+  await cartao.scrollIntoViewIfNeeded();
+  const de = await cartao.boundingBox();
+  const destino = colunas.nth(1);
+  await destino.scrollIntoViewIfNeeded();
+  const para = await destino.boundingBox();
+  if (!de || !para) return;
+  await pagina.mouse.move(de.x + de.width / 2, de.y + 30);
+  await pagina.mouse.down();
+  arrastando = true;
+  const passos = 14;
+  for (let i = 1; i <= passos; i += 1) {
+    await pagina.mouse.move(
+      de.x + de.width / 2 + ((para.x + para.width / 2 - (de.x + de.width / 2)) * i) / passos,
+      de.y + 30 + ((para.y + 140 - (de.y + 30)) * i) / passos,
+    );
+    await pagina.waitForTimeout(16);
+  }
+  await pagina.waitForSelector('.funil__flutuante', { timeout: 3000 });
+  await pagina.waitForSelector('.funil__coluna--alvo .funil__vaga', { timeout: 3000 });
+});
+
+await passo(pagina, 'funil-arrasto-cancelado', async () => {
+  if (!arrastando) return;
+  await pagina.keyboard.press('Escape');
+  await pagina.mouse.up();
+  await pagina.waitForTimeout(300);
+  if (await pagina.locator('.funil__flutuante, .funil__vaga').count()) {
+    throw new Error('Esc não cancelou o arrasto');
+  }
+});
+
 await passo(pagina, 'funil-cartao-dialogo', async () => {
   await pagina.locator('.funil__cartao-corpo').first().click();
   await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });

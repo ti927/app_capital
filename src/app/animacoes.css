@@ -154,3 +154,146 @@
 .lc-overlay--saindo {
   pointer-events: none;
 }
+
+/* ===========================================================================
+   Trocas de aba e de tela (pedido de 05/10/2026: "animações fluídas entre as
+   trocas de abas … o sistema está seco").
+
+   - A marca do selecionado desliza (components/ui/indicador.tsx): o
+     sublinhado das abas e a pílula do menu lateral. Passa um pouco e volta.
+   - O painel da aba entra do lado para onde a pessoa foi (`--aba-dir`, que o
+     indicador publica): aba à direita, conteúdo vem da direita.
+   - A troca de tela entra um pouco mais devagar, e o conteúdo chega em
+     cascata: colunas do funil, linhas de lista e de tabela.
+   =========================================================================== */
+
+:root {
+  --mov-desliza: 340ms;
+  /* Passa um pouco do alvo e assenta — é o que dá a sensação de "fluido". */
+  --mov-mola: cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+
+/* --- a marca que desliza --------------------------------------------------- */
+
+.abas,
+.lc-sidenav--deslizante {
+  position: relative;
+}
+
+.lc-indicador {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.lc-indicador--pronto {
+  transition:
+    transform var(--mov-desliza) var(--mov-mola),
+    width var(--mov-desliza) var(--mov-mola),
+    height var(--mov-desliza) var(--mov-mola),
+    opacity var(--mov-rapido) ease;
+}
+
+.lc-indicador--sublinhado {
+  top: auto;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent);
+}
+
+/* A aba selecionada só muda a cor do texto: o sublinhado agora é o indicador. */
+.abas .abas__item[aria-selected="true"] {
+  border-bottom-color: transparent;
+}
+
+.abas__item {
+  transition: color var(--mov-padrao) ease;
+}
+
+.lc-indicador--pilula {
+  z-index: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+
+.lc-sidenav--deslizante .lc-navitem {
+  position: relative;
+  z-index: 1;
+  transition:
+    color var(--mov-padrao) ease,
+    background-color var(--mov-padrao) ease;
+}
+
+/* A pílula amarela agora é o indicador, que desliza até aqui. */
+.lc-sidenav--deslizante .lc-navitem--active,
+.lc-sidenav--deslizante .lc-navitem--active:hover {
+  background: transparent;
+}
+
+/* --- painel da aba --------------------------------------------------------- */
+
+.painel-aba {
+  animation: lc-painel-aba 300ms var(--mov-curva) backwards;
+}
+
+@keyframes lc-painel-aba {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--aba-dir, 0) * 22px)) translateY(4px);
+  }
+}
+
+/* --- troca de tela, com cascata ------------------------------------------- */
+
+.transicao {
+  animation-duration: 260ms;
+}
+
+@keyframes lc-cascata {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.transicao .funil__coluna,
+.transicao .lista__item,
+.transicao .lc-table tbody tr {
+  animation: lc-cascata 320ms var(--mov-curva) backwards;
+}
+
+.transicao .funil__coluna:nth-child(2) { animation-delay: 40ms; }
+.transicao .funil__coluna:nth-child(3) { animation-delay: 80ms; }
+.transicao .funil__coluna:nth-child(4) { animation-delay: 120ms; }
+.transicao .funil__coluna:nth-child(5) { animation-delay: 160ms; }
+.transicao .funil__coluna:nth-child(n + 6) { animation-delay: 200ms; }
+
+.transicao .lista__item:nth-child(2),
+.transicao .lc-table tbody tr:nth-child(2) { animation-delay: 25ms; }
+.transicao .lista__item:nth-child(3),
+.transicao .lc-table tbody tr:nth-child(3) { animation-delay: 50ms; }
+.transicao .lista__item:nth-child(4),
+.transicao .lc-table tbody tr:nth-child(4) { animation-delay: 75ms; }
+.transicao .lista__item:nth-child(5),
+.transicao .lc-table tbody tr:nth-child(5) { animation-delay: 100ms; }
+.transicao .lista__item:nth-child(6),
+.transicao .lc-table tbody tr:nth-child(6) { animation-delay: 125ms; }
+.transicao .lista__item:nth-child(7),
+.transicao .lc-table tbody tr:nth-child(7) { animation-delay: 150ms; }
+.transicao .lista__item:nth-child(n + 8),
+.transicao .lc-table tbody tr:nth-child(n + 8) { animation-delay: 175ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-indicador--pronto {
+    transition: none;
+  }
+  .painel-aba,
+  .transicao .funil__coluna,
+  .transicao .lista__item,
+  .transicao .lc-table tbody tr {
+    animation: none;
+  }
+}

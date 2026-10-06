@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { itensPara } from './casca';
+import { Indicador } from './indicador';
 import type { NivelAcesso } from '@/lib/dominio';
 
 const cx = (...v: unknown[]) => v.filter((x): x is string => typeof x === 'string' && x !== '').join(' ');
@@ -25,7 +26,9 @@ export function NavLateral({ nivel }: { nivel: NivelAcesso }) {
   const itens = itensPara(nivel);
 
   return (
-    <nav className="lc-sidenav" aria-label="Navegação principal">
+    <nav className="lc-sidenav lc-sidenav--deslizante" aria-label="Navegação principal">
+      {/* A pílula amarela desliza até o item da tela atual (indicador.tsx). */}
+      <Indicador seletor=".lc-navitem--active" tipo="pilula" />
       {itens.map(({ rotulo, href, Icone }) => {
         const ativo = caminho === href || caminho.startsWith(href + '/');
         return (

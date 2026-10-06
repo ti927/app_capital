@@ -1,5 +1,6 @@
 'use client';
 
+import { Indicador } from '@/components/ui/indicador';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
@@ -222,6 +223,7 @@ export function TelaFunil({
       </div>
 
       <div className="abas" role="tablist">
+        <Indicador seletor={'.abas__item[aria-selected="true"]'} tipo="sublinhado" />
         <button
           type="button"
           role="tab"
@@ -244,7 +246,9 @@ export function TelaFunil({
 
       {/* As duas abas ficam montadas: trocar de aba não pode remontar o quadro
           nem perder busca e filtro de tag. `hidden` esconde sem desmontar. */}
-      <div className="funil__aba" hidden={aba !== 'quadro'}>
+      {/* `hidden` em vez de desmontar (o quadro não pode perder busca nem
+          rolagem); a entrada roda de novo a cada vez que o painel reaparece. */}
+      <div className="funil__aba painel-aba" hidden={aba !== 'quadro'}>
         {/* Barra de filtro: busca e as cinco tags como pílulas com ponto colorido. */}
         <div className="funil__filtros">
           <label className="busca">
@@ -449,7 +453,7 @@ export function TelaFunil({
         </div>
       ) : null}
 
-      <div hidden={aba !== 'tarefas'}>
+      <div className="painel-aba" hidden={aba !== 'tarefas'}>
         {tarefasAbertas ? (
           <PainelTarefas
             tarefas={tarefas}

@@ -1,5 +1,6 @@
 'use client';
 
+import { Indicador } from '@/components/ui/indicador';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Botao, Vazio } from '@/components/ui/base';
 import { TopoDaTela } from '@/components/ui/casca';
@@ -176,6 +177,7 @@ export function TelaOperacoes(props: {
       </TopoDaTela>
 
       <div className="abas" role="tablist">
+        <Indicador seletor={'.abas__item[aria-selected="true"]'} tipo="sublinhado" />
         <button type="button" role="tab" className="abas__item" aria-selected={aba === 'cliente'} onClick={() => setAba('cliente')}>
           Cliente
         </button>
@@ -192,6 +194,9 @@ export function TelaOperacoes(props: {
         </div>
       </div>
 
+      {/* `key` na aba: trocar de aba remonta o painel e a entrada roda de novo,
+          do lado para onde a pessoa foi (animacoes.css, `.painel-aba`). */}
+      <div key={aba} className="painel-aba">
       {aba === 'cliente' ? (
         <>
           {ativasVisiveis.length === 0 ? (
@@ -242,6 +247,7 @@ export function TelaOperacoes(props: {
           tipoDaOperacao={tipoDaOperacao}
         />
       ) : null}
+      </div>
 
       <DialogoOperacao
         key={dialogo.sessao}

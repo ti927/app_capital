@@ -1,5 +1,6 @@
 'use client';
 
+import { Indicador } from '@/components/ui/indicador';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Botao, Vazio } from '@/components/ui/base';
 import { IconeMais } from '@/components/ui/icones';
@@ -101,6 +102,7 @@ export function TelaFornecedores({
     <>
       {/* Duas abas, nesta ordem: Fornecedores · Tipo Operações. */}
       <div className="abas" role="tablist">
+        <Indicador seletor={'.abas__item[aria-selected="true"]'} tipo="sublinhado" />
         <button
           type="button"
           role="tab"
@@ -128,6 +130,9 @@ export function TelaFornecedores({
         </Botao>
       </TopoDaTela>
 
+      {/* `key` na aba: trocar de aba remonta o painel e a entrada roda de novo,
+          do lado para onde a pessoa foi (animacoes.css, `.painel-aba`). */}
+      <div key={aba} className="painel-aba">
       {aba === 'fornecedores' ? (
         <>
           <Tabela
@@ -161,6 +166,7 @@ export function TelaFornecedores({
           aoAbrirFundo={setEmEdicao}
         />
       )}
+      </div>
 
       <DialogoFornecedor
         aberto={criando || emEdicao !== null}

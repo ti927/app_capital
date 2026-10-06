@@ -1,6 +1,20 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ASSUNTO, emailValido, escapar, montarEmailDeStatus } from './status-operacao.ts';
+import { ASSUNTO, emailValido, escapar, montarEmailDeStatus, textoPadrao } from './status-operacao.ts';
+
+test('texto padrão é o do Bubble, com cliente, identificador e status', () => {
+  const t = textoPadrao({ cliente: 'ACME', identificador: 'CRA 2026', status: 'Em andamento', weekUpdate: false });
+  assert.equal(
+    t,
+    'Olá, segue atualizações de status de suas operações:\n\nCliente: ACME\nIdentificador: CRA 2026\n\nStatus: Em andamento\n\natt. Lure Capital',
+  );
+});
+
+test('Week Update põe o cabeçalho antes do texto', () => {
+  const t = textoPadrao({ cliente: 'ACME', identificador: null, status: '', weekUpdate: true });
+  assert.ok(t.startsWith('WEEK UPDATE\n\nOlá, segue'));
+  assert.match(t, /Identificador: \n/);
+});
 
 const texto = 'Olá, João.\n\nSegue o status.';
 

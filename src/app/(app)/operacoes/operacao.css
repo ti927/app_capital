@@ -160,3 +160,16 @@
   display: flow-root;
   padding-bottom: var(--space-2);
 }
+
+/* Status por inteiro, quebrando linha como "Na mão de" (pedido de 05/10/2026). */
+.tabela-etapas td.status-etapa {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+/* O diálogo de operação um pouco maior que o "lg" padrão (pedido de 05/10/2026). */
+.lc-dialog.dialogo-operacao {
+  max-width: min(1280px, 100%);
+}

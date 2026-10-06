@@ -327,6 +327,23 @@ await passo(pagina, 'operacao-dialogo', async () => {
   await conferePopUp(pagina, 'diálogo de operação');
 });
 
+await passo(pagina, 'operacao-dialogo-ordem', async () => {
+  // Ordem pedida em 05/10: Observações → Declínios → Limites → Lista de Fornecedores.
+  if (!(await pagina.locator('text=Lista de Fornecedores').count())) return;
+  const topo = async (texto) =>
+    (await pagina.locator(`.lc-dialog >> text="${texto}"`).first().boundingBox())?.y ?? -1;
+  await pagina.locator('.lc-dialog >> text="Declínios"').first().scrollIntoViewIfNeeded();
+  const [obs, dec, lim, lista] = [
+    await topo('Observações'),
+    await topo('Declínios'),
+    await topo('Limites/fundos assinados'),
+    await topo('Lista de Fornecedores'),
+  ];
+  if (!(obs < dec && dec < lim && lim < lista)) {
+    throw new Error(`ordem errada: obs ${obs}, declínios ${dec}, limites ${lim}, lista ${lista}`);
+  }
+});
+
 await passo(pagina, 'operacao-email', async () => {
   // Abre o envio e confere que carregou os destinatários (ou diz que não há)
   // e as três chaves. Não envia nada (specs/13).
@@ -336,6 +353,11 @@ await passo(pagina, 'operacao-email', async () => {
   await pagina.waitForSelector('text=Envio de Email', { timeout: 5000 });
   await pagina.waitForSelector('text=Carregando os e-mails do cliente', { state: 'detached', timeout: 15000 });
   await pagina.waitForSelector('text=Fundos (Resumido)', { timeout: 5000 });
+  // O texto padrão do Bubble já vem no campo, editável (specs/13).
+  const textoDoEmail = await pagina.locator('.email-status textarea').last().inputValue();
+  if (!textoDoEmail.startsWith('Olá, segue atualizações') || !textoDoEmail.includes('att. Lure Capital')) {
+    throw new Error(`o texto padrão do e-mail não veio: ${textoDoEmail.slice(0, 60)}`);
+  }
 });
 
 await passo(pagina, 'operacao-email-previa', async () => {
@@ -539,9 +561,13 @@ await passo(pagina, 'funil-tarefa-excluida', async () => {
   // varrer também o que uma rodada anterior interrompida tenha deixado.
   const lixo = () =>
     pagina.locator(`.lc-dialog .lista__item:has-text("${TITULO_QA}") button[title="Excluir tarefa"]`);
+  // Espera a linha sumir em vez de um tempo fixo: com as três formas rodando
+  // juntas (`qa:tudo`) o servidor local demora mais que 1,5s para excluir, e
+  // a espera fixa dava "sobrou tarefa" com a exclusão ainda a caminho.
   for (let i = 0; i < 5 && (await lixo().count()); i += 1) {
+    const antes = await lixo().count();
     await lixo().first().click();
-    await pagina.waitForTimeout(1500);
+    for (let t = 0; t < 40 && (await lixo().count()) >= antes; t += 1) await pagina.waitForTimeout(250);
   }
   if (await lixo().count()) throw new Error('sobrou tarefa de teste no cartão');
   await pagina.keyboard.press('Escape');

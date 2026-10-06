@@ -49,8 +49,13 @@ mesma que se vê no diálogo — e a versão dela em três colunas (a
 Fundos (completa): fundo, tipo de operação, status, na mão de, alterado em.
 Fundos (resumido): fundo, status, na mão de — o "Fundos3Colunas" do Bubble.
 
-**Fora, de propósito:** o "Week Update" e o campo "Status" do Pop.email —
-o Bubble não registra o que faziam (os toggles nem gravavam: `:2268`).
+## Diálogo de operação (ajustes de 05/10/2026)
+
+- Ordem: … Pareceres · interruptores · **Observações → Declínios →
+  Limites/fundos assinados → Lista de Fornecedores**.
+- Status da tabela de fundos aparece por inteiro, quebrando linha (na tela e
+  no print).
+- O diálogo ficou com 1280px (era 1120px).
 
 ## Configuração
 

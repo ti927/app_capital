@@ -104,6 +104,7 @@ export function DialogoOperacao({
           : operacao?.identificador ?? undefined
       }
       largura="lg"
+      className="dialogo-operacao"
       rodape={
         <>
           {/*
@@ -170,9 +171,6 @@ export function DialogoOperacao({
         />
 
         <Campo className="grade__inteiro" rotulo="Garantias sugeridas" nome="garantias_sugeridas" valorInicial={operacao?.garantias_sugeridas ?? ''} placeholder="Digite aqui" />
-        <Campo className="grade__inteiro" rotulo="Limites/fundos assinados" nome="limites_fundos_assinados" valorInicial={operacao?.limites_fundos_assinados ?? ''} placeholder="Digite aqui" />
-
-        <Declinios fornecedores={fundosOrdenados} escolhidos={declinios} />
 
         <Campo rotulo="PMTS" nome="pmts" valorInicial={operacao?.pmts ?? ''} placeholder="Digite aqui" />
         <Campo rotulo="Prazo" nome="prazo" valorInicial={operacao?.prazo ?? ''} placeholder="Digite aqui" />
@@ -229,20 +227,29 @@ export function DialogoOperacao({
           />
         </div>
 
+        {/*
+          Ordem pedida em 05/10/2026: Observações → Declínios → Limites/fundos
+          assinados → Lista de Fornecedores. Por isso as observações moram
+          dentro do <form> (os botões delas são type="button" e o campo de nova
+          observação não tem `name`: não interferem no salvar), e Declínios e
+          Limites logo depois, antes da tabela que fica fora do form.
+        */}
+        {temCliente && operacao ? (
+          <div className="grade__inteiro">
+            <hr className="grade__regua" />
+            <BlocoObservacoes operacaoId={operacao.id} observacoes={observacoes} />
+          </div>
+        ) : null}
+
+        <Declinios fornecedores={fundosOrdenados} escolhidos={declinios} />
+        <Campo className="grade__inteiro" rotulo="Limites/fundos assinados" nome="limites_fundos_assinados" valorInicial={operacao?.limites_fundos_assinados ?? ''} placeholder="Digite aqui" />
+
         {estado?.erro ? (
           <p className="lc-field__msg grade__inteiro" role="alert">
             {estado.erro}
           </p>
         ) : null}
       </form>
-
-      {/* O bloco de observações some quando não há cliente. */}
-      {temCliente && operacao ? (
-        <>
-          <hr className="grade__regua" />
-          <BlocoObservacoes operacaoId={operacao.id} observacoes={observacoes} />
-        </>
-      ) : null}
 
       {/* A tabela de etapas some quando não há nenhuma etapa. */}
       {operacao ? (
@@ -273,6 +280,9 @@ export function DialogoOperacao({
     {emailAberto && operacao ? (
       <DialogoEmail
         operacaoId={operacao.id}
+        cliente={nomeCliente}
+        identificador={operacao.identificador ?? null}
+        statusOperacao={statusOperacao.find((s) => s.id === operacao.status_operacao_id)?.rotulo ?? ''}
         contexto={[nomeCliente, operacao.identificador].filter(Boolean).join(' · ') || undefined}
         aoFechar={() => setEmailAberto(false)}
       />
@@ -654,7 +664,7 @@ function ResumoParaEmail({
           return (
             <tr key={e.id}>
               <td style={{ fontWeight: 600 }}>{(e.fornecedor_id && nomeFundo.get(e.fornecedor_id)) || '-'}</td>
-              <td>
+              <td className="status-etapa">
                 <span style={{ color: st ? `var(--${tokenDoStatus(st.chave)}-ink)` : undefined, fontWeight: 600 }}>
                   {st?.rotulo || '-'}
                 </span>
@@ -766,7 +776,7 @@ function GradeDeEtapas({
                   )}
                 </td>
 
-                <td>
+                <td className="status-etapa">
                   {emEdicao ? (
                     <SeletorPopup
                       key={`status-${e.id}`}

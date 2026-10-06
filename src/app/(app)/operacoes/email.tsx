@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
 import { ALVOS, capturar, type Alvo } from '@/lib/email/capturar';
+import { textoPadrao } from '@/lib/email/status-operacao';
 import { emailsDaOperacao, enviarEmailDeStatus } from './acoes';
 
 /** As chaves "Dados a serem incluídos", na ordem em que os prints vão no e-mail. */
@@ -26,17 +27,30 @@ type Print = 'carregando' | string | null;
 export function DialogoEmail({
   operacaoId,
   contexto,
+  cliente,
+  identificador,
+  statusOperacao,
   aoFechar,
 }: {
   operacaoId: string;
   contexto: string | undefined;
+  cliente: string | null;
+  identificador: string | null;
+  /** O "Status Atual da Operação" — vem preenchido no campo Status. */
+  statusOperacao: string;
   aoFechar: () => void;
 }) {
   const [emails, setEmails] = useState<string[] | null>(null);
   const [falta, setFalta] = useState<string | null>(null);
   const [escolhidos, setEscolhidos] = useState<string[]>([]);
   const [extra, setExtra] = useState('');
-  const [texto, setTexto] = useState('');
+  const [status, setStatus] = useState(statusOperacao);
+  const [weekUpdate, setWeekUpdate] = useState(false);
+  const padrao = textoPadrao({ cliente, identificador, status, weekUpdate });
+  // Enquanto a pessoa não mexe no texto, ele acompanha Status e Week Update
+  // (como o conteúdo inicial do Bubble); depois da primeira edição, é dela.
+  const [textoEditado, setTextoEditado] = useState<string | null>(null);
+  const texto = textoEditado ?? padrao;
   const [marcados, setMarcados] = useState<Alvo[]>([]);
   const [prints, setPrints] = useState<Partial<Record<Alvo, Print>>>({});
   const [resultado, setResultado] = useState<{ ok?: true; erro?: string } | null>(null);
@@ -148,13 +162,34 @@ export function DialogoEmail({
         />
 
         <Campo
+          rotulo="Status"
+          multilinha
+          linhas={3}
+          valor={status}
+          aoMudar={setStatus}
+          placeholder="Status da operação para o cliente"
+        />
+
+        <label className="interruptor">
+          <input type="checkbox" checked={weekUpdate} onChange={(e) => setWeekUpdate(e.target.checked)} />
+          <span>Week Update</span>
+        </label>
+
+        <Campo
           rotulo="Email"
           multilinha
-          linhas={6}
+          linhas={11}
           valor={texto}
-          aoMudar={setTexto}
+          aoMudar={setTextoEditado}
           placeholder="Texto do e-mail para o cliente"
         />
+        {textoEditado !== null && textoEditado !== padrao ? (
+          <div className="linha">
+            <Botao variante="tertiary" tamanho="sm" onClick={() => setTextoEditado(null)}>
+              Voltar ao texto padrão
+            </Botao>
+          </div>
+        ) : null}
 
         <fieldset className="email-status__grupo">
           <legend className="lc-field__label">Dados a serem incluídos</legend>

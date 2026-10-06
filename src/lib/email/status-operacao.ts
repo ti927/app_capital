@@ -9,6 +9,26 @@
 
 export const ASSUNTO = 'Status atual de suas operações.';
 
+/**
+ * O texto que já vem no campo "Email" — o conteúdo inicial do
+ * `ipt.emailparacliente` no Bubble (`documentacao-completa.md:1859–1881`).
+ * Com "Week Update" ligado, começa com "WEEK UPDATE". A pessoa edita à vontade
+ * antes de enviar.
+ */
+export function textoPadrao(d: { cliente: string | null; identificador: string | null; status: string; weekUpdate: boolean }) {
+  return [
+    ...(d.weekUpdate ? ['WEEK UPDATE', ''] : []),
+    'Olá, segue atualizações de status de suas operações:',
+    '',
+    `Cliente: ${d.cliente ?? ''}`,
+    `Identificador: ${d.identificador ?? ''}`,
+    '',
+    `Status: ${d.status}`,
+    '',
+    'att. Lure Capital',
+  ].join('\n');
+}
+
 /** Texto de usuário dentro de HTML: nada vira tag. */
 export function escapar(texto: string) {
   return texto

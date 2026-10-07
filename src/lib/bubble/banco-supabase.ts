@@ -171,6 +171,25 @@ export function bancoSupabase(supabase: SupabaseClient): Banco {
 
     async atualizarFilhos(tabela: TabelaFilha, linhas: Linha[]): Promise<number> {
       let total = 0;
+      // Tabela com `id` gerado pelo banco (identity): upsert mandando o `id`
+      // é recusado ("cannot insert a non-DEFAULT value into column id").
+      // Atualiza linha a linha pelo `id`, sem regravá-lo.
+      if (FILHAS[tabela].temId) {
+        for (const grupo of lotes(linhas, PARALELO)) {
+          await Promise.all(
+            grupo.map(async ({ id, ...valores }) => {
+              const { data, error } = await supabase
+                .from(tabela)
+                .update(valores)
+                .eq('id', id as string | number)
+                .select('id');
+              falhou(tabela, error);
+              total += data?.length ?? 0;
+            }),
+          );
+        }
+        return total;
+      }
       for (const lote of lotes(linhas)) {
         const { data, error } = await supabase
           .from(tabela)

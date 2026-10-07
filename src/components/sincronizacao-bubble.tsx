@@ -7,8 +7,8 @@ import { IconeSincronizar } from './ui/icones';
 import { sincronizarComBubble, type RespostaSincronizacao } from '@/lib/bubble/acao';
 
 /**
- * Botão de desenvolvimento: traz do Bubble os cadastros que ainda não existem
- * aqui. Só é montado para a conta de `SINCRONIZACAO_EMAIL` (o layout decide),
+ * Botão de desenvolvimento: espelha o Bubble aqui (insere o novo, atualiza o
+ * que mudou, arquiva o que sumiu; nunca apaga cadastro). Só é montado para a conta de `SINCRONIZACAO_EMAIL` (o layout decide),
  * e a ação confere de novo no servidor. specs/10-sincronizacao-bubble.md.
  *
  * Abre um diálogo antes de rodar: a ação escreve no banco, então não dispara
@@ -29,7 +29,10 @@ export function BotaoSincronizarBubble() {
       }
     });
 
-  const total = resposta?.ok ? resposta.novos.reduce((s, n) => s + n.quantidade, 0) : 0;
+  const mudancas = resposta?.ok
+    ? resposta.tabelas.filter((t) => t.novos + t.atualizados + t.arquivados + t.removidos > 0)
+    : [];
+  const incompleta = resposta?.ok && resposta.naoExpostos.length > 0;
 
   return (
     <>
@@ -65,13 +68,14 @@ export function BotaoSincronizarBubble() {
         }
       >
         <p className="apoio configuracoes__nota">
-          Traz do Bubble só os cadastros que ainda não existem aqui — fornecedores, clientes,
-          operações, etapas e o funil. Nada que já existe é alterado ou apagado.
+          Espelha o Bubble aqui — fornecedores, clientes, operações, etapas e o funil. O que é
+          novo entra, o que mudou no Bubble é atualizado, o que sumiu de lá é arquivado (nunca
+          apagado). O que foi criado só aqui não é tocado.
         </p>
 
         {rodando ? (
           <p className="apoio configuracoes__nota" role="status">
-            Lendo o Bubble e gravando os novos. Pode levar alguns segundos.
+            Lendo o Bubble e gravando as diferenças. Pode levar alguns segundos.
           </p>
         ) : null}
 
@@ -79,22 +83,51 @@ export function BotaoSincronizarBubble() {
 
         {resposta?.ok ? (
           <>
+            {incompleta ? (
+              <Aviso
+                className="sincronizacao__aviso"
+                titulo="Sincronização incompleta: o Bubble não expõe estes tipos"
+                corpo={
+                  <>
+                    <p>
+                      Nada destes tipos foi sincronizado (e nada deles foi arquivado):{' '}
+                      <strong>{resposta.naoExpostos.join(', ')}</strong>.
+                    </p>
+                    <p>
+                      O que fazer: no Bubble, Settings › API, marcar cada tipo acima e publicar no
+                      live. Depois, sincronizar de novo.
+                    </p>
+                  </>
+                }
+              />
+            ) : null}
+
             <p className="apoio configuracoes__nota" role="status">
-              {total === 0
-                ? 'Nenhum cadastro novo.'
-                : `${total} ${total === 1 ? 'registro novo' : 'registros novos'}.`}{' '}
+              {mudancas.length === 0
+                ? incompleta
+                  ? 'Nenhuma mudança nos tipos que o Bubble expõe.'
+                  : 'Tudo igual ao Bubble: nenhuma mudança.'
+                : `${mudancas.length} ${mudancas.length === 1 ? 'tabela mudou' : 'tabelas mudaram'}.`}{' '}
               Raiz: {resposta.raiz} · {(resposta.duracaoMs / 1000).toFixed(1)}s
             </p>
 
             <ul className="acessos">
-              {resposta.novos.map((n) => (
-                <li key={n.tabela} className="acessos__item">
-                  <span className="acessos__pagina acessos__nome">{n.tabela}</span>
-                  <span className={`acessos__nivel${n.quantidade > 0 ? ' acessos__nivel--ve' : ''}`}>
-                    {n.quantidade} {n.quantidade === 1 ? 'novo' : 'novos'}
-                  </span>
-                </li>
-              ))}
+              {resposta.tabelas.map((t) => {
+                const partes = [
+                  t.novos ? `${t.novos} ${t.novos === 1 ? 'novo' : 'novos'}` : '',
+                  t.atualizados ? `${t.atualizados} ${t.atualizados === 1 ? 'atualizado' : 'atualizados'}` : '',
+                  t.arquivados ? `${t.arquivados} ${t.arquivados === 1 ? 'arquivado' : 'arquivados'}` : '',
+                  t.removidos ? `${t.removidos} ${t.removidos === 1 ? 'removido' : 'removidos'}` : '',
+                ].filter(Boolean);
+                return (
+                  <li key={t.tabela} className="acessos__item">
+                    <span className="acessos__pagina acessos__nome">{t.tabela}</span>
+                    <span className={`acessos__nivel${partes.length ? ' acessos__nivel--ve' : ''}`}>
+                      {partes.length ? partes.join(' · ') : 'sem mudança'}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
 
             {resposta.erros.length ? (

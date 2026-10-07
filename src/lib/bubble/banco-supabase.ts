@@ -1,39 +1,45 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Linha, Mapa } from './mapeamento';
-import type { Banco, TabelaComBubble, TabelaFilha } from './sincronizar';
+import {
+  FILHAS,
+  type Banco,
+  type TabelaArquivavel,
+  type TabelaComBubble,
+  type TabelaFilha,
+} from './sincronizar';
 
 /**
  * `Banco` da sincronização sobre o cliente Supabase **da sessão** — não a
  * service role. Assim a gravação sai em nome de quem clicou: a trigger de
- * `evento` registra o ator (`auth.uid()`), e quando `db/003_rls.sql` for
- * aplicado as policies de master continuam valendo sem mudar nada aqui.
+ * `evento` registra o ator (`auth.uid()`), e as policies de master (db/009)
+ * continuam valendo sem mudar nada aqui.
  *
- * Só leitura e INSERT com `ignoreDuplicates` (ON CONFLICT DO NOTHING).
+ * Escreve só o que a regra de espelho pede (specs/10): INSERT do que falta,
+ * UPDATE por `id` das colunas que mudaram, `arquivado = true` no que sumiu do
+ * Bubble e, nos filhos marcados `origem_bubble`, o DELETE do que saiu de lá.
+ * Nunca apaga registro-pai.
  */
 
-/** Chave do ON CONFLICT de cada filho. Sem entrada = INSERT simples. */
-const CONFLITO: Partial<Record<TabelaFilha, string>> = {
-  fornecedor_tipo_operacao: 'fornecedor_id,tipo_operacao_id,papel',
-  cliente_email: 'cliente_id,email',
-  cliente_visualizador: 'cliente_id,perfil_id',
-  operacao_declinio: 'operacao_id,fornecedor_id',
-  etapa_instrumento: 'etapa_id,tipo_operacao_id',
-  etapa_checklist_item: 'etapa_id,chave',
-  funil_cartao_tag: 'cartao_id,tag_id',
-  funil_cartao_usuario: 'cartao_id,perfil_id',
-  // operacao_observacao não tem chave natural; só entra para operação nova.
-};
+/** Chave do ON CONFLICT de cada filho (sempre a chave natural, com o pai). */
+function conflito(tabela: TabelaFilha): string {
+  const cfg = FILHAS[tabela];
+  return tabela === 'operacao_observacao' ? 'id' : [cfg.pai, ...cfg.chave].join(',');
+}
 
 const PAGINA = 1000;
 const LOTE = 500;
+/** Quantos pais por consulta `in (...)`: uuid tem 36 caracteres e a URL tem teto. */
+const PAIS_POR_CONSULTA = 100;
+/** Quantos UPDATEs em paralelo. */
+const PARALELO = 10;
 
 function falhou(tabela: string, erro: { message: string } | null): void {
   if (erro) throw new Error(`${tabela}: ${erro.message}`);
 }
 
-function lotes<T>(linhas: T[]): T[][] {
+function lotes<T>(linhas: T[], tamanho = LOTE): T[][] {
   const saida: T[][] = [];
-  for (let i = 0; i < linhas.length; i += LOTE) saida.push(linhas.slice(i, i + LOTE));
+  for (let i = 0; i < linhas.length; i += tamanho) saida.push(linhas.slice(i, i + tamanho));
   return saida;
 }
 
@@ -53,10 +59,57 @@ export function bancoSupabase(supabase: SupabaseClient): Banco {
   }
 
   return {
-    async idsPorBubble(tabela: TabelaComBubble): Promise<Mapa> {
-      const linhas = await tudo<{ id: string; bubble_id: string }>(tabela, 'id, bubble_id', true);
-      return new Map(linhas.map((l) => [l.bubble_id, l.id]));
+    async atuais(tabela: TabelaComBubble): Promise<Mapa<Linha>> {
+      const linhas = await tudo<Linha & { bubble_id: string }>(tabela, '*', true);
+      return new Map(linhas.map((l) => [l.bubble_id, l]));
     },
+
+    async atualizar(tabela, mudancas): Promise<number> {
+      let total = 0;
+      for (const grupo of lotes(mudancas, PARALELO)) {
+        await Promise.all(
+          grupo.map(async ({ id, valores }) => {
+            const { error } = await supabase.from(tabela).update(valores).eq('id', id);
+            falhou(tabela, error);
+            total += 1;
+          }),
+        );
+      }
+      return total;
+    },
+
+    async arquivar(tabela: TabelaArquivavel, ids: string[]): Promise<number> {
+      let total = 0;
+      for (const lote of lotes(ids, PAIS_POR_CONSULTA)) {
+        const { data, error } = await supabase
+          .from(tabela)
+          .update({ arquivado: true })
+          .in('id', lote)
+          .select('id');
+        falhou(tabela, error);
+        total += data?.length ?? 0;
+      }
+      return total;
+    },
+
+    async filhosDe(tabela: TabelaFilha, paiIds: string[]): Promise<Linha[]> {
+      const cfg = FILHAS[tabela];
+      const saida: Linha[] = [];
+      for (const lote of lotes(paiIds, PAIS_POR_CONSULTA)) {
+        for (let de = 0; ; de += PAGINA) {
+          let q = supabase.from(tabela).select('*').in(cfg.pai, lote);
+          // ordem estável: a das observações repetidas depende dela
+          q = cfg.temId ? q.order('id') : q.order(cfg.pai).order(cfg.chave[0]);
+          const { data, error } = await q.range(de, de + PAGINA - 1);
+          falhou(tabela, error);
+          const linhas = (data ?? []) as unknown as Linha[];
+          saida.push(...linhas);
+          if (linhas.length < PAGINA) break;
+        }
+      }
+      return saida;
+    },
+
 
     async catalogo(tabela): Promise<Mapa<number>> {
       const linhas = await tudo<{ id: number; rotulo: string }>(tabela, 'id, rotulo');
@@ -101,18 +154,65 @@ export function bancoSupabase(supabase: SupabaseClient): Banco {
       }
       return entraram;
     },
-
     async inserirFilhos(tabela: TabelaFilha, linhas: Linha[]): Promise<number> {
       let total = 0;
-      const conflito = CONFLITO[tabela];
       for (const lote of lotes(linhas)) {
         const base = supabase.from(tabela);
-        const { data, error } = await (conflito
-          ? base.upsert(lote, { onConflict: conflito, ignoreDuplicates: true })
-          : base.insert(lote)
+        // observação não tem chave natural: INSERT simples (a reconciliação já checou)
+        const { data, error } = await (tabela === 'operacao_observacao'
+          ? base.insert(lote)
+          : base.upsert(lote, { onConflict: conflito(tabela), ignoreDuplicates: true })
         ).select();
         falhou(tabela, error);
         total += data?.length ?? 0;
+      }
+      return total;
+    },
+
+    async atualizarFilhos(tabela: TabelaFilha, linhas: Linha[]): Promise<number> {
+      let total = 0;
+      for (const lote of lotes(linhas)) {
+        const { data, error } = await supabase
+          .from(tabela)
+          .upsert(lote, { onConflict: conflito(tabela) })
+          .select();
+        falhou(tabela, error);
+        total += data?.length ?? 0;
+      }
+      return total;
+    },
+
+    async removerFilhos(tabela: TabelaFilha, linhas: Linha[]): Promise<number> {
+      const cfg = FILHAS[tabela];
+      let total = 0;
+      if (cfg.temId) {
+        for (const lote of lotes(linhas, PAIS_POR_CONSULTA)) {
+          const { data, error } = await supabase
+            .from(tabela)
+            .delete()
+            .in('id', lote.map((l) => l.id as string | number))
+            .eq('origem_bubble', true)
+            .select();
+          falhou(tabela, error);
+          total += data?.length ?? 0;
+        }
+        return total;
+      }
+      // chave composta: um DELETE por vínculo, sempre com origem_bubble = true
+      for (const grupo of lotes(linhas, PARALELO)) {
+        await Promise.all(
+          grupo.map(async (l) => {
+            const igual = Object.fromEntries([cfg.pai, ...cfg.chave].map((c) => [c, l[c]]));
+            const { data, error } = await supabase
+              .from(tabela)
+              .delete()
+              .match(igual)
+              .eq('origem_bubble', true)
+              .select();
+            falhou(tabela, error);
+            total += data?.length ?? 0;
+          }),
+        );
       }
       return total;
     },

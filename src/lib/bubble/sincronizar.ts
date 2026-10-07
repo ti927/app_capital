@@ -1,19 +1,23 @@
 /**
- * Sincronização com o Bubble: **só coleta cadastros novos**.
+ * Sincronização com o Bubble: **espelha o Bubble aqui**, em sentido único
+ * (Bubble → app). Decisão de 07/10/2026, specs/10-sincronizacao-bubble.md.
  *
- * Regra (specs/10-sincronizacao-bubble.md):
- *
- *  - entra o registro do Bubble cujo `_id` ainda não existe aqui em
- *    `bubble_id`; o que já existe não é tocado — nem atualizado, nem apagado;
- *  - filhos (e-mails, vínculos, observações, checklist...) só entram
- *    pendurados num pai que acabou de entrar. Pai antigo não ganha filho
- *    novo: sem `bubble_id` no filho não há como saber se ele já foi trazido;
+ *  - registro cujo `_id` já existe aqui em `bubble_id`: os campos mapeados são
+ *    atualizados com o valor do Bubble ("o Bubble ganha"); o que não existe é
+ *    inserido;
+ *  - registro sem `bubble_id` (criado só aqui) nunca é tocado: todo o
+ *    caminho parte dos `bubble_id` lidos, e a interface `Banco` só atualiza
+ *    por `id` de linha que veio dessa leitura;
+ *  - registro que sumiu do Bubble é **arquivado** (`arquivado = true`) nas
+ *    tabelas que têm a coluna, e só se a leitura COMPLETA daquele data type
+ *    terminou sem erro. Nunca é apagado;
+ *  - filhos (e-mails, vínculos, observações, checklist...) de pais novos e
+ *    antigos são reconciliados por pai: entra o que falta, e sai só o que
+ *    veio do Bubble (`origem_bubble`, db/011) e deixou de existir lá;
+ *  - data type que o Bubble não expõe (404) não derruba nada, não arquiva e
+ *    não remove: fica listado em `naoExpostos`;
  *  - ordem de dependência: fornecedor → cliente → operação → etapa, e no
  *    funil quadro → etapa/tag → cartão.
- *
- * A trava de "nunca atualiza, nunca apaga" é estrutural: a interface `Banco`
- * abaixo não tem update nem delete. O INSERT ainda leva `on conflict do
- * nothing`, para o caso de dois cliques simultâneos.
  *
  * O de-para é o mesmo da carga (`mapeamento.ts`) — uma fonte só.
  *
@@ -27,7 +31,7 @@ type Linha = m.Linha;
 type Mapa<V = string> = m.Mapa<V>;
 type RegistroBubble = m.RegistroBubble;
 
-/** Tabelas que têm `bubble_id` — as únicas onde "novo" tem sentido. */
+/** Tabelas que têm `bubble_id`. */
 export type TabelaComBubble =
   | 'fornecedor'
   | 'cliente'
@@ -37,7 +41,11 @@ export type TabelaComBubble =
   | 'funil_tag'
   | 'funil_cartao';
 
-/** Filhos: entram só pendurados num pai novo. */
+/** Dessas, as que têm a coluna `arquivado` — as únicas que podem ser arquivadas. */
+export type TabelaArquivavel = 'fornecedor' | 'cliente' | 'operacao' | 'funil_cartao';
+const ARQUIVAVEIS = new Set<string>(['fornecedor', 'cliente', 'operacao', 'funil_cartao']);
+
+/** Filhos: reconciliados por pai. Todos têm `origem_bubble` (db/011). */
 export type TabelaFilha =
   | 'fornecedor_tipo_operacao'
   | 'cliente_email'
@@ -49,7 +57,38 @@ export type TabelaFilha =
   | 'funil_cartao_tag'
   | 'funil_cartao_usuario';
 
-/** Ordem em que o resultado é mostrado — a mesma da inserção. */
+/** Como reconciliar cada tabela filha. */
+export interface ConfigFilha {
+  /** Coluna que aponta para o pai. */
+  pai: string;
+  /** Colunas que identificam o filho dentro do pai (a chave natural). */
+  chave: string[];
+  /** A tabela tem coluna `id` própria (e não só chave composta). */
+  temId: boolean;
+  /** Colunas que, mudando no Bubble, atualizam o filho que já existe. */
+  conteudo?: string[];
+  /** A mesma chave pode repetir (observação com texto igual): conta ocorrências. */
+  repete?: boolean;
+}
+
+export const FILHAS: Record<TabelaFilha, ConfigFilha> = {
+  fornecedor_tipo_operacao: { pai: 'fornecedor_id', chave: ['tipo_operacao_id', 'papel'], temId: false },
+  cliente_email: { pai: 'cliente_id', chave: ['email'], temId: true },
+  cliente_visualizador: { pai: 'cliente_id', chave: ['perfil_id'], temId: false },
+  operacao_observacao: { pai: 'operacao_id', chave: ['texto'], temId: true, repete: true },
+  operacao_declinio: { pai: 'operacao_id', chave: ['fornecedor_id'], temId: false },
+  etapa_instrumento: { pai: 'etapa_id', chave: ['tipo_operacao_id'], temId: false },
+  etapa_checklist_item: {
+    pai: 'etapa_id',
+    chave: ['chave'],
+    temId: true,
+    conteudo: ['rotulo', 'descricao', 'valor', 'ordem'],
+  },
+  funil_cartao_tag: { pai: 'cartao_id', chave: ['tag_id'], temId: false },
+  funil_cartao_usuario: { pai: 'cartao_id', chave: ['perfil_id'], temId: false },
+};
+
+/** Ordem em que o resultado é mostrado — a mesma da gravação. */
 export const ORDEM_DAS_TABELAS: Array<TabelaComBubble | TabelaFilha | 'funil_quadro'> = [
   'fornecedor',
   'fornecedor_tipo_operacao',
@@ -70,10 +109,13 @@ export const ORDEM_DAS_TABELAS: Array<TabelaComBubble | TabelaFilha | 'funil_qua
   'funil_cartao_usuario',
 ];
 
-/** Só leitura e inserção. Não existe update nem delete aqui, de propósito. */
+/**
+ * O banco, visto pela sincronização. Só mexe em linha que veio da leitura por
+ * `bubble_id` (pais) ou por pai conhecido (filhos): não há "atualizar tudo".
+ */
 export interface Banco {
-  /** `bubble_id → id` de tudo que já existe na tabela. */
-  idsPorBubble(tabela: TabelaComBubble): Promise<Mapa>;
+  /** `bubble_id → linha inteira` (com `id`) de tudo que já veio do Bubble. */
+  atuais(tabela: TabelaComBubble): Promise<Mapa<Linha>>;
   /** `rotulo → id` de uma tabela de apoio. */
   catalogo(tabela: 'tipo_operacao' | 'status_operacao' | 'status_etapa'): Promise<Mapa<number>>;
   /** `email (minúsculo) → perfil.id`. */
@@ -87,8 +129,18 @@ export interface Banco {
    * Devolve `bubble_id → id` só do que de fato entrou.
    */
   inserirNovos(tabela: TabelaComBubble, linhas: Linha[]): Promise<Mapa>;
-  /** INSERT de filhos, ignorando duplicado. Devolve quantos entraram. */
+  /** UPDATE por `id`, só das colunas que mudaram. Devolve quantas linhas. */
+  atualizar(tabela: TabelaComBubble, mudancas: Array<{ id: string; valores: Linha }>): Promise<number>;
+  /** `arquivado = true` nos ids. Nunca apaga. Devolve quantas linhas. */
+  arquivar(tabela: TabelaArquivavel, ids: string[]): Promise<number>;
+  /** Todos os filhos (de qualquer origem) dos pais dados, em ordem estável. */
+  filhosDe(tabela: TabelaFilha, paiIds: string[]): Promise<Linha[]>;
+  /** INSERT de filhos novos, ignorando duplicado. Devolve quantos entraram. */
   inserirFilhos(tabela: TabelaFilha, linhas: Linha[]): Promise<number>;
+  /** UPSERT de filhos que já existem (marca `origem_bubble`, atualiza conteúdo). */
+  atualizarFilhos(tabela: TabelaFilha, linhas: Linha[]): Promise<number>;
+  /** DELETE de filhos (linhas como `filhosDe` devolveu). Devolve quantos. */
+  removerFilhos(tabela: TabelaFilha, linhas: Linha[]): Promise<number>;
 }
 
 /** Os data types do Bubble que a sincronização lê. */
@@ -108,31 +160,97 @@ export type TipoLido = (typeof TIPOS_LIDOS)[number];
 
 export type Fonte = (tipo: TipoLido) => Promise<ResultadoBusca>;
 
+export interface LinhaDoResultado {
+  tabela: string;
+  novos: number;
+  atualizados: number;
+  arquivados: number;
+  removidos: number;
+}
+
 export interface ResultadoSincronizacao {
-  /** Novos por tabela, na ordem de `ORDEM_DAS_TABELAS`. Zero também aparece. */
-  novos: Array<{ tabela: string; quantidade: number }>;
-  /** O que impediu uma tabela inteira (data type fora da API, erro do banco). */
+  /** Por tabela, na ordem de `ORDEM_DAS_TABELAS`. Zero também aparece. */
+  tabelas: LinhaDoResultado[];
+  /** Data types que o Bubble não expõe na Data API (HTTP 404): nada deles foi sincronizado. */
+  naoExpostos: string[];
+  /** O que impediu uma tabela inteira (outro erro do Bubble, erro do banco). */
   erros: string[];
   /** O que foi pulado registro a registro (rótulo desconhecido, pai ausente). */
   avisos: string[];
 }
 
-/**
- * Registros cujo `_id` ainda não existe aqui. Também descarta `_id` repetido
- * dentro do próprio lote. É a regra inteira de "só cadastros novos".
- */
-export function soNovos(registros: RegistroBubble[], existentes: Mapa): RegistroBubble[] {
+/** Registros com `_id`, sem repetir. */
+export function unicos(registros: RegistroBubble[]): RegistroBubble[] {
   const vistos = new Set<string>();
   const saida: RegistroBubble[] = [];
   for (const r of registros) {
+    if (!r._id) continue;
     const id = m.bubbleId(r);
-    if (!r._id || existentes.has(id) || vistos.has(id)) continue;
+    if (vistos.has(id)) continue;
     vistos.add(id);
     saida.push(r);
   }
   return saida;
 }
 
+/** Registros cujo `_id` ainda não existe aqui (sem repetir, sem registro sem `_id`). */
+export function soNovos(registros: RegistroBubble[], existentes: Mapa<unknown>): RegistroBubble[] {
+  return unicos(registros).filter((r) => !existentes.has(m.bubbleId(r)));
+}
+
+/* ------------------------------------------------------------ comparação -- */
+
+const COMECA_COM_DATA = /^\d{4}-\d{2}-\d{2}/;
+
+function paraComparar(v: unknown): unknown {
+  if (v === undefined) return null;
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? null : v.toISOString();
+  return v;
+}
+
+/** Igualdade de valor de coluna: data é data (coluna `date` x ISO completo), o resto é JSON. */
+export function iguais(novo: unknown, atual: unknown): boolean {
+  const a = paraComparar(novo);
+  const b = paraComparar(atual);
+  if (a === b) return true;
+  if (typeof a === 'string' && typeof b === 'string' && COMECA_COM_DATA.test(a) && COMECA_COM_DATA.test(b)) {
+    if (a.length === 10 || b.length === 10) return a.slice(0, 10) === b.slice(0, 10);
+    const ta = Date.parse(a);
+    const tb = Date.parse(b);
+    if (!Number.isNaN(ta) && !Number.isNaN(tb)) return ta === tb;
+  }
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/** Colunas que apontam para outra tabela: nulo aqui quer dizer "não achei", não "o Bubble limpou". */
+const COLUNAS_DE_REFERENCIA = new Set([
+  'cliente_id',
+  'status_operacao_id',
+  'fornecedor_id',
+  'status_id',
+  'tipo_operacao_id',
+  'etapa_id',
+  'quadro_id',
+]);
+
+/**
+ * O que mudou entre a linha montada do Bubble e a que está no banco — só as
+ * colunas diferentes. `criado_em` e `bubble_id` nunca entram (a data de
+ * criação daqui é a do cadastro; na falta do campo o mapeamento põe "agora").
+ * Referência que não se resolveu (nulo) também fica de fora: sobrescrever o
+ * vínculo existente com nulo por não achar o rótulo apagaria dado.
+ */
+export function diferencas(nova: Linha, atual: Linha): Linha {
+  const saida: Linha = {};
+  for (const [coluna, valor] of Object.entries(nova)) {
+    if (coluna === 'bubble_id' || coluna === 'criado_em') continue;
+    if (valor === null && COLUNAS_DE_REFERENCIA.has(coluna)) continue;
+    if (!iguais(valor, atual[coluna])) saida[coluna] = valor;
+  }
+  return saida;
+}
+
+/** Nome do data type como o editor do Bubble o mostra (para a tela dizer qual marcar). */
 const NOME_DO_TIPO: Record<TipoLido, string> = {
   user: 'user',
   fornecedor: 'fornecedor',
@@ -149,8 +267,14 @@ const NOME_DO_TIPO: Record<TipoLido, string> = {
 const mensagemDeErro = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 export async function sincronizar(banco: Banco, fonte: Fonte): Promise<ResultadoSincronizacao> {
-  const contagem = new Map<string, number>(ORDEM_DAS_TABELAS.map((t) => [t, 0]));
-  const somar = (t: string, n: number) => contagem.set(t, (contagem.get(t) ?? 0) + n);
+  const contagem = new Map<string, LinhaDoResultado>(
+    ORDEM_DAS_TABELAS.map((t) => [t, { tabela: t, novos: 0, atualizados: 0, arquivados: 0, removidos: 0 }]),
+  );
+  const somar = (t: string, campo: 'novos' | 'atualizados' | 'arquivados' | 'removidos', n: number) => {
+    const c = contagem.get(t);
+    if (c) c[campo] += n;
+  };
+  const naoExpostos: string[] = [];
   const erros: string[] = [];
   const avisos: string[] = [];
 
@@ -162,15 +286,13 @@ export async function sincronizar(banco: Banco, fonte: Fonte): Promise<Resultado
       dados.set(tipo, r.linhas);
     } else {
       dados.set(tipo, null);
-      erros.push(
-        r.status === 404
-          ? `${NOME_DO_TIPO[tipo]}: HTTP 404 — o data type não está exposto na Data API desta raiz do Bubble (Settings › API). Pulado.`
-          : `${NOME_DO_TIPO[tipo]}: HTTP ${r.status} do Bubble. Pulado.`,
-      );
+      if (r.status === 404) naoExpostos.push(NOME_DO_TIPO[tipo]);
+      else erros.push(`${NOME_DO_TIPO[tipo]}: HTTP ${r.status} do Bubble. Nada deste tipo foi sincronizado.`);
     }
   }
   const de = (t: TipoLido) => dados.get(t) ?? [];
-  const leu = (t: TipoLido) => dados.get(t) !== null;
+  /** Leitura completa e sem erro — a condição para arquivar e remover. */
+  const leu = (t: TipoLido) => Array.isArray(dados.get(t));
 
   const cat: m.Catalogos = {
     tipoOp: await banco.catalogo('tipo_operacao'),
@@ -197,99 +319,219 @@ export async function sincronizar(banco: Banco, fonte: Fonte): Promise<Resultado
     return saida;
   };
 
+  interface ResultadoPasso {
+    /** `bubble_id → id` de tudo que existe aqui agora (antigos + novos). */
+    todos: Mapa;
+    /** Registros do Bubble (sem repetição) ou `null` se o tipo não foi lido. */
+    doBubble: RegistroBubble[] | null;
+  }
+
   /**
-   * Um passo: lê o que já existe, separa os novos, insere, e devolve o mapa
-   * completo `bubble_id → id` (antigos + novos) e o conjunto dos que entraram.
+   * Um passo de tabela-pai: insere o que falta, atualiza o que mudou e, se a
+   * leitura foi completa, arquiva o que sumiu.
    */
   async function passo(
     tabela: TabelaComBubble,
     tipo: TipoLido,
     montar: (r: RegistroBubble) => Linha | null,
-  ): Promise<{ todos: Mapa; entraram: RegistroBubble[] }> {
-    const todos = await banco.idsPorBubble(tabela);
-    if (!leu(tipo)) return { todos, entraram: [] };
-    const novos = soNovos(de(tipo), todos);
+  ): Promise<ResultadoPasso> {
+    const atuais = await banco.atuais(tabela);
+    const todos: Mapa = new Map([...atuais].map(([b, l]) => [b, String(l.id)]));
+    if (!leu(tipo)) return { todos, doBubble: null };
+    const registros = unicos(de(tipo));
+    const ids = new Set(registros.map(m.bubbleId));
+
+    // inserir os novos
     const linhas: Linha[] = [];
-    const candidatos: RegistroBubble[] = [];
-    for (const r of novos) {
+    for (const r of registros) {
+      if (atuais.has(m.bubbleId(r))) continue;
       const l = montar(r);
-      if (l) {
-        linhas.push(l);
-        candidatos.push(r);
+      if (l) linhas.push(l);
+    }
+    if (linhas.length) {
+      try {
+        const inseridos = await banco.inserirNovos(tabela, linhas);
+        for (const [b, id] of inseridos) todos.set(b, id);
+        somar(tabela, 'novos', inseridos.size);
+      } catch (e) {
+        erros.push(`${tabela}: ${mensagemDeErro(e)}`);
       }
     }
-    if (!linhas.length) return { todos, entraram: [] };
+
+    // atualizar os que já existem e mudaram — o Bubble ganha
+    const mudancas: Array<{ id: string; valores: Linha }> = [];
+    for (const r of registros) {
+      const atual = atuais.get(m.bubbleId(r));
+      if (!atual) continue;
+      const l = montar(r);
+      if (!l) continue;
+      const valores = diferencas(l, atual);
+      if (Object.keys(valores).length) mudancas.push({ id: String(atual.id), valores });
+    }
+    if (mudancas.length) {
+      try {
+        somar(tabela, 'atualizados', await banco.atualizar(tabela, mudancas));
+      } catch (e) {
+        erros.push(`${tabela}: ${mensagemDeErro(e)}`);
+      }
+    }
+
+    // arquivar o que sumiu do Bubble (só com leitura completa)
+    if (ARQUIVAVEIS.has(tabela)) {
+      const sumiram = [...atuais].filter(([b, l]) => !ids.has(b) && l.arquivado !== true);
+      if (sumiram.length && registros.length === 0) {
+        avisos.push(
+          `${tabela}: o Bubble devolveu zero registros e ${sumiram.length} existem aqui; nada foi arquivado (confira as permissões da API)`,
+        );
+      } else if (sumiram.length) {
+        try {
+          const n = await banco.arquivar(
+            tabela as TabelaArquivavel,
+            sumiram.map(([, l]) => String(l.id)),
+          );
+          somar(tabela, 'arquivados', n);
+        } catch (e) {
+          erros.push(`${tabela}: ${mensagemDeErro(e)}`);
+        }
+      }
+    }
+    return { todos, doBubble: registros };
+  }
+
+  /** Chave do filho: pai + colunas da chave natural (+ ocorrência, quando repete). */
+  function chavesDe(cfg: ConfigFilha, linhas: Linha[]): string[] {
+    const vistos = new Map<string, number>();
+    return linhas.map((l) => {
+      const base = `${String(l[cfg.pai])}|${cfg.chave.map((c) => String(l[c])).join('|')}`;
+      const n = vistos.get(base) ?? 0;
+      vistos.set(base, n + 1);
+      return cfg.repete ? `${base}#${n}` : base;
+    });
+  }
+
+  /**
+   * Reconcilia os filhos de uma tabela com o que o Bubble tem.
+   *
+   *  - `desejados`: o que o Bubble diz que existe (com a coluna do pai preenchida);
+   *  - `escopo`: os pais cujo conjunto de filhos o Bubble define por inteiro.
+   *    Só neles se remove. `null` = a leitura necessária falhou: só insere.
+   */
+  async function reconciliar(tabela: TabelaFilha, desejados: Linha[], escopo: string[] | null) {
+    const cfg = FILHAS[tabela];
+    const desejadosOk = desejados.filter((l) => l[cfg.pai]);
+    const pais = new Set<string>([...(escopo ?? []), ...desejadosOk.map((l) => String(l[cfg.pai]))]);
+    if (!pais.size) return;
+
     try {
-      const inseridos = await banco.inserirNovos(tabela, linhas);
-      for (const [b, id] of inseridos) todos.set(b, id);
-      somar(tabela, inseridos.size);
-      return { todos, entraram: candidatos.filter((r) => inseridos.has(m.bubbleId(r))) };
+      const existentes = await banco.filhosDe(tabela, [...pais]);
+      const chaveExistente = chavesDe(cfg, existentes);
+      const porChave = new Map(existentes.map((l, i) => [chaveExistente[i], l]));
+
+      const chaveDesejada = chavesDe(cfg, desejadosOk);
+      const vistas = new Set<string>();
+      const novos: Linha[] = [];
+      const jaExistem: Linha[] = [];
+      let alterados = 0;
+      desejadosOk.forEach((l, i) => {
+        const k = chaveDesejada[i];
+        if (vistas.has(k)) return; // o Bubble listou duas vezes
+        vistas.add(k);
+        const ex = porChave.get(k);
+        if (!ex) {
+          novos.push({ ...l, origem_bubble: true });
+          return;
+        }
+        const mudouConteudo = (cfg.conteudo ?? []).some((c) => !iguais(l[c], ex[c]));
+        if (mudouConteudo) alterados++;
+        // Já existe: se veio da carga (origem false) passa a ser reconhecido
+        // como do Bubble; se o conteúdo mudou, atualiza.
+        if (mudouConteudo || ex.origem_bubble !== true) {
+          jaExistem.push({ ...l, ...(cfg.temId ? { id: ex.id } : {}), origem_bubble: true });
+        }
+      });
+
+      if (novos.length) somar(tabela, 'novos', await banco.inserirFilhos(tabela, novos));
+      if (jaExistem.length) {
+        await banco.atualizarFilhos(tabela, jaExistem);
+        somar(tabela, 'atualizados', alterados);
+      }
+
+      if (escopo) {
+        const noEscopo = new Set(escopo);
+        const sairam = existentes.filter(
+          (l, i) => l.origem_bubble === true && noEscopo.has(String(l[cfg.pai])) && !vistas.has(chaveExistente[i]),
+        );
+        if (sairam.length) somar(tabela, 'removidos', await banco.removerFilhos(tabela, sairam));
+      }
     } catch (e) {
       erros.push(`${tabela}: ${mensagemDeErro(e)}`);
-      return { todos, entraram: [] };
     }
   }
 
-  async function filhos(tabela: TabelaFilha, linhas: Linha[]) {
-    if (!linhas.length) return;
-    try {
-      somar(tabela, await banco.inserirFilhos(tabela, linhas));
-    } catch (e) {
-      erros.push(`${tabela}: ${mensagemDeErro(e)}`);
-    }
-  }
+  /** Ids daqui dos pais que o Bubble listou (o escopo da remoção). */
+  const idsDosPais = (doBubble: RegistroBubble[] | null, todos: Mapa): string[] =>
+    (doBubble ?? []).map((r) => todos.get(m.bubbleId(r))).filter((id): id is string => id !== undefined);
 
   // ---------------------------------------------------------- fornecedor
   const forn = await passo('fornecedor', 'fornecedor', m.fornecedor);
-  await filhos(
+  await reconciliar(
     'fornecedor_tipo_operacao',
-    forn.entraram.flatMap((f) => {
+    (forn.doBubble ?? []).flatMap((f) => {
       const fornecedor_id = forn.todos.get(m.bubbleId(f));
-      return m.fornecedorTipos(f, cat.tipoOp, avisos).map((v) => ({ fornecedor_id, ...v }));
+      return fornecedor_id ? m.fornecedorTipos(f, cat.tipoOp, avisos).map((v) => ({ fornecedor_id, ...v })) : [];
     }),
+    forn.doBubble ? idsDosPais(forn.doBubble, forn.todos) : null,
   );
 
   // ------------------------------------------------------------- cliente
   const cli = await passo('cliente', 'cliente', m.cliente);
-  const clientesNovos: Mapa = new Map(
-    cli.entraram.map((c) => [m.bubbleId(c), cli.todos.get(m.bubbleId(c)) as string]),
-  );
-  await filhos(
+  await reconciliar(
     'cliente_email',
     de('tbl_infocliente')
-      .filter((i) => clientesNovos.has(String(i.qualcliente)))
-      .map((i) => m.clienteEmail(i, clientesNovos))
+      .map((i) => m.clienteEmail(i, cli.todos))
       .filter((l): l is { cliente_id: string; email: string } => l !== null),
+    leu('cliente') && leu('tbl_infocliente') ? idsDosPais(cli.doBubble, cli.todos) : null,
   );
-  await filhos(
-    'cliente_visualizador',
-    cli.entraram.flatMap((c) => {
-      const cliente_id = clientesNovos.get(m.bubbleId(c));
-      return perfisDe(m.quemVisualiza(c), 'cliente').map((perfil_id) => ({ cliente_id, perfil_id }));
-    }),
-  );
+  // Vínculo com usuário precisa da leitura de `user`; sem ela não há como
+  // resolver ninguém, e "nenhum vínculo" apagaria os que existem.
+  if (leu('user')) {
+    await reconciliar(
+      'cliente_visualizador',
+      (cli.doBubble ?? []).flatMap((c) => {
+        const cliente_id = cli.todos.get(m.bubbleId(c));
+        return cliente_id
+          ? perfisDe(m.quemVisualiza(c), 'cliente').map((perfil_id) => ({ cliente_id, perfil_id }))
+          : [];
+      }),
+      cli.doBubble ? idsDosPais(cli.doBubble, cli.todos) : null,
+    );
+  }
 
   // ------------------------------------------------------------ operacao
   const op = await passo('operacao', 'opera__o', (o) => m.operacao(o, cli.todos, cat));
-  const operacoesNovas: Mapa = new Map(
-    op.entraram.map((o) => [m.bubbleId(o), op.todos.get(m.bubbleId(o)) as string]),
+  await reconciliar(
+    'operacao_observacao',
+    [
+      ...(op.doBubble ?? []).flatMap((o) => {
+        const operacao_id = op.todos.get(m.bubbleId(o));
+        return operacao_id ? m.operacaoObservacoes(o).map((texto) => ({ operacao_id, texto })) : [];
+      }),
+      ...de('tbl_observa__es')
+        .map((t) => m.observacaoAvulsa(t, op.todos))
+        .filter((l): l is NonNullable<typeof l> => l !== null),
+    ],
+    // as observações vêm de dois tipos; só com os dois lidos o conjunto é completo
+    leu('opera__o') && leu('tbl_observa__es') ? idsDosPais(op.doBubble, op.todos) : null,
   );
-  await filhos('operacao_observacao', [
-    ...op.entraram.flatMap((o) =>
-      m.operacaoObservacoes(o).map((texto) => ({ operacao_id: operacoesNovas.get(m.bubbleId(o)), texto })),
-    ),
-    ...de('tbl_observa__es')
-      .map((t) => m.observacaoAvulsa(t, operacoesNovas))
-      .filter((l): l is NonNullable<typeof l> => l !== null),
-  ]);
-  await filhos(
+  await reconciliar(
     'operacao_declinio',
-    op.entraram.flatMap((o) => {
-      const operacao_id = operacoesNovas.get(m.bubbleId(o));
-      return m
-        .operacaoDeclinios(o, forn.todos, avisos)
-        .map((fornecedor_id) => ({ operacao_id, fornecedor_id }));
+    (op.doBubble ?? []).flatMap((o) => {
+      const operacao_id = op.todos.get(m.bubbleId(o));
+      return operacao_id
+        ? m.operacaoDeclinios(o, forn.todos, avisos).map((fornecedor_id) => ({ operacao_id, fornecedor_id }))
+        : [];
     }),
+    op.doBubble ? idsDosPais(op.doBubble, op.todos) : null,
   );
 
   // --------------------------------------------------------------- etapa
@@ -301,21 +543,23 @@ export async function sincronizar(banco: Banco, fonte: Fonte): Promise<Resultado
     }
     return m.etapa(e, oid, { clienteId: cli.todos, fornecedorId: forn.todos }, cat);
   });
-  await filhos(
+  await reconciliar(
     'etapa_instrumento',
-    et.entraram.flatMap((e) => {
+    (et.doBubble ?? []).flatMap((e) => {
       const etapa_id = et.todos.get(m.bubbleId(e));
-      return m
-        .etapaInstrumentos(e, cat.tipoOp, avisos)
-        .map((tipo_operacao_id) => ({ etapa_id, tipo_operacao_id }));
+      return etapa_id
+        ? m.etapaInstrumentos(e, cat.tipoOp, avisos).map((tipo_operacao_id) => ({ etapa_id, tipo_operacao_id }))
+        : [];
     }),
+    et.doBubble ? idsDosPais(et.doBubble, et.todos) : null,
   );
-  await filhos(
+  await reconciliar(
     'etapa_checklist_item',
-    et.entraram.flatMap((e) => {
+    (et.doBubble ?? []).flatMap((e) => {
       const etapa_id = et.todos.get(m.bubbleId(e));
-      return m.etapaChecklist(e).map((item) => ({ etapa_id, ...item }));
+      return etapa_id ? m.etapaChecklist(e).map((item) => ({ etapa_id, ...item })) : [];
     }),
+    et.doBubble ? idsDosPais(et.doBubble, et.todos) : null,
   );
 
   // --------------------------------------------------------------- funil
@@ -327,7 +571,7 @@ export async function sincronizar(banco: Banco, fonte: Fonte): Promise<Resultado
     try {
       const novos = await banco.inserirQuadros(faltam);
       for (const [nome, id] of novos) quadroId.set(nome, id);
-      somar('funil_quadro', novos.size);
+      somar('funil_quadro', 'novos', novos.size);
     } catch (e) {
       erros.push(`funil_quadro: ${mensagemDeErro(e)}`);
     }
@@ -339,23 +583,31 @@ export async function sincronizar(banco: Banco, fonte: Fonte): Promise<Resultado
   const car = await passo('funil_cartao', 'funilcartao', (k) =>
     m.funilCartao(k, quadroId, quadroPadrao, etf.todos),
   );
-  await filhos(
+  await reconciliar(
     'funil_cartao_tag',
-    car.entraram.flatMap((k) => {
+    (car.doBubble ?? []).flatMap((k) => {
       const cartao_id = car.todos.get(m.bubbleId(k));
-      return m.funilCartaoTags(k, tag.todos).map((tag_id) => ({ cartao_id, tag_id }));
+      return cartao_id ? m.funilCartaoTags(k, tag.todos).map((tag_id) => ({ cartao_id, tag_id })) : [];
     }),
+    // tag que não se resolve é ignorada; sem ler funiltag toda tag "sumiria"
+    car.doBubble && leu('funiltag') ? idsDosPais(car.doBubble, car.todos) : null,
   );
-  await filhos(
-    'funil_cartao_usuario',
-    car.entraram.flatMap((k) => {
-      const cartao_id = car.todos.get(m.bubbleId(k));
-      return perfisDe(m.usuariosDoCartao(k), 'funil_cartao').map((perfil_id) => ({ cartao_id, perfil_id }));
-    }),
-  );
+  if (leu('user')) {
+    await reconciliar(
+      'funil_cartao_usuario',
+      (car.doBubble ?? []).flatMap((k) => {
+        const cartao_id = car.todos.get(m.bubbleId(k));
+        return cartao_id
+          ? perfisDe(m.usuariosDoCartao(k), 'funil_cartao').map((perfil_id) => ({ cartao_id, perfil_id }))
+          : [];
+      }),
+      car.doBubble ? idsDosPais(car.doBubble, car.todos) : null,
+    );
+  }
 
   return {
-    novos: ORDEM_DAS_TABELAS.map((tabela) => ({ tabela, quantidade: contagem.get(tabela) ?? 0 })),
+    tabelas: ORDEM_DAS_TABELAS.map((t) => contagem.get(t) as LinhaDoResultado),
+    naoExpostos,
     erros,
     avisos: resumirAvisos(avisos),
   };

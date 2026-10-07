@@ -14,7 +14,7 @@ export type RespostaSincronizacao =
   | { ok: false; erro: string };
 
 /**
- * Botão "Sincronizar com o Bubble" — só cadastros novos.
+ * Botão "Sincronizar com o Bubble" — espelha o Bubble aqui (sentido único).
  * Ver specs/10-sincronizacao-bubble.md.
  *
  * A permissão é conferida AQUI, de novo. O layout esconde o botão de quem não
@@ -46,7 +46,8 @@ export async function sincronizarComBubble(): Promise<RespostaSincronizacao> {
   try {
     const supabase = (await clienteServidor()) as unknown as SupabaseClient;
     const resultado = await sincronizar(bancoSupabase(supabase), (tipo) => buscarTipo(url, chave, tipo));
-    if (resultado.novos.some((n) => n.quantidade > 0)) revalidatePath('/', 'layout');
+    const mudou = resultado.tabelas.some((t) => t.novos + t.atualizados + t.arquivados + t.removidos > 0);
+    if (mudou) revalidatePath('/', 'layout');
     return { ok: true, raiz, duracaoMs: Date.now() - inicio, ...resultado };
   } catch (e) {
     // Mensagem do banco ou da rede; nunca carrega a chave.

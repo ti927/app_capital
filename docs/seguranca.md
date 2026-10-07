@@ -46,10 +46,13 @@ Rotacionar sem apagar deixa a pista; apagar sem rotacionar não invalida nada.
 | indicante (Igor, sessão simulada) | 12 clientes e 19 cartões — o mesmo que as telas já mostravam; log, formulário e `google_conexao` recusados |
 | master | `npm run qa:tudo` 54/54 nas três formas |
 
-O que o indicante ainda lê pela API, por desenho da 009: as **operações e
-etapas dos clientes dele** (as telas são só de master, mas a policy herda do
-cliente) e o **catálogo** (fornecedores, tipos, status). Fechar isso é uma
-decisão de negócio, não um defeito.
+**Fechado em 07/10/2026 (`db/012`):** operação e tudo que pende dela
+(etapas, observações, declínios, instrumentos, checklist) e fornecedores
+passaram a ser **só de master**, o mesmo recorte das telas. Conferido com a
+sessão simulada: o indicante (Igor) lê 14 clientes e 19 cartões — os dele no
+Bubble live — e **zero** operações, etapas, observações, declínios e
+fornecedores; o master continua lendo tudo; `qa:tudo` 61/61. O indicante ainda
+lê os rótulos de status e tipos de operação (sem dado de cliente).
 
 Desfazer, se algo quebrar: `alter table public.<tabela> disable row level
 security` em cada tabela — as policies ficam inertes. Não desligue a da

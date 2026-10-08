@@ -1,0 +1,651 @@
+// GERADO por scripts/gerar-notas-de-versao.mjs a partir de docs/notas-de-versao.md.
+// Não edite à mão: edite o .md e rode `npm run notas` (o build já roda).
+
+export interface ItemDeNota {
+  tipo: 'item' | 'sub' | 'texto';
+  /** Markdown simples: só **negrito** e `código`. */
+  texto: string;
+}
+export interface GrupoDeNota {
+  titulo: string;
+  itens: ItemDeNota[];
+}
+export interface RodadaDeNotas {
+  /** "aaaa-mm-dd-slug" — é o que fica gravado em perfil.notas_vistas. */
+  id: string;
+  data: string;
+  titulo: string;
+  grupos: GrupoDeNota[];
+}
+
+/** Mais recente primeiro, como no .md. */
+export const NOTAS_DE_VERSAO: RodadaDeNotas[] = [
+  {
+    "id": "2026-10-08-salvar-com-retorno-sincronizacao-e-funil-vivo",
+    "data": "08/10/2026",
+    "titulo": "salvar com retorno, sincronização e funil vivo",
+    "grupos": [
+      {
+        "titulo": "Em todo o sistema",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Ao salvar, você vê que salvou.** O botão mostra um ícone girando enquanto grava, aparece uma notificação pequena no canto da tela (\"Cliente salvo\") e o item salvo dá um brilho curto na lista."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Trocas de aba e de tela com animação.** O sublinhado da aba e a pílula do menu deslizam até o item escolhido, e o conteúdo entra suavemente."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Notas de versão no sino** da barra de cima, com bolinha amarela quando há novidade."
+          }
+        ]
+      },
+      {
+        "titulo": "Funil",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Arrastar cartão com vida.** O cartão pego balança, a coluna de destino mostra uma vaga pontilhada exatamente onde ele vai cair, e ele fica naquela posição. Esc cancela."
+          }
+        ]
+      },
+      {
+        "titulo": "Clientes",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**\"Quem visualiza\" já no cadastro** de cliente novo, sem precisar salvar e editar depois."
+          }
+        ]
+      },
+      {
+        "titulo": "Operação",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Faturamento anual vem do cliente** ao escolher o cliente numa operação nova (continua editável)."
+          },
+          {
+            "tipo": "item",
+            "texto": "**E-mail de status como no Bubble:** texto padrão já preenchido e editável, campo Status e Week Update, e os prints das tabelas da tela — ao marcar a caixa, o print aparece na hora."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Ordem do diálogo:** Observações → Declínios → Limites/fundos assinados → Lista de Fornecedores; na linha de inclusão, Fundo vem antes do Tipo. Status da tabela aparece por inteiro e o diálogo ficou mais largo."
+          },
+          {
+            "tipo": "item",
+            "texto": "Reabrir um registro logo depois de salvar não fecha mais sozinho."
+          }
+        ]
+      },
+      {
+        "titulo": "Fornecedor",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**1º e 2º linha completas** em Tipo Operações, sem reticências."
+          }
+        ]
+      },
+      {
+        "titulo": "Sincronização com o Bubble",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Traz novos e alterados**, e o que for apagado no Bubble vira arquivado aqui. O que foi criado só no app novo nunca é tocado."
+          }
+        ]
+      },
+      {
+        "titulo": "Segurança",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "O acesso de indicante ficou limitado também no banco: só os clientes e cartões dele."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "2026-10-02-integracoes",
+    "data": "02/10/2026",
+    "titulo": "integrações",
+    "grupos": [
+      {
+        "titulo": "Entrada",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Entrar é só com o Google.** A conta é a mesma de antes; não há mais senha na tela de entrada."
+          }
+        ]
+      },
+      {
+        "titulo": "Funil",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Reunião vai para o Google Agenda.** Conecte sua agenda em **Agenda**, na barra de cima. Toda tarefa do tipo Reunião, com data e hora, em que você é responsável vira evento na sua agenda, com link do Google Meet. Editar ou excluir a tarefa atualiza o evento."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Convidar o cliente.** Na tarefa de reunião, ligue \"Convidar o contato do cliente\": o e-mail vem preenchido quando o cartão já virou cliente, e o Google manda o convite."
+          }
+        ]
+      },
+      {
+        "titulo": "Operação",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Parecer do cliente vem antes do parecer da operação.**"
+          }
+        ]
+      },
+      {
+        "titulo": "Claude",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**O Claude agora lê e escreve no app.** No claude.ai, em Conectores, adicione `https://app-capital-psi.vercel.app/api/mcp` e entre com a sua conta. Ele consulta funil, clientes e tarefas, cria e atualiza cartões, anota no histórico e marca reuniões — com o mesmo acesso que você tem no app. Ele não exclui nada."
+          }
+        ]
+      },
+      {
+        "titulo": "Segurança",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Cada um vê só o que é seu, também no banco.** Até aqui o limite valia nas telas; agora vale no banco, para qualquer caminho de acesso."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "2026-10-01-ajustes-da-operacao",
+    "data": "01/10/2026",
+    "titulo": "ajustes da operação",
+    "grupos": [
+      {
+        "titulo": "Operação",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**As flags salvam.** \"Com fee\", \"NDA assinado\", os dois mandatos e \"Estruturação em Andamento\" já gravavam — mas depois do primeiro salvamento o diálogo fechava sozinho toda vez que era reaberto, e parecia que nada tinha ficado. Agora cada abertura começa do zero e mostra o que está no banco."
+          },
+          {
+            "tipo": "item",
+            "texto": "**O nome do cliente aparece ao editar** — no topo do diálogo e na linha de contexto (\"Grupo STA · Along Dív\")."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Parecer da operação e parecer do cliente, lado a lado.** O do cliente passou a ser editável ali mesmo e grava no cadastro do cliente."
+          },
+          {
+            "tipo": "item",
+            "texto": "**\"Lista de Fornecedores\"** no lugar de \"Lista de Etapas\". A linha para incluir um fornecedor fica no alto, antes das duas tabelas; Status vem antes de \"Na mão de\"; fundos em ordem alfabética."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Aba Fornecedor com filtro de status** no cabeçalho da coluna Status."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Lista de operações em ordem alfabética e com busca.** A busca acha pelo cliente, pelo identificador ou pelo tipo, sem ligar para acento — \"agronegocios\" acha \"Garcia Agronegócios\"."
+          },
+          {
+            "tipo": "item",
+            "texto": "Listas de clientes, fundos e tipos do diálogo em ordem alfabética."
+          }
+        ]
+      },
+      {
+        "titulo": "Clientes",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Abre mais rápido.** Era a única tela que esperava uma pergunta ao banco terminar para fazer a próxima. No servidor: de 163ms para 97ms."
+          }
+        ]
+      },
+      {
+        "titulo": "Para o TI",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Botão \"Bubble\"** na barra do topo, só para a conta do Fabio TI: traz do Bubble os cadastros que ainda não existem aqui. Não altera nem apaga nada. Hoje só alcança fornecedor e funil — cliente, operação e etapas precisam ser liberados na API do Bubble de produção."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Ícone da Lure na aba do navegador.**"
+          }
+        ]
+      },
+      {
+        "titulo": "Bastidores",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "Proteção do banco (RLS) reescrita e medida, pronta para ligar — ainda não ligada. Ver `docs/seguranca.md`."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "2026-09-21-rodada-de-velocidade",
+    "data": "21/09/2026",
+    "titulo": "rodada de velocidade",
+    "grupos": [
+      {
+        "titulo": "Em todas as telas",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**As telas param de esperar por elas mesmas.** O sistema perguntava \"quem é esse usuário?\" e só *depois* ia buscar os dados da tela — 90ms de banco parado em toda navegação. Agora as duas coisas acontecem ao mesmo tempo. Quem vê o quê não mudou em nada: o bloqueio de acesso continua acontecendo antes de qualquer dado aparecer."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Listas longas aparecem por partes.** Clientes, fundos, operações, etapas, esteira, cartões do funil e tarefas mostram as primeiras 40 linhas na hora e vão completando conforme você rola — sem clique, sem espera. Buscar e filtrar continuam valendo sobre a lista inteira: procurar um cliente que está na linha 800 acha do mesmo jeito."
+          },
+          {
+            "tipo": "item",
+            "texto": "Quem navega por teclado tem um botão **\"Mostrar mais\"** no fim da lista, com a contagem do que falta."
+          }
+        ]
+      },
+      {
+        "titulo": "Esteira de Estruturação",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**A tela mais lenta virou a mais rápida.** Ela fazia quatro perguntas ao banco uma depois da outra, cada uma esperando a resposta da anterior. Duas viraram uma só, e as outras passaram a correr juntas. De 442ms para 366ms, e nos piores momentos de 567ms para menos de 500ms."
+          }
+        ]
+      },
+      {
+        "titulo": "Funil de Clientes",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**A aba Tarefas só é montada quando você abre.** Antes o calendário do mês e os oito grupos de tarefas eram desenhados junto com o quadro, mesmo em quem nunca abre essa aba. Depois de aberta uma vez, continua tudo como era: trocar de aba não recarrega nem perde busca e filtro."
+          }
+        ]
+      },
+      {
+        "titulo": "Bastidores",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "Novo guia: `docs/otimizacao-de-carregamento.md` — de onde vem o tempo, como medir, o que foi feito e, principalmente, **as cinco ideias que foram medidas e descartadas**, para ninguém gastar o dia de novo nelas."
+          },
+          {
+            "tipo": "item",
+            "texto": "`scripts/medir-navegacao.mjs` agora repete a medição e tira a mediana (`--vezes 7`). Uma medição só não servia para comparar nada: a mesma versão, medida três vezes seguidas, dava 485ms, 360ms e 380ms."
+          },
+          {
+            "tipo": "item",
+            "texto": "Conferido de novo e descartado de novo: trocar a conferência de sessão do middleware por uma verificação local não economiza tempo nenhum (372ms contra 375ms) e custaria a revogação de sessão pelo servidor."
+          }
+        ]
+      },
+      {
+        "titulo": "Onde chegamos",
+        "itens": [
+          {
+            "tipo": "texto",
+            "texto": "Mediana das quatro telas, da primeira visita até o dado na tela: **406ms → 375ms**. O desenho da tela continua respondendo em ~100ms. O que sobra agora é ida e volta ao Supabase, não espera boba — para melhorar muito além disto seria preciso aproximar o banco do servidor, o que não se justifica com o tamanho atual da base."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "2026-09-18-rodada-qol-parte-4",
+    "data": "18/09/2026",
+    "titulo": "rodada QOL, parte 4",
+    "grupos": [
+      {
+        "titulo": "A casca do sistema",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Quem está usando foi para a barra de cima**, à esquerda: bolinha com as iniciais, nome e cargo. Saiu da barra lateral, onde disputava espaço com os itens do menu."
+          },
+          {
+            "tipo": "item",
+            "texto": "**A barra lateral não corta mais.** Antes a janela inteira rolava e a lateral ficava presa no meio do caminho, com um vão branco em cima. Agora ela vai de ponta a ponta em qualquer tela, rolada ou não — quem rola é só a área de conteúdo."
+          }
+        ]
+      },
+      {
+        "titulo": "Funil de Clientes",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**A barra de rolagem do quadro fica na base da janela**, à mão. Antes o quadro crescia com a coluna mais alta e era preciso descer até o fim de tudo para achar a barra. Cada coluna rola por dentro quando tem cartão demais."
+          },
+          {
+            "tipo": "item",
+            "texto": "No celular nada disso vale: lá a página rola como sempre rolou, porque prender o quadro numa faixa de 400px seria pior."
+          }
+        ]
+      },
+      {
+        "titulo": "Esteira de Estruturação",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "Confirmado na tela: escolher **CRA** abre Securitizadora, DTVM, Agente Fiduciário e Custodiante; **Debêntures** abre Emissor, Estruturador, Agente Fiduciário e DTVM; **FIDC/FIAGRO/FII/SLB** abre Gestor, Administrador, DTVM e Assessoria Legal — e a lista de instrumentos mostra só os oito que vão para a esteira."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "2026-09-18-rodada-qol-parte-3",
+    "data": "18/09/2026",
+    "titulo": "rodada QOL, parte 3",
+    "grupos": [
+      {
+        "titulo": "Funil de Clientes",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**O cartão agora abre numa caixa 4:3**, ocupando ~70% da tela — mais larga que alta, em vez da tela inteira. Continua mostrando tudo sem barra de rolagem."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Os quatro botões da coluna passaram a funcionar**, e nenhum fazia o que promete:"
+          },
+          {
+            "tipo": "sub",
+            "texto": "as **setas** trocam a coluna de lugar com a vizinha (antes o banco arredondava a posição e a coluna caía em cima da outra);"
+          },
+          {
+            "tipo": "sub",
+            "texto": "o **ícone de caixa** mostra os **arquivados daquela coluna** — é o que ele faz no funil original. A coluna muda de cara para dizer em que vista está;"
+          },
+          {
+            "tipo": "sub",
+            "texto": "o **✕** agora pergunta antes, com a contagem de cartões na frente. Antes excluía calado e os cartões sumiam do quadro sem jeito de voltar."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Cor da tag é livre**: o quadradinho mostra a cor atual e abre o seletor do navegador, com todas as cores."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Tag pode ser desativada**: some dos filtros e do cartão **sem perder o histórico**. Excluir, esse sim, tira a tag de todos os cartões."
+          }
+        ]
+      },
+      {
+        "titulo": "Conta",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**A tela de trocar senha existe.** O botão \"Senha\" da barra apontava para uma rota que nunca foi escrita — dava 404 para qualquer um que clicasse."
+          }
+        ]
+      },
+      {
+        "titulo": "Quem vê o quê",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Indicante, em Clientes**: vê os clientes em que está em \"quem visualiza\" **e** os que ele mesmo cadastrou. A segunda metade não era possível antes — o sistema não guardava quem cadastrou (passa a guardar a partir de agora; os 51 clientes que vieram da carga ficam sem autor e seguem pela regra antiga)."
+          },
+          {
+            "tipo": "item",
+            "texto": "**\"Puxar do funil\" parou de mostrar a carteira inteira** ao indicante: agora só os cartões em que ele está como usuário."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Fornecedor, Operação e Esteira** já estavam bloqueadas para o indicante, tanto no menu quanto no servidor — conferido."
+          }
+        ]
+      },
+      {
+        "titulo": "Bastidores",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "Voltou atrás na guarda de sessão em cache: dava para misturar dados de sessões diferentes para economizar ~80ms. Não compensa."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "2026-09-18-rodada-qol-parte-2",
+    "data": "18/09/2026",
+    "titulo": "rodada QOL, parte 2",
+    "grupos": [
+      {
+        "titulo": "Menu lateral",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Quem está usando aparece no alto**: bolinha com as iniciais do nome (Maicon Farina vira MF), nome ao lado e o cargo embaixo, menor e em itálico. A bolinha é o lugar da foto do Google, para quando o login por Google entrar."
+          }
+        ]
+      },
+      {
+        "titulo": "Funil de Clientes",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**\"Novo cartão\" já cria o cartão.** Antes o cartão só nascia ao salvar: fechar o diálogo sem querer no meio de uma reunião levava junto o que tinha sido digitado. Agora ele existe desde o clique, grava sozinho, e cartão que não serviu se exclui pelo próprio diálogo."
+          },
+          {
+            "tipo": "item",
+            "texto": "**O cartão abre em tela cheia**, com os campos curtos numa coluna e parecer e histórico lado a lado — tudo à vista, **sem barra de rolagem** (conferido em 1920×1080, 1440×900 e 1366×768)."
+          },
+          {
+            "tipo": "item",
+            "texto": "**\"Tags\" e \"Colunas no fluxo\" passaram a funcionar.** Tags: criar, renomear, trocar a cor, excluir. Colunas: tirar do fluxo — a coluna some do quadro e **nenhum cartão se perde** — e renomear."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Cinzas mais leves no tema claro**: coluna quase branca, cartão branco com borda sutil. O tema escuro não mudou."
+          }
+        ]
+      },
+      {
+        "titulo": "Esteira de Estruturação",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**O campo \"Instrumento\" agora oferece só os oito que vão para a esteira** — CRA, CRI, CR, FIDC Proprietário, FIAGRO, FII, SLB e Debêntures. Listava os 31 tipos de operação, incluindo M&A, Câmbio e Vendor, que não têm estruturação para acompanhar ali."
+          },
+          {
+            "tipo": "item",
+            "texto": "Os campos que aparecem depois continuam mudando conforme o instrumento, como já era: CRA/CRI/CR pede Securitizadora, DTVM, Agente Fiduciário, Custodiante; Debêntures pede Emissor, Estruturador, Agente Fiduciário, DTVM; FIDC/FIAGRO/FII/SLB pede Gestor, Administrador, DTVM, Assessoria Legal."
+          }
+        ]
+      },
+      {
+        "titulo": "Velocidade",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Uma ida à rede a menos em toda navegação.** O sistema perguntava ao Supabase \"quem é esse usuário?\" a cada requisição, antes de a página começar; agora a assinatura do acesso é conferida na hora, sem sair do servidor."
+          },
+          {
+            "tipo": "item",
+            "texto": "**O cadastro de quem está logado fica 60s guardado** em vez de ser consultado a cada tela."
+          },
+          {
+            "tipo": "item",
+            "texto": "Medido em build de produção: o conteúdo chega em ~358ms, contra 377ms. O ganho grande continua sendo o de antes — a tela responde em ~100ms em vez de ficar parada. O que sobra é o tempo de ida e volta ao banco (~80ms por consulta), e não o tamanho do que trafega: cada tela manda entre 12 e 40 KB."
+          }
+        ]
+      },
+      {
+        "titulo": "Pendente, precisa de decisão",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "⚠️ **Produção continua fora do ar** até `NEXT_PUBLIC_SUPABASE_ANON_KEY` entrar no projeto da Vercel."
+          },
+          {
+            "tipo": "item",
+            "texto": "Otimizar as consultas de cada página ficou para a próxima rodada."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "2026-09-18-rodada-qol",
+    "data": "18/09/2026",
+    "titulo": "rodada QOL",
+    "grupos": [
+      {
+        "titulo": "Funil de Clientes",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Aba nova: Tarefas.** O funil agora tem duas abas — Quadro e Tarefas. A de tarefas mostra o que está **vencido**, o de **hoje**, **esta semana**, **este mês**, **próximo mês**, **depois** e **sem prazo**, cada grupo com contagem. As concluídas ficam recolhidas no fim."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Calendário do mês, clicável.** Dia com tarefa ganha ponto — vermelho quando há vencida, amarelo quando está em dia. Clicar no dia filtra a lista ao lado."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Tarefa dentro do cartão.** Cada cartão tem seu bloco de tarefas: criar, concluir e excluir sem sair do cartão e sem precisar salvar o cartão."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Toda tarefa pertence a um cartão** — não existe tarefa solta. Prazo é data, com hora opcional (reunião às 15h)."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Cartão vira cliente.** Ação no cartão cadastra o cliente puxando seis campos: razão social, diretor/gerente, faturamento anual, atividade, parecer e indicante. Se o cartão já virou cliente, a ação passa a levar até ele."
+          },
+          {
+            "tipo": "item",
+            "texto": "**O caminho inverso também existe:** no cadastro de um cliente novo, o seletor \"puxar do funil\" preenche esses mesmos seis campos a partir de um cartão."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Nome repetido não passa em silêncio.** Se já existir cliente com o mesmo nome, a tela avisa e deixa você escolher: ligar ao que existe, ou criar um segundo cadastro."
+          }
+        ]
+      },
+      {
+        "titulo": "Operação",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Campos que faltavam:** Destino do recurso, Mandato assinado com o fundo e o toggle **Estruturação em Andamento** — é ele que manda a operação para a esteira."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Rótulos corrigidos** para os de produção: \"Com fee\", \"NDA assinado com o Cliente\", \"Mandato assinado pelo cliente\"."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Faturamento anual virou campo livre** — era somente leitura."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Declinados em tabela própria**, abaixo da principal: as etapas com \"já cliente do fundo\", \"declinado pelo fundo\" e \"declinado pelo cliente\" saem da lista de cima e aparecem embaixo, com a legenda explicando."
+          },
+          {
+            "tipo": "item",
+            "texto": "**\"Na mão de\" mostra o texto inteiro.** Antes cortava com reticências; agora quebra linha, e a edição é campo de várias linhas."
+          }
+        ]
+      },
+      {
+        "titulo": "Esteira de Estruturação",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Lista só o que está de fato em estruturação** — duas operações, como no app antigo. Antes trazia tudo. Entra quem tem o toggle marcado **e** cliente com etapa em \"contrato assinado\"."
+          }
+        ]
+      },
+      {
+        "titulo": "Fornecedor",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Fundos habilitados viram tags clicáveis** na matriz de tipos de operação, uma por fundo, cada uma abrindo o cadastro daquele fundo. Antes era texto corrido cortado em uma linha."
+          }
+        ]
+      },
+      {
+        "titulo": "Em todas as telas",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Escolher um valor não abre mais uma tela por cima.** Os campos de seleção agora abrem um menu ancorado no próprio campo, com busca quando a lista é grande (31 tipos de operação, 73 fundos) e teclado completo: setas, Enter, Esc. Dentro de tabela e dentro de diálogo também."
+          },
+          {
+            "tipo": "item",
+            "texto": "**As telas respondem na hora.** Antes a tela anterior ficava parada de um terço a meio segundo sem sinal nenhum; agora o desenho da tela aparece em ~100ms e o conteúdo entra por cima. O tempo do dado é o mesmo — o que mudou é não ficar no escuro."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Campo de texto longo com respiro.** Parecer, histórico e observação tinham o texto colado na borda de cima."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Movimento.** Diálogo entra e sai com transição, troca de tela também, e a barra de carregamento tem brilho. Tudo curto (120–180ms), e desligado para quem pede menos movimento no sistema operacional."
+          }
+        ]
+      },
+      {
+        "titulo": "Bastidores",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "Banco: `006` (tarefas do funil, cartão ligado a cliente) e `007` (índice da esteira), as duas aplicadas."
+          },
+          {
+            "tipo": "item",
+            "texto": "QA interno: 42 passos nas três formas (claro, escuro, celular), agora em paralelo — de ~4 minutos para 30 segundos."
+          },
+          {
+            "tipo": "item",
+            "texto": "O esqueleto de carregamento estava se passando por conteúdo no QA: os passos passavam fotografando a tela em branco. Corrigido — foi assim que a lista da esteira apareceu errada numa captura."
+          }
+        ]
+      },
+      {
+        "titulo": "Pendente, precisa de decisão",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Produção fora do ar até alguém colocar `NEXT_PUBLIC_SUPABASE_ANON_KEY` no projeto da Vercel.** O build passa; o app cai em toda requisição sem essa variável."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Botão \"Senha\" da barra superior dá 404** — a tela `/conta/senha` nunca foi escrita. Ou ela existe, ou o botão sai."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Toggle de estruturação:** 3 das 14 operações estão marcadas, e o toggle só passou a existir na tela agora. Vale revisar quais operações estão de fato em estruturação."
+          },
+          {
+            "tipo": "item",
+            "texto": "**RLS continua desligada** (`db/003_rls.sql` escrito, não aplicado). Precisa entrar antes de dado real de cliente."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Sem conferência visual:** a tabela de declinados e o \"Na mão de\" longo — o QA não rola o diálogo até lá. Caso de teste indicado: operação \"FIDC Prop / Sementes Veneza\", 15 etapas, 6 declinadas."
+          }
+        ]
+      }
+    ]
+  }
+];

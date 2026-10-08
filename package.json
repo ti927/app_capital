@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "notas": "node scripts/gerar-notas-de-versao.mjs",
+    "predev": "npm run notas",
     "dev": "next dev",
+    "prebuild": "npm run notas",
     "build": "next build",
     "start": "next start",
     "lint": "eslint src",

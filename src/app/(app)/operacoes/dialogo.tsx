@@ -93,6 +93,7 @@ export function DialogoOperacao({
   }, [estado]);
 
   const [emailAberto, setEmailAberto] = useState(false);
+  const [faturamento, setFaturamento] = useState(operacao?.faturamento_anual ?? '');
   const nova = !operacao;
   const temCliente = Boolean(operacao?.cliente_id);
   const nomeCliente = operacao?.cliente_id
@@ -160,6 +161,12 @@ export function DialogoOperacao({
             rotulo="Escolher cliente:"
             nome="cliente_id"
             opcoes={clientesOrdenados.map((c) => ({ valor: c.id, rotulo: c.nome_razao }))}
+            aoEscolher={(id) => {
+              // O faturamento do cadastro do cliente já vem para a operação
+              // (pedido de 08/10/2026) — e continua editável.
+              const doCliente = clientes.find((c) => c.id === id)?.faturamento_anual;
+              if (doCliente) setFaturamento(doCliente);
+            }}
           />
         ) : (
           <>
@@ -193,7 +200,7 @@ export function DialogoOperacao({
         <Campo rotulo="Demanda final" nome="demanda_final" valorInicial={operacao?.demanda_final ?? ''} placeholder="Digite aqui" />
 
         {/* Texto livre: veio do cliente na migração, mas edita-se aqui. */}
-        <Campo rotulo="Faturamento anual" nome="faturamento_anual" valorInicial={operacao?.faturamento_anual ?? ''} placeholder="Digite aqui" />
+        <Campo rotulo="Faturamento anual" nome="faturamento_anual" valor={faturamento} aoMudar={setFaturamento} placeholder="Digite aqui" />
         <Campo rotulo="Comissão" nome="comissao" valorInicial={operacao?.comissao ?? ''} placeholder="Digite aqui" />
 
         {/* Group VZ do Bubble: Comissão e Destino do recurso lado a lado. */}

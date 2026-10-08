@@ -17,6 +17,8 @@ export interface ClienteResumo {
   nome_razao: string;
   /** `cliente.parecer` — editável no diálogo como "Parecer do cliente". */
   parecer: string | null;
+  /** Preenche "Faturamento anual" ao escolher o cliente numa operação nova. */
+  faturamento_anual: string | null;
 }
 export interface Observacao {
   id: number;
@@ -45,7 +47,7 @@ export default async function PaginaOperacoes() {
   const pedidos = Promise.all([
     supabase.from('operacao').select(CAMPOS).eq('arquivado', false).order('identificador'),
     supabase.from('operacao').select(CAMPOS).eq('arquivado', true).order('identificador'),
-    supabase.from('cliente').select('id, nome_razao, parecer').order('nome_razao'),
+    supabase.from('cliente').select('id, nome_razao, parecer, faturamento_anual').order('nome_razao'),
     supabase.from('fornecedor').select('id, nome_fundo').eq('arquivado', false).order('nome_fundo'),
     supabase.from('tipo_operacao').select('id, chave, rotulo, ordem').order('ordem'),
     supabase.from('status_etapa').select('id, chave, rotulo, ordem').order('ordem'),

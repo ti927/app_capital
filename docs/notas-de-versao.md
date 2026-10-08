@@ -4,6 +4,57 @@ Uma seção por rodada, a mais recente no topo. Escrito para quem usa o sistema.
 
 ---
 
+## 08/10/2026 — salvar com retorno, sincronização e funil vivo
+
+### Em todo o sistema
+
+- **Ao salvar, você vê que salvou.** O botão mostra um ícone girando enquanto
+  grava, aparece uma notificação pequena no canto da tela ("Cliente salvo") e
+  o item salvo dá um brilho curto na lista.
+- **Trocas de aba e de tela com animação.** O sublinhado da aba e a pílula do
+  menu deslizam até o item escolhido, e o conteúdo entra suavemente.
+- **Notas de versão no sino** da barra de cima, com bolinha amarela quando há
+  novidade.
+
+### Funil
+
+- **Arrastar cartão com vida.** O cartão pego balança, a coluna de destino
+  mostra uma vaga pontilhada exatamente onde ele vai cair, e ele fica naquela
+  posição. Esc cancela.
+
+### Clientes
+
+- **"Quem visualiza" já no cadastro** de cliente novo, sem precisar salvar e
+  editar depois.
+
+### Operação
+
+- **Faturamento anual vem do cliente** ao escolher o cliente numa operação
+  nova (continua editável).
+- **E-mail de status como no Bubble:** texto padrão já preenchido e editável,
+  campo Status e Week Update, e os prints das tabelas da tela — ao marcar a
+  caixa, o print aparece na hora.
+- **Ordem do diálogo:** Observações → Declínios → Limites/fundos assinados →
+  Lista de Fornecedores; na linha de inclusão, Fundo vem antes do Tipo.
+  Status da tabela aparece por inteiro e o diálogo ficou mais largo.
+- Reabrir um registro logo depois de salvar não fecha mais sozinho.
+
+### Fornecedor
+
+- **1º e 2º linha completas** em Tipo Operações, sem reticências.
+
+### Sincronização com o Bubble
+
+- **Traz novos e alterados**, e o que for apagado no Bubble vira arquivado
+  aqui. O que foi criado só no app novo nunca é tocado.
+
+### Segurança
+
+- O acesso de indicante ficou limitado também no banco: só os clientes e
+  cartões dele.
+
+---
+
 ## 02/10/2026 — integrações
 
 ### Entrada

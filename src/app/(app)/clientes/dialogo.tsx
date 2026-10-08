@@ -152,7 +152,7 @@ function CorpoDialogoCliente({
           <QuemVisualiza
             usuarios={usuarios}
             escolhidos={visualizadores}
-            desabilitado={!podeEditarVisualizadores || !cliente}
+            desabilitado={!podeEditarVisualizadores}
           />
 
           {/* 9 */}

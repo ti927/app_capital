@@ -16,6 +16,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import pg from 'pg';
 import { chromium } from 'playwright';
 
 const BASE = process.env.QA_BASE ?? 'http://localhost:3000';
@@ -51,6 +52,49 @@ function credenciais() {
   const [email, senha] = linha.split('\t');
   return { email, senha };
 }
+
+/**
+ * Roda um SQL no banco de dev (DIRECT_URL do .env, só leitura do arquivo).
+ * Usado só para desfazer a marca de "notas vistas" da conta de QA.
+ */
+async function sql(consulta, valores = []) {
+  const env = Object.fromEntries(
+    fs
+      .readFileSync('.env', 'utf8')
+      .split(/\r?\n/)
+      .filter((l) => l && !l.trimStart().startsWith('#') && l.includes('='))
+      .map((l) => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]),
+  );
+  const cliente = new pg.Client({
+    connectionString: env.DIRECT_URL || env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+  await cliente.connect();
+  try {
+    return await cliente.query(consulta, valores);
+  } finally {
+    await cliente.end();
+  }
+}
+
+/**
+ * As três formas do QA rodam juntas com a MESMA conta, e "notas vistas" é um
+ * estado da conta: sem ordem, uma abriria o sino enquanto a outra espera a
+ * bolinha. A trava é um diretório (mkdir é atômico).
+ */
+const TRAVA_NOTAS = path.join('qa', '.trava-notas');
+async function pegaTravaDasNotas() {
+  for (let i = 0; i < 240; i++) {
+    try {
+      fs.mkdirSync(TRAVA_NOTAS);
+      return;
+    } catch {
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  throw new Error('trava das notas de versão não liberou em 2 minutos');
+}
+const soltaTravaDasNotas = () => fs.rmSync(TRAVA_NOTAS, { recursive: true, force: true });
 
 // Uma marca por forma: as três corridas rodam juntas na mesma operação.
 const MARCA_ETAPA = `QA-TESTE-${path.basename(SAIDA)}`;
@@ -592,6 +636,32 @@ await passo(pagina, 'operacao-fechado', async () => {
   await pagina.waitForTimeout(400);
 });
 
+await passo(pagina, 'operacao-nova-faturamento-do-cliente', async () => {
+  // Escolher o cliente numa operação nova traz o faturamento do cadastro dele
+  // (pedido de 08/10/2026). Escolhe clientes até achar um com faturamento;
+  // não salva nada — fecha com Esc.
+  const nova = pagina.locator('button:has-text("Nova Operação")').first();
+  if (!(await nova.count())) return;
+  await nova.click();
+  await pagina.waitForSelector('text=Escolher cliente', { timeout: 5000 });
+  const campo = pagina.locator('.lc-dialog input[name="faturamento_anual"]');
+  for (let i = 0; i < 12 && !(await campo.inputValue()); i += 1) {
+    await pagina.locator('.lc-dialog .lc-field:has-text("Escolher cliente") .gatilho').click();
+    const opcoes = pagina.locator('.opcoes__item:visible');
+    if (i >= (await opcoes.count())) break;
+    await opcoes.nth(i).click();
+    await pagina.waitForTimeout(150);
+  }
+  if (!(await campo.inputValue())) throw new Error('nenhum cliente trouxe o faturamento para a operação');
+  await campo.scrollIntoViewIfNeeded();
+});
+
+await passo(pagina, 'operacao-nova-fechada', async () => {
+  if (!(await pagina.locator('text=Escolher cliente').count())) return;
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForTimeout(400);
+});
+
 // ---------------------------------------------------------------- esteira ---
 await passo(pagina, 'esteira-lista', async () => {
   await pagina.click('a[href="/esteira"]');
@@ -842,6 +912,139 @@ await passo(pagina, 'clientes-puxar-do-funil-fechado', async () => {
   await pagina.keyboard.press('Escape');
   await pagina.waitForTimeout(400);
 });
+
+// ------------------------------------- cliente novo com "Quem visualiza" ---
+const NOME_QA_CLIENTE = `QA-TESTE-visualizadores-${path.basename(SAIDA)}`;
+
+/** Apaga o cliente de teste pela tela, se existir (sobra de corrida que caiu). */
+async function apagaClienteDeTeste(pagina) {
+  const item = () => pagina.locator(`.lista__item:has-text("${NOME_QA_CLIENTE}")`);
+  for (let tentativa = 0; tentativa < 4; tentativa++) {
+    await pagina.goto(`${BASE}/clientes`);
+    await pagina.waitForSelector(ITEM_REAL, { timeout: 20000 });
+    await pagina.fill('input[placeholder="Buscar clientes"]', NOME_QA_CLIENTE);
+    await pagina.waitForTimeout(300);
+    if (!(await item().count())) return;
+    await item().first().locator('button[title="Deletar"]').click();
+    await pagina.locator('.lc-dialog__foot button:has-text("Deletar")').click();
+    await pagina.waitForTimeout(1500);
+  }
+  throw new Error('não consegui apagar o cliente de teste');
+}
+
+await passo(pagina, 'clientes-novo-quem-visualiza', async () => {
+  await apagaClienteDeTeste(pagina);
+  await pagina.locator('button:has-text("Novo Cliente")').click();
+  await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+  const campo = pagina.locator('.lc-field:has-text("Quem visualiza")');
+  if (!(await campo.count())) throw new Error('"Quem visualiza" não apareceu no cliente novo');
+  if (await campo.locator('button.gatilho').isDisabled()) {
+    throw new Error('"Quem visualiza" está desabilitado para master no cliente novo');
+  }
+  await campo.scrollIntoViewIfNeeded();
+});
+
+await passo(pagina, 'clientes-novo-com-dois-visualizadores', async () => {
+  await pagina.fill('input[name="nome_razao"]', NOME_QA_CLIENTE);
+  await pagina.locator('.lc-field:has-text("Quem visualiza") button.gatilho').click();
+  await pagina.waitForSelector('.lc-popover', { timeout: 5000 });
+  const opcoes = pagina.locator('.lc-popover .opcoes__item');
+  if ((await opcoes.count()) < 2) throw new Error('menos de duas pessoas para escolher');
+  await opcoes.nth(0).click();
+  await opcoes.nth(1).click();
+  await pagina.locator('.lc-popover__pe button:has-text("Pronto")').click();
+  await pagina.waitForSelector('.lc-popover', { state: 'detached', timeout: 3000 });
+  const fichas = await pagina.locator('.lc-field:has-text("Quem visualiza") .ficha').count();
+  if (fichas !== 2) throw new Error(`esperava 2 fichas, vi ${fichas}`);
+  await pagina.locator('.lc-dialog__foot button[type="submit"]').click();
+  await pagina.waitForSelector('.lc-aviso', { timeout: 8000 });
+});
+
+await passo(pagina, 'clientes-novo-visualizadores-gravados', async () => {
+  await pagina.waitForSelector('.lc-overlay', { state: 'detached', timeout: 5000 });
+  await pagina.fill('input[placeholder="Buscar clientes"]', NOME_QA_CLIENTE);
+  await pagina.waitForTimeout(300);
+  await pagina.locator(`.lista__item:has-text("${NOME_QA_CLIENTE}") .lista__abrir`).click();
+  await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+  await pagina.waitForTimeout(300);
+  // Os dois escolhidos, mais quem cadastrou (se não for um dos dois).
+  const campo = pagina.locator('.lc-field:has-text("Quem visualiza")');
+  const fichas = (await campo.locator('.ficha').count()) + ((await campo.locator('.apoio').count()) ? 1 : 0);
+  if (fichas < 2) throw new Error(`os vínculos não foram gravados (fichas: ${fichas})`);
+});
+
+await passo(pagina, 'clientes-novo-teste-apagado', async () => {
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForTimeout(400);
+  await apagaClienteDeTeste(pagina);
+  if (await pagina.locator(`.lista__item:has-text("${NOME_QA_CLIENTE}")`).count()) {
+    throw new Error('o cliente de teste não foi apagado');
+  }
+});
+
+// ------------------------------------------------ sino de notas de versão ---
+// Exige NOTAS_DE_VERSAO_EMAILS com o e-mail da conta de QA no servidor de dev.
+const SINO = 'button[title="Notas de versão"]';
+let travaDasNotas = false;
+try {
+  await passo(pagina, 'notas-sino-com-bolinha', async () => {
+    await pegaTravaDasNotas();
+    travaDasNotas = true;
+    await sql('update perfil set notas_vistas = null where lower(email) = lower($1)', [email]);
+    await pagina.goto(`${BASE}/clientes`);
+    await pagina.waitForSelector(SINO, { timeout: 20000 }).catch(() => {
+      throw new Error('sem sino — suba o dev com NOTAS_DE_VERSAO_EMAILS=<email da conta de QA>');
+    });
+    await pagina.waitForSelector(`${SINO} [data-testid="notas-bolinha"]`, { timeout: 5000 });
+  });
+
+  await passo(pagina, 'notas-painel-aberto', async () => {
+    await pagina.locator(SINO).click();
+    await pagina.waitForSelector('.lc-notas', { timeout: 5000 });
+    await pagina.waitForTimeout(250);
+    if (await pagina.locator('.lc-overlay').count()) throw new Error('o painel abriu como diálogo, com véu');
+    if (!(await pagina.locator('.lc-notas__rodada').count())) throw new Error('o painel abriu sem notas');
+    const caixa = await pagina.locator('.lc-notas').boundingBox();
+    const janela = pagina.viewportSize();
+    if (!caixa || caixa.x < 0 || caixa.x + caixa.width > janela.width + 1 || caixa.y + caixa.height > janela.height + 1) {
+      throw new Error('o painel não cabe na janela');
+    }
+    if (await pagina.locator('[data-testid="notas-bolinha"]').count()) {
+      throw new Error('a bolinha continuou depois de abrir');
+    }
+  });
+
+  await passo(pagina, 'notas-fecha-clicando-fora', async () => {
+    // Canto vazio da barra de cima: no celular o painel cobre o resto.
+    await pagina.mouse.click(4, 4);
+    await pagina.waitForSelector('.lc-notas', { state: 'detached', timeout: 3000 });
+  });
+
+  await passo(pagina, 'notas-fecha-com-esc-e-fica-visto', async () => {
+    await pagina.locator(SINO).click();
+    await pagina.waitForSelector('.lc-notas', { timeout: 3000 });
+    await pagina.keyboard.press('Escape');
+    await pagina.waitForSelector('.lc-notas', { state: 'detached', timeout: 3000 });
+    // Visto vale no banco: espera a gravação (a primeira chamada compila a
+    // ação no dev) e confere que recarregar não traz a bolinha de volta.
+    for (let i = 0; i < 40; i++) {
+      const { rows } = await sql('select notas_vistas from perfil where lower(email) = lower($1)', [email]);
+      if (rows[0]?.notas_vistas) break;
+      await pagina.waitForTimeout(500);
+    }
+    await pagina.reload();
+    await pagina.waitForSelector(SINO, { timeout: 20000 });
+    if (await pagina.locator('[data-testid="notas-bolinha"]').count()) {
+      throw new Error('a bolinha voltou depois de recarregar — o visto não foi gravado');
+    }
+  });
+} finally {
+  if (travaDasNotas) {
+    // A conta de QA volta a "não viu": a próxima corrida precisa da bolinha.
+    await sql('update perfil set notas_vistas = null where lower(email) = lower($1)', [email]).catch(() => {});
+    soltaTravaDasNotas();
+  }
+}
 
 
 // ------------------------------------------------------------- relatório ----

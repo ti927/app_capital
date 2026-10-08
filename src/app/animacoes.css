@@ -497,3 +497,132 @@
     background-color: color-mix(in srgb, var(--accent) 35%, transparent);
   }
 }
+
+/* --- notas de versão: sino e painel ----------------------------------------
+
+   Painel pequeno preso ao sino, sem véu. Entra com um fade e 4px de descida.
+   --------------------------------------------------------------------------- */
+
+.lc-notas__sino {
+  position: relative;
+}
+
+.lc-notas__bolinha {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
+  animation: lc-notas-bolinha var(--mov-padrao) var(--mov-curva);
+}
+
+.lc-notas {
+  position: fixed;
+  z-index: calc(var(--z-modal) + 5);
+  width: min(360px, calc(100vw - 16px));
+  max-height: min(420px, calc(100dvh - 80px));
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: var(--border-w) solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+  animation: lc-notas-entra var(--mov-padrao) var(--mov-curva);
+}
+
+.lc-notas__lista {
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.lc-notas__rodada + .lc-notas__rodada {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: var(--border-w) solid var(--border);
+}
+
+.lc-notas__titulo {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lc-notas__data {
+  font-weight: 400;
+  opacity: 0.65;
+}
+
+.lc-notas__grupo {
+  margin: var(--space-2) 0 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.lc-notas ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lc-notas li {
+  position: relative;
+  padding-left: 12px;
+  margin-bottom: 4px;
+}
+
+.lc-notas li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.6em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.45;
+}
+
+.lc-notas__sub {
+  margin-left: 12px;
+}
+
+.lc-notas__texto {
+  padding-left: 0;
+}
+
+.lc-notas__texto::before {
+  display: none;
+}
+
+.lc-notas code {
+  font-size: 12px;
+}
+
+@keyframes lc-notas-entra {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes lc-notas-bolinha {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-notas,
+  .lc-notas__bolinha {
+    animation: none;
+  }
+}

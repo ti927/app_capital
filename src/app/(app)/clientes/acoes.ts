@@ -53,7 +53,14 @@ export async function gravarCliente(_anterior: unknown, dados: FormData) {
 
     // Quem cria enxerga. No original isso era feito por workflow, com um ID de
     // usuário cravado em código; aqui é o autor da ação.
-    await supabase.from('cliente_visualizador').insert({ cliente_id: data.id, perfil_id: perfil.id });
+    // Master pode escolher mais gente já no cadastro (policy: só master
+    // insere vínculo de outra pessoa); os demais só se põem.
+    const extras =
+      perfil.nivel_acesso === 'master' ? dados.getAll('quem_visualiza').map(String).filter(Boolean) : [];
+    const ids = [...new Set([perfil.id, ...extras])];
+    await supabase
+      .from('cliente_visualizador')
+      .insert(ids.map((perfil_id) => ({ cliente_id: data.id, perfil_id })));
 
     // Cadastro puxado de um cartão do funil: liga os dois, senão o mesmo
     // cartão continuaria sendo oferecido em "Puxar do funil".

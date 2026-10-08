@@ -36,6 +36,7 @@ export async function gravarCliente(_anterior: unknown, dados: FormData) {
     status: texto(dados, 'status'),
   };
 
+  let salvoId = id;
   if (id) {
     const { error } = await supabase.from('cliente').update(campos).eq('id', id);
     if (error) return { erro: 'Não consegui salvar. Tente de novo.' };
@@ -48,6 +49,7 @@ export async function gravarCliente(_anterior: unknown, dados: FormData) {
       .select('id')
       .single();
     if (error || !data) return { erro: 'Não consegui cadastrar. Tente de novo.' };
+    salvoId = data.id as string;
 
     // Quem cria enxerga. No original isso era feito por workflow, com um ID de
     // usuário cravado em código; aqui é o autor da ação.
@@ -74,7 +76,7 @@ export async function gravarCliente(_anterior: unknown, dados: FormData) {
   }
 
   revalidatePath('/clientes');
-  return { ok: true };
+  return { ok: true, id: salvoId };
 }
 
 export async function arquivarCliente(id: string, arquivado: boolean) {

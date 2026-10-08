@@ -24,6 +24,8 @@ export interface TabelaProps {
   folgada?: boolean;
   /** Renderizado no lugar do corpo quando não há linha nenhuma. */
   semLinhas?: React.ReactNode;
+  /** Classe extra por linha — o brilho `lc-salvo` do registro recém-salvo. */
+  classeDaLinha?: (linha: Record<string, React.ReactNode>) => string | undefined;
   className?: string;
 }
 
@@ -38,6 +40,7 @@ export function Tabela({
   vazio = '-',
   folgada,
   semLinhas,
+  classeDaLinha,
   className,
 }: TabelaProps) {
   if (!linhas.length && semLinhas) return <>{semLinhas}</>;
@@ -60,7 +63,7 @@ export function Tabela({
       </thead>
       <tbody>
         {linhas.map((linha, i) => (
-          <tr key={(linha.id as string) ?? i}>
+          <tr key={(linha.id as string) ?? i} className={classeDaLinha?.(linha)}>
             {colunas.map((c, j) => {
               const valor = linha[c.chave];
               const preenchido = valor !== undefined && valor !== null && valor !== '';

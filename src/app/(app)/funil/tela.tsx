@@ -28,6 +28,7 @@ import { DialogoCartao } from './dialogo';
 import { DialogoColunas, DialogoTags } from './gestao';
 import { PainelTarefas } from './tarefas';
 import { DialogoVirarCliente } from './virar-cliente';
+import { classeDestaque, useAvisos, useDestaque } from '@/components/ui/aviso';
 import type { CartaoDoFunil, EtapaFunil, TagFunil, Tarefa } from './page';
 import './funil.css';
 
@@ -655,9 +656,16 @@ function Cartao({
   aoPegar: (e: React.PointerEvent<HTMLElement>) => void;
   aoVirarCliente: () => void;
 }) {
+  const destaque = useDestaque();
   return (
     <article
-      className={pousou ? 'funil__cartao funil__cartao--pousou' : 'funil__cartao'}
+      className={[
+        'funil__cartao',
+        pousou && 'funil__cartao--pousou',
+        classeDestaque(destaque, cartao.id),
+      ]
+        .filter(Boolean)
+        .join(' ')}
       data-cartao={cartao.id}
       onPointerDown={aoPegar}
     >
@@ -800,6 +808,7 @@ function DialogoNovaColuna({
 }) {
   const [nome, setNome] = useState('');
   const [, transicao] = useTransition();
+  const { avisar } = useAvisos();
 
   return (
     <Dialogo
@@ -816,7 +825,11 @@ function DialogoNovaColuna({
             variante="primary"
             disabled={!nome.trim()}
             onClick={() => {
-              transicao(() => void criarColuna(quadroId, nome));
+              const dados = nome;
+              transicao(async () => {
+                await criarColuna(quadroId, dados);
+                avisar('Coluna criada');
+              });
               setNome('');
               aoFechar();
             }}

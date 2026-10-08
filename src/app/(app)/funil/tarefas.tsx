@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition, type ComponentProps, type ReactNode } from 'react';
 import { Botao, Campo, Vazio } from '@/components/ui/base';
-import { Dialogo } from '@/components/ui/dialogo';
+import { Dialogo, useSessaoDoDialogo } from '@/components/ui/dialogo';
+import { useAvisos } from '@/components/ui/aviso';
 import { SeletorPopup } from '@/components/ui/seletor-popup';
 import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import {
@@ -363,7 +364,14 @@ export function CaixaConcluir({ tarefa }: { tarefa: Pick<Tarefa, 'id' | 'titulo'
  * diálogo de cliente. O cartão é obrigatório, por isso vem primeiro; quando o
  * diálogo abre de dentro de um cartão, ele já vem preso e só se lê.
  */
-export function DialogoTarefa({
+export function DialogoTarefa(props: ComponentProps<typeof CorpoDialogoTarefa>) {
+  // Uma `key` por abertura: dois "Nova tarefa" seguidos têm a mesma `key` de
+  // fora, e o `{ ok: true }` do primeiro fechava o segundo ao abrir.
+  const sessao = useSessaoDoDialogo(props.aberto);
+  return <CorpoDialogoTarefa key={sessao} {...props} />;
+}
+
+function CorpoDialogoTarefa({
   aberto,
   tarefa,
   quadroId,
@@ -397,9 +405,19 @@ export function DialogoTarefa({
   // Com aviso da agenda, o diálogo fica aberto para a pessoa ler: a tarefa já
   // salvou, e o rodapé vira só "Fechar" — "Criar" de novo duplicaria.
   const salvouComAviso = Boolean(estado?.ok && estado.aviso);
+  const { avisar } = useAvisos();
+  // `aoFechar` é uma função nova a cada render da tela: fora das dependências,
+  // senão o efeito rodaria de novo (e o aviso sairia em dobro).
+  const ultimo = useRef({ aoFechar, avisar, editando: Boolean(tarefa) });
+  ultimo.current = { aoFechar, avisar, editando: Boolean(tarefa) };
   useEffect(() => {
-    if (estado?.ok && !estado.aviso) aoFechar();
-  }, [estado, aoFechar]);
+    if (estado?.ok) {
+      ultimo.current.avisar(ultimo.current.editando ? 'Tarefa salva' : 'Tarefa criada');
+      if (!estado.aviso) ultimo.current.aoFechar();
+    } else if (estado?.erro) {
+      ultimo.current.avisar(estado.erro, { tipo: 'erro' });
+    }
+  }, [estado]);
 
   if (!aberto) return null;
 
@@ -424,7 +442,7 @@ export function DialogoTarefa({
             <Botao variante="secondary" onClick={aoFechar}>
               Cancelar
             </Botao>
-            <Botao variante="primary" type="submit" form="forma-tarefa" disabled={gravando || !cartaoId}>
+            <Botao variante="primary" type="submit" form="forma-tarefa" carregando={gravando} disabled={!cartaoId}>
               {gravando ? 'Gravando…' : tarefa ? 'Salvar' : 'Criar tarefa'}
             </Botao>
           </>

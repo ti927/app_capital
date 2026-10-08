@@ -1,5 +1,6 @@
 'use client';
 
+import { classeDestaque, useDestaque } from '@/components/ui/aviso';
 import { Indicador } from '@/components/ui/indicador';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Botao, Vazio } from '@/components/ui/base';
@@ -67,6 +68,7 @@ export function TelaOperacoes(props: {
   );
   const [aExcluir, setAExcluir] = useState<Operacao | null>(null);
   const [, transicao] = useTransition();
+  const destaque = useDestaque();
 
   const nomeCliente = useMemo(
     () => new Map(clientes.map((c) => [c.id, c.nome_razao])),
@@ -150,6 +152,7 @@ export function TelaOperacoes(props: {
   const itemDaLista = (op: Operacao, arquivado: boolean) => (
     <ItemDaLista
       key={op.id}
+      className={classeDestaque(destaque, op.id)}
       aoAbrir={() => abrirOperacao(op)}
       rotuloAbrir="Editar operacao"
       acoes={

@@ -3,6 +3,7 @@ import { BarraApp, ITENS_NAV, niveisQueVeem, PerfilNaBarra } from '@/components/
 import { NavLateral } from '@/components/ui/navlateral';
 import { BotaoDeTema } from '@/components/ui/tema';
 import { Transicao } from '@/components/ui/transicao';
+import { AvisosProvider } from '@/components/ui/aviso';
 import { BotaoConfiguracoes, type UsuarioDoAcesso } from '@/components/configuracoes';
 import { IconeAgenda, IconeSair, IconeSenha } from '@/components/ui/icones';
 import { clienteServidor } from '@/lib/supabase/servidor';
@@ -32,6 +33,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
   }
 
   return (
+    <AvisosProvider>
     <div className="casca">
       <BarraApp
         perfil={<PerfilNaBarra nome={perfil.nome} nivel={perfil.nivel_acesso} />}
@@ -75,5 +77,6 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         </main>
       </div>
     </div>
+    </AvisosProvider>
   );
 }

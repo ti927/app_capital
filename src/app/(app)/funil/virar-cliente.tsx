@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Botao } from '@/components/ui/base';
+import { useAvisos } from '@/components/ui/aviso';
 import { Dialogo } from '@/components/ui/dialogo';
 import { criarClienteDoCartao, vincularCartaoACliente } from './acoes';
 import type { CartaoDoFunil } from './page';
@@ -43,6 +44,7 @@ export function DialogoVirarCliente({
   const [duplicado, setDuplicado] = useState<Duplicado | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [emCurso, transicao] = useTransition();
+  const { avisar } = useAvisos();
 
   // Cada abertura começa limpa: o aviso do cartão anterior não segue para o próximo.
   useEffect(() => {
@@ -70,6 +72,7 @@ export function DialogoVirarCliente({
       setErro(r.erro);
       return;
     }
+    avisar('Cliente cadastrado');
     aoFechar();
   };
 
@@ -82,6 +85,7 @@ export function DialogoVirarCliente({
   const vincular = (clienteId: string) =>
     transicao(async () => {
       await vincularCartaoACliente(cartao.id, clienteId);
+      avisar('Cartão ligado ao cliente');
       aoFechar();
     });
 
@@ -144,7 +148,8 @@ export function DialogoVirarCliente({
             <Botao
               variante="primary"
               onClick={() => criar(false)}
-              disabled={emCurso || !cartao.empresa.trim()}
+              carregando={emCurso}
+              disabled={!cartao.empresa.trim()}
               title={cartao.empresa.trim() ? undefined : 'O cartão precisa ter empresa'}
             >
               {emCurso ? 'Cadastrando…' : 'Cadastrar cliente'}

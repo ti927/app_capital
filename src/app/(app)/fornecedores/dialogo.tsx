@@ -1,9 +1,10 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useState } from 'react';
+import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
-import { Dialogo } from '@/components/ui/dialogo';
+import { Dialogo, useSessaoDoDialogo } from '@/components/ui/dialogo';
+import { useAvisos } from '@/components/ui/aviso';
 import { STATUS_FORNECEDOR, type Fornecedor, type TabelaApoio } from '@/lib/dominio';
 import { gravarFornecedor } from './acoes';
 import type { VinculoTipo } from './page';
@@ -14,20 +15,29 @@ import type { VinculoTipo } from './page';
  * O nome do fundo é o título editável no topo do corpo, não um campo comum.
  * A régua separa os dados cadastrais dos quatro seletores de tipo de operação.
  */
-export function DialogoFornecedor({
-  aberto,
-  fornecedor,
-  tipos,
-  vinculos,
-  aoFechar,
-}: {
+export function DialogoFornecedor(props: PropsDialogoFornecedor) {
+  // Uma `key` por abertura: o `{ ok: true }` do salvamento anterior não pode
+  // sobreviver e fechar o diálogo no instante em que ele abre de novo.
+  const sessao = useSessaoDoDialogo(props.aberto);
+  return <CorpoDialogoFornecedor key={sessao} {...props} />;
+}
+
+interface PropsDialogoFornecedor {
   aberto: boolean;
   fornecedor: Fornecedor | null;
   tipos: TabelaApoio[];
   vinculos: VinculoTipo[];
   aoFechar: () => void;
-}) {
-  const [estado, agir, gravando] = useActionState(gravarFornecedor, null as { erro?: string; ok?: boolean } | null);
+}
+
+function CorpoDialogoFornecedor({
+  aberto,
+  fornecedor,
+  tipos,
+  vinculos,
+  aoFechar,
+}: PropsDialogoFornecedor) {
+  const [estado, agir, gravando] = useActionState(gravarFornecedor, null as { erro?: string; ok?: boolean; id?: string } | null);
 
   const inicial = (papel: VinculoTipo['papel']) =>
     vinculos.filter((v) => v.papel === papel).map((v) => String(v.tipo_operacao_id));
@@ -38,17 +48,27 @@ export function DialogoFornecedor({
     setNaoAtendidas(vinculos.filter((v) => v.papel === 'nao_atende').map((v) => String(v.tipo_operacao_id)));
   }, [vinculos]);
 
+  const { avisar } = useAvisos();
+  const editando = Boolean(fornecedor?.nome_fundo);
+  // `aoFechar` é uma função nova a cada render da tela: fora das dependências,
+  // senão o efeito rodaria de novo (e o aviso sairia em dobro).
+  const ultimo = useRef({ aoFechar, avisar, editando });
+  ultimo.current = { aoFechar, avisar, editando };
+
   useEffect(() => {
-    if (estado?.ok) aoFechar();
-  }, [estado, aoFechar]);
+    if (estado?.ok) {
+      ultimo.current.avisar(ultimo.current.editando ? 'Fundo salvo' : 'Fundo cadastrado', { id: estado.id });
+      ultimo.current.aoFechar();
+    } else if (estado?.erro) {
+      ultimo.current.avisar(estado.erro, { tipo: 'erro' });
+    }
+  }, [estado]);
 
   // 1ª e 2ª Linha só oferecem tipos que não estão em "não atendidas".
   const disponiveis = useMemo(
     () => tipos.filter((t) => !naoAtendidas.includes(String(t.id))),
     [tipos, naoAtendidas],
   );
-
-  const editando = Boolean(fornecedor?.nome_fundo);
 
   return (
     <Dialogo
@@ -57,7 +77,7 @@ export function DialogoFornecedor({
       titulo={editando ? 'Editar fundo' : 'Novo fundo'}
       largura="md"
       rodape={
-        <Botao variante="primary" type="submit" form="forma-fornecedor" disabled={gravando}>
+        <Botao variante="primary" type="submit" form="forma-fornecedor" carregando={gravando}>
           {editando ? 'Salvar' : 'Cadastrar'}
         </Botao>
       }

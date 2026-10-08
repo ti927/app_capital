@@ -52,6 +52,9 @@ function credenciais() {
   return { email, senha };
 }
 
+// Uma marca por forma: as três corridas rodam juntas na mesma operação.
+const MARCA_ETAPA = `QA-TESTE-${path.basename(SAIDA)}`;
+
 const resultados = [];
 let n = 0;
 
@@ -141,6 +144,76 @@ async function confereMenu(pagina, onde, overlaysAntes) {
   }
 }
 
+
+/**
+ * Segura as gravações (server actions) por `ms`, para dar tempo de fotografar
+ * o spinner. Só as POSTs das telas; o resto passa direto.
+ */
+async function seguraGravacoes(pagina, ms) {
+  await pagina.route(
+    (url) => !url.pathname.startsWith('/_next/'),
+    async (rota) => {
+      if (rota.request().method() === 'POST') await new Promise((r) => setTimeout(r, ms));
+      await rota.continue();
+    },
+  );
+}
+
+/**
+ * Salvar um diálogo sem mudar nada — grava os mesmos dados — e conferir o
+ * feedback inteiro: spinner no botão, toast no canto, toast que some sozinho,
+ * e (o bug de 08/10) o diálogo que abre de novo depois de salvar.
+ */
+async function feedbackDeSalvar(pagina, { nome, abrir, aviso }) {
+  await passo(pagina, `${nome}-salvar-spinner`, async () => {
+    await abrir();
+    await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+    await seguraGravacoes(pagina, 1200);
+    const botao = pagina.locator('.lc-dialog__foot button[type="submit"]');
+    await botao.click();
+    await pagina.waitForSelector('.lc-dialog__foot .lc-spinner', { timeout: 3000 });
+    if (!(await botao.isDisabled())) throw new Error('o botão de salvar não ficou desabilitado');
+    if ((await botao.getAttribute('aria-busy')) !== 'true') throw new Error('o botão não marcou aria-busy');
+  });
+
+  await passo(pagina, `${nome}-salvar-toast`, async () => {
+    await pagina.waitForSelector('.lc-aviso', { timeout: 8000 });
+    await pagina.unroute(() => true).catch(() => {});
+    // Espera a entrada (340ms) assentar antes de medir.
+    await pagina.waitForTimeout(450);
+    const texto = await pagina.locator('.lc-aviso').last().innerText();
+    if (!texto.includes(aviso)) throw new Error(`aviso inesperado: "${texto}"`);
+    const caixa = await pagina.locator('.lc-aviso').last().boundingBox();
+    const janela = pagina.viewportSize();
+    if (
+      !caixa ||
+      caixa.x < 0 ||
+      caixa.x + caixa.width > janela.width + 1 ||
+      caixa.y < 0 ||
+      caixa.y + caixa.height > janela.height + 1
+    ) {
+      throw new Error('o aviso não cabe na janela');
+    }
+    if (await pagina.locator('.lc-overlay:not(.lc-overlay--saindo)').count()) {
+      throw new Error('o diálogo não fechou depois de salvar');
+    }
+  });
+
+  await passo(pagina, `${nome}-salvar-reabre`, async () => {
+    // O bug: depois de salvar uma vez, o diálogo não abria mais.
+    await abrir();
+    await pagina.waitForTimeout(900);
+    if (!(await pagina.locator('.lc-overlay:not(.lc-overlay--saindo)').count())) {
+      throw new Error('o diálogo não abriu de novo depois de salvar');
+    }
+  });
+
+  await passo(pagina, `${nome}-salvar-toast-some`, async () => {
+    await pagina.keyboard.press('Escape');
+    await pagina.waitForSelector('.lc-aviso', { state: 'detached', timeout: 6000 });
+  });
+}
+
 const navegador = await chromium.launch();
 const contexto = await navegador.newContext({
   viewport: CELULAR ? { width: 390, height: 844 } : { width: 1440, height: 900 },
@@ -228,6 +301,20 @@ await passo(pagina, 'cliente-fechado', async () => {
   }
 });
 
+await feedbackDeSalvar(pagina, {
+  nome: 'cliente',
+  aviso: 'Cliente salvo',
+  abrir: () => pagina.locator('.lista__abrir').first().click(),
+});
+
+await passo(pagina, 'cliente-brilho-no-salvo', async () => {
+  // O brilho dura ~1,2s: salva de novo e olha já na volta.
+  await pagina.locator('.lista__abrir').first().click();
+  await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+  await pagina.locator('.lc-dialog__foot button[type="submit"]').click();
+  await pagina.waitForSelector('.lista__item.lc-salvo', { timeout: 8000 });
+});
+
 await passo(pagina, 'cliente-busca', async () => {
   await pagina.fill('input[placeholder="Buscar clientes"]', 'agro');
   await pagina.waitForTimeout(400);
@@ -255,6 +342,26 @@ await passo(pagina, 'fornecedor-aba-tipos', async () => {
   await pagina.waitForTimeout(500);
 });
 
+await passo(pagina, 'fornecedor-tipos-sem-reticencias', async () => {
+  // 1º e 2º Linha mostram todos os fundos, quebrando linha — sem reticências.
+  const r = await pagina.evaluate(() => {
+    const celulas = [...document.querySelectorAll('.matriz td.matriz__celula')];
+    const cortadas = celulas.filter((td) => {
+      const estilo = getComputedStyle(td);
+      return estilo.textOverflow === 'ellipsis' || estilo.whiteSpace === 'nowrap' || td.scrollWidth > td.clientWidth + 1;
+    });
+    const nomes = [...document.querySelectorAll('.matriz__nome')];
+    const largos = nomes.filter((n) => n.scrollWidth > n.clientWidth + 1);
+    const maior = [...document.querySelectorAll('.matriz__nomes')].sort(
+      (a, b) => b.children.length - a.children.length,
+    )[0];
+    maior?.scrollIntoView({ block: 'center' });
+    return { cortadas: cortadas.length, largos: largos.length, total: nomes.length };
+  });
+  if (!r.total) throw new Error('nenhum nome em 1º/2º Linha para conferir');
+  if (r.cortadas || r.largos) throw new Error(`nomes cortados: ${r.cortadas} células, ${r.largos} nomes`);
+});
+
 await passo(pagina, 'fornecedor-dialogo', async () => {
   await pagina.click('text=Fornecedores');
   await pagina.waitForTimeout(400);
@@ -275,6 +382,12 @@ await passo(pagina, 'fornecedor-fechado', async () => {
   await pagina.waitForTimeout(200);
   await pagina.keyboard.press('Escape');
   await pagina.waitForTimeout(300);
+});
+
+await feedbackDeSalvar(pagina, {
+  nome: 'fornecedor',
+  aviso: 'Fundo salvo',
+  abrir: () => pagina.locator('.celula-abrir').first().click(),
 });
 
 // --------------------------------------------------------------- operação ---
@@ -344,6 +457,64 @@ await passo(pagina, 'operacao-dialogo-ordem', async () => {
   }
 });
 
+await passo(pagina, 'operacao-linha-inclusao-ordem', async () => {
+  // Pedido de 08/10: na linha de inclusão, primeiro "Fundo", depois "Tipo de operação".
+  if (!(await pagina.locator('.criar-etapa').count())) return;
+  const rotulos = await pagina
+    .locator('.criar-etapa .gatilho')
+    .evaluateAll((els) => els.map((el) => el.innerText.trim()));
+  if (rotulos[0] !== 'Fundo' || rotulos[1] !== 'Tipo de operação') {
+    throw new Error(`ordem da linha de inclusão: ${rotulos.slice(0, 2).join(' | ')}`);
+  }
+  await pagina.locator('.criar-etapa').scrollIntoViewIfNeeded();
+});
+
+await passo(pagina, 'operacao-etapa-incluir-e-alterar', async () => {
+  // O bug de 08/10 ("depois que registra um fundo, ao alterar o pop-up não abre"):
+  // inclui uma etapa de teste, abre o lápis e os seletores da linha, e apaga.
+  if (!(await pagina.locator('.criar-etapa').count())) return;
+  const escolher = async (indice) => {
+    await pagina.locator('.criar-etapa .gatilho').nth(indice).click();
+    await pagina.waitForSelector('.lc-popover', { timeout: 3000 });
+    await pagina.locator('.lc-popover .opcoes__item').first().click();
+    await pagina.waitForTimeout(150);
+  };
+  const linha = pagina.locator('.tabela-etapas tbody tr', { hasText: MARCA_ETAPA });
+  try {
+    await escolher(0); // Fundo
+    await escolher(1); // Tipo de operação
+    await pagina.locator('.criar-etapa textarea').fill(MARCA_ETAPA);
+    await seguraGravacoes(pagina, 900);
+    await pagina.locator('button[aria-label="Adicionar etapa"]').click();
+    await pagina.waitForSelector('.criar-etapa .lc-spinner', { timeout: 3000 });
+    await pagina.waitForSelector('.lc-aviso', { timeout: 8000 });
+    await pagina.unroute(() => true).catch(() => {});
+    await linha.first().waitFor({ timeout: 8000 });
+
+    // A linha de inclusão volta limpa e seus seletores continuam abrindo.
+    await pagina.locator('.criar-etapa .gatilho').first().click();
+    await pagina.waitForSelector('.lc-popover', { timeout: 3000 });
+    await pagina.keyboard.press('Escape');
+    await pagina.waitForTimeout(200);
+
+    // Lápis da linha recém-incluída: os três seletores abrem o menu.
+    await linha.first().locator('button[aria-label="Editar"]').click();
+    for (let i = 0; i < 3; i += 1) {
+      await linha.first().locator('.gatilho').nth(i).click();
+      await pagina.waitForSelector('.lc-popover', { timeout: 3000 });
+      await pagina.keyboard.press('Escape');
+      await pagina.waitForTimeout(200);
+    }
+    await linha.first().locator('button[aria-label="Cancelar"]').click();
+  } finally {
+    await pagina.unroute(() => true).catch(() => {});
+    if (await linha.count()) {
+      await linha.first().locator('button[aria-label="Deletar"]').click();
+      await linha.first().waitFor({ state: 'detached', timeout: 8000 }).catch(() => {});
+    }
+  }
+});
+
 await passo(pagina, 'operacao-email', async () => {
   // Abre o envio e confere que carregou os destinatários (ou diz que não há)
   // e as três chaves. Não envia nada (specs/13).
@@ -385,6 +556,35 @@ await passo(pagina, 'operacao-email-fechado', async () => {
   await pagina.waitForTimeout(400);
   if (await pagina.locator('text=Envio de Email').count()) throw new Error('o envio não fechou');
   if (!(await pagina.locator('text=Editar operação').count())) throw new Error('fechar o envio fechou a operação');
+});
+
+await passo(pagina, 'operacao-salvar-spinner', async () => {
+  await seguraGravacoes(pagina, 1200);
+  await pagina.locator('.lc-dialog__foot button[type="submit"]').click();
+  await pagina.waitForSelector('.lc-dialog__foot .lc-spinner', { timeout: 3000 });
+});
+
+await passo(pagina, 'operacao-salvar-toast', async () => {
+  await pagina.waitForSelector('.lc-aviso', { timeout: 8000 });
+  await pagina.unroute(() => true).catch(() => {});
+  const texto = await pagina.locator('.lc-aviso').last().innerText();
+  if (!texto.includes('Operação salva')) throw new Error(`aviso inesperado: "${texto}"`);
+});
+
+await passo(pagina, 'operacao-brilho-no-salvo', async () => {
+  // A lista dá o brilho na operação salva (a classe dura ~1,2s).
+  if (!(await pagina.locator('.lista__item.lc-salvo').count())) {
+    throw new Error('nenhuma linha de operação recebeu o brilho');
+  }
+});
+
+await passo(pagina, 'operacao-salvar-reabre', async () => {
+  await pagina.waitForSelector('.lc-aviso', { state: 'detached', timeout: 6000 });
+  await pagina.locator('.lista__abrir').first().click();
+  await pagina.waitForTimeout(700);
+  if (!(await pagina.locator('.lc-overlay:not(.lc-overlay--saindo)').count())) {
+    throw new Error('a operação não abriu de novo depois de salvar');
+  }
 });
 
 await passo(pagina, 'operacao-fechado', async () => {

@@ -297,3 +297,203 @@
     animation: none;
   }
 }
+
+/* ===========================================================================
+   Feedback de salvar (pedido de 08/10/2026).
+
+   - Spinner no botão que está gravando (`<Botao carregando>`).
+   - Aviso de canto de tela (components/ui/aviso.tsx): entra deslizando, fica
+     ~3s e sai sozinho. Empilha de baixo para cima.
+   - Brilho curto no registro que acabou de ser salvo (`.lc-salvo`).
+   =========================================================================== */
+
+/* --- spinner --------------------------------------------------------------- */
+
+.lc-spinner {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: lc-gira 700ms linear infinite;
+}
+
+@keyframes lc-gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* O botão desabilitado por estar gravando não deve parecer "apagado". */
+.lc-btn[aria-busy="true"] {
+  cursor: progress;
+  opacity: 1;
+}
+
+/* --- aviso de canto de tela ------------------------------------------------ */
+
+.lc-avisos {
+  position: fixed;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  z-index: calc(var(--z-toast) + 10);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-3);
+  width: min(340px, calc(100vw - 2 * var(--space-6)));
+  /* O contêiner nunca intercepta clique; só cada aviso. */
+  pointer-events: none;
+}
+
+.lc-aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  border: var(--border-w) solid var(--border);
+  border-left: 4px solid var(--success);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-overlay);
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: auto;
+  animation: lc-aviso-entra var(--mov-desliza) var(--mov-mola);
+}
+
+.lc-aviso--erro {
+  border-left-color: var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+}
+
+.lc-aviso--saindo {
+  animation: lc-aviso-sai var(--mov-saida) var(--mov-curva) forwards;
+}
+
+.lc-aviso__icone {
+  display: inline-flex;
+  flex: none;
+  color: var(--success-ink);
+}
+
+.lc-aviso--erro .lc-aviso__icone {
+  color: var(--danger-ink);
+}
+
+.lc-aviso__texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.lc-aviso__fechar {
+  display: inline-flex;
+  flex: none;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.lc-aviso__fechar:hover {
+  opacity: 1;
+}
+
+@keyframes lc-aviso-entra {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes lc-aviso-sai {
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+/* No celular o aviso vai para o topo: embaixo ficaria sobre o rodapé do
+   diálogo, onde mora o botão de salvar. */
+@media (max-width: 700px) {
+  .lc-avisos {
+    top: var(--space-5);
+    bottom: auto;
+    right: 50%;
+    transform: translateX(50%);
+    flex-direction: column;
+  }
+  @keyframes lc-aviso-entra {
+    from {
+      opacity: 0;
+      transform: translateY(-16px);
+    }
+  }
+  @keyframes lc-aviso-sai {
+    to {
+      opacity: 0;
+      transform: translateY(-16px);
+    }
+  }
+}
+
+/* --- brilho do registro salvo ----------------------------------------------
+
+   Nas linhas de tabela e de lista o brilho vai no filho (`td`, botão): a
+   linha em si já tem a animação de cascata da troca de tela, e trocar o
+   `animation` dela faria a cascata rodar de novo quando a classe saísse.
+   --------------------------------------------------------------------------- */
+
+.lc-table tbody tr.lc-salvo > td,
+.lista__item.lc-salvo > .lista__abrir,
+.lista__item.lc-salvo > .lista__texto {
+  animation: lc-salvo 1200ms ease-out;
+}
+
+.funil__cartao.lc-salvo {
+  animation: lc-salvo-cartao 1200ms ease-out;
+}
+
+@keyframes lc-salvo {
+  0%,
+  25% {
+    background-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+}
+
+@keyframes lc-salvo-cartao {
+  0%,
+  25% {
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Spinner continua girando (é o sinal de "gravando"), só mais devagar. */
+  .lc-spinner {
+    animation-duration: 2s;
+  }
+  .lc-aviso,
+  .lc-aviso--saindo {
+    animation: none;
+  }
+  .lc-aviso--saindo {
+    display: none;
+  }
+  /* Sem movimento, o destaque fica parado e some junto com a classe. */
+  .lc-table tbody tr.lc-salvo > td,
+  .lista__item.lc-salvo > .lista__abrir,
+  .lista__item.lc-salvo > .lista__texto,
+  .funil__cartao.lc-salvo {
+    animation: none;
+  }
+  .lc-table tbody tr.lc-salvo > td,
+  .lista__item.lc-salvo > .lista__abrir {
+    background-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+}

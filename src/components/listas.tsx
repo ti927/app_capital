@@ -178,14 +178,17 @@ export function ItemDaLista({
   children,
   acoes,
   rotuloAbrir,
+  className,
 }: {
   aoAbrir: () => void;
   children: ReactNode;
   acoes?: ReactNode;
   rotuloAbrir?: string;
+  /** `lc-salvo` quando o registro acabou de ser salvo. */
+  className?: string;
 }) {
   return (
-    <li className="lista__item">
+    <li className={className ? `lista__item ${className}` : 'lista__item'}>
       <button type="button" className="lista__abrir" onClick={aoAbrir} aria-label={rotuloAbrir}>
         {children}
       </button>

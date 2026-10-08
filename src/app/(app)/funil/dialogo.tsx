@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState, useEffect, useState, useTransition } from 'react';
+import { useActionState, useEffect, useRef, useState, useTransition } from 'react';
+import { useAvisos } from '@/components/ui/aviso';
 import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import { Dialogo } from '@/components/ui/dialogo';
@@ -45,7 +46,7 @@ export function DialogoCartao({
   aoVirarCliente: () => void;
   aoFechar: () => void;
 }) {
-  const [estado, agir, gravando] = useActionState(gravarCartao, null as { erro?: string; ok?: boolean } | null);
+  const [estado, agir, gravando] = useActionState(gravarCartao, null as { erro?: string; ok?: boolean; id?: string } | null);
   const [escolhidas, setEscolhidas] = useState<string[]>(tagsDoCartao);
   const [tarefaNova, setTarefaNova] = useState(false);
   const [tarefaEmEdicao, setTarefaEmEdicao] = useState<Tarefa | null>(null);
@@ -53,9 +54,20 @@ export function DialogoCartao({
 
   useEffect(() => setEscolhidas(tagsDoCartao), [tagsDoCartao.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const { avisar } = useAvisos();
+  // `aoFechar` é uma função nova a cada render da tela: fora das dependências,
+  // senão o efeito rodaria de novo (e o aviso sairia em dobro).
+  const ultimo = useRef({ aoFechar, avisar });
+  ultimo.current = { aoFechar, avisar };
+
   useEffect(() => {
-    if (estado?.ok) aoFechar();
-  }, [estado, aoFechar]);
+    if (estado?.ok) {
+      ultimo.current.avisar('Cartão salvo', { id: estado.id });
+      ultimo.current.aoFechar();
+    } else if (estado?.erro) {
+      ultimo.current.avisar(estado.erro, { tipo: 'erro' });
+    }
+  }, [estado]);
 
   const novo = !cartao;
   const emBranco = novo || (!cartao?.empresa && !cartao?.contato);
@@ -70,7 +82,16 @@ export function DialogoCartao({
         rodape={
           <div className="funil__rodape-dialogo">
             <div className="linha">
-              <span className="apoio">● Salvo automaticamente</span>
+              {/* Indicador discreto, sem toast a cada gravação. */}
+              <span className="apoio funil__estado-grava" role="status">
+                {gravando ? (
+                  <>
+                    <span className="lc-spinner" aria-hidden="true" /> Salvando…
+                  </>
+                ) : (
+                  '● Salvo automaticamente'
+                )}
+              </span>
               {cartao ? (
                 <Botao
                   variante="dangerOutline"
@@ -105,7 +126,7 @@ export function DialogoCartao({
                   Arquivar
                 </Botao>
               ) : null}
-              <Botao variante="primary" type="submit" form="forma-cartao" disabled={gravando}>
+              <Botao variante="primary" type="submit" form="forma-cartao" carregando={gravando}>
                 {gravando ? 'Gravando…' : 'Fechar'}
               </Botao>
             </div>

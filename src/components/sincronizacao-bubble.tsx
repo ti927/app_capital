@@ -61,7 +61,7 @@ export function BotaoSincronizarBubble() {
             <Botao variante="secondary" onClick={() => setAberto(false)} disabled={rodando}>
               Fechar
             </Botao>
-            <Botao variante="primary" onClick={rodar} disabled={rodando} aria-busy={rodando}>
+            <Botao variante="primary" onClick={rodar} carregando={rodando}>
               {rodando ? 'Sincronizando…' : resposta ? 'Sincronizar de novo' : 'Sincronizar'}
             </Botao>
           </>

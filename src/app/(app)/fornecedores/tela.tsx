@@ -3,6 +3,7 @@
 import { Indicador } from '@/components/ui/indicador';
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Botao, Vazio } from '@/components/ui/base';
+import { classeDestaque, useDestaque } from '@/components/ui/aviso';
 import { IconeMais } from '@/components/ui/icones';
 import { Tabela } from '@/components/ui/tabela';
 import { TopoDaTela } from '@/components/ui/casca';
@@ -43,6 +44,7 @@ export function TelaFornecedores({
   const [criando, setCriando] = useState(false);
   const [aExcluir, setAExcluir] = useState<Fornecedor | null>(null);
   const [, transicao] = useTransition();
+  const destaque = useDestaque();
 
   const filtrar = useCallback(
     (lista: Fornecedor[]) => {
@@ -138,6 +140,7 @@ export function TelaFornecedores({
           <Tabela
             colunas={COLUNAS}
             linhas={linhas(tabela.visiveis, false)}
+            classeDaLinha={(l) => classeDestaque(destaque, String(l.id))}
             semLinhas={
               <div className="vazio-tela">
                 <Vazio
@@ -150,7 +153,11 @@ export function TelaFornecedores({
           />
           <CarregarMais faltam={tabela.faltam} aoCarregar={tabela.carregarMais} substantivo="fundos" />
           <BlocoArquivados quantidade={arquivadosVisiveis.length}>
-            <Tabela colunas={COLUNAS} linhas={linhas(tabelaArquivados.visiveis, true)} />
+            <Tabela
+              colunas={COLUNAS}
+              linhas={linhas(tabelaArquivados.visiveis, true)}
+              classeDaLinha={(l) => classeDestaque(destaque, String(l.id))}
+            />
             <CarregarMais
               faltam={tabelaArquivados.faltam}
               aoCarregar={tabelaArquivados.carregarMais}
@@ -220,7 +227,24 @@ function MatrizDeTipos({
       .filter((f): f is Fornecedor => Boolean(f))
       .sort((a, b) => a.nome_fundo.localeCompare(b.nome_fundo, 'pt-BR'));
 
-  const nomes = (lista: Fornecedor[]) => lista.map((f) => f.nome_fundo).join(', ') || '-';
+  /**
+   * 1º e 2º Linha mostram todos os fundos, quebrando linha — sem reticências.
+   * Cada nome é um item próprio para a quebra cair entre nomes, e não no meio
+   * de "K2 - Kanal".
+   */
+  const nomes = (lista: Fornecedor[]) =>
+    lista.length ? (
+      <span className="matriz__nomes">
+        {lista.map((f, i) => (
+          <span key={f.id} className="matriz__nome">
+            {f.nome_fundo}
+            {i < lista.length - 1 ? ',' : ''}
+          </span>
+        ))}
+      </span>
+    ) : (
+      '-'
+    );
 
   return (
     <table className="lc-table matriz">
@@ -244,8 +268,8 @@ function MatrizDeTipos({
           return (
             <tr key={t.id}>
               <td style={{ fontWeight: 600 }}>{t.rotulo}</td>
-              <td className="apoio">{nomes(fundosCom(t.id, 'linha_1'))}</td>
-              <td className="apoio">{nomes(fundosCom(t.id, 'linha_2'))}</td>
+              <td className="apoio matriz__celula">{nomes(fundosCom(t.id, 'linha_1'))}</td>
+              <td className="apoio matriz__celula">{nomes(fundosCom(t.id, 'linha_2'))}</td>
               <td className="matriz__celula">
                 {habilitados.length ? (
                   <div className="matriz__grade matriz__tags">

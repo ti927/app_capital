@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
+import { useAvisos } from '@/components/ui/aviso';
 import { Botao, Campo } from '@/components/ui/base';
 import { TopoDaTela } from '@/components/ui/casca';
 import { trocarSenha } from './acoes';
@@ -17,6 +18,13 @@ export function FormularioDeSenha({ email }: { email: string }) {
     trocarSenha,
     null as { erro?: string; ok?: boolean } | null,
   );
+
+  const { avisar } = useAvisos();
+  useEffect(() => {
+    if (estado?.ok) avisar('Senha trocada');
+    else if (estado?.erro) avisar(estado.erro, { tipo: 'erro' });
+    // `avisar` é estável; o efeito é por resultado novo.
+  }, [estado, avisar]);
 
   return (
     <>
@@ -48,7 +56,7 @@ export function FormularioDeSenha({ email }: { email: string }) {
           ) : null}
 
           <div className="linha">
-            <Botao variante="primary" type="submit" disabled={gravando}>
+            <Botao variante="primary" type="submit" carregando={gravando}>
               {gravando ? 'Trocando…' : 'Trocar senha'}
             </Botao>
           </div>

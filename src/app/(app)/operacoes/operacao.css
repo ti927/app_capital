@@ -173,3 +173,20 @@
 .lc-dialog.dialogo-operacao {
   max-width: min(1280px, 100%);
 }
+
+/*
+  Celular: a coluna das ações (salvar · editar · deletar) é 10% da tabela — uns
+  34px para 3 botões de 24. A célula corta o que sobra e, como as ações
+  alinham à direita, quem sumia era o lápis: dava para deletar a etapa, não
+  para alterar. A coluna ganha largura fixa para os três caberem.
+*/
+@media (max-width: 700px) {
+  .tabela-etapas col:nth-child(5) {
+    width: 88px !important;
+  }
+  .tabela-etapas td:nth-child(5) {
+    overflow: visible;
+    padding-left: 0;
+    padding-right: var(--space-2);
+  }
+}

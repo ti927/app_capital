@@ -81,7 +81,7 @@ export function PainelAgenda({
             <div className="linha">
               <Botao
                 variante="secondary"
-                disabled={desconectando}
+                carregando={desconectando}
                 onClick={() => transicao(() => desconectarAgenda())}
               >
                 {desconectando ? 'Desconectando…' : 'Desconectar'}

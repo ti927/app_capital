@@ -12,6 +12,8 @@ export type TamanhoControle = 'sm' | 'md' | 'lg' | 'row';
 export interface BotaoProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variante?: VarianteBotao;
   tamanho?: TamanhoControle;
+  /** Gravando: spinner antes do rótulo e botão desabilitado. */
+  carregando?: boolean;
 }
 
 export function Botao({
@@ -19,14 +21,22 @@ export function Botao({
   tamanho = 'md',
   className,
   type = 'button',
+  carregando,
+  disabled,
+  children,
   ...resto
 }: BotaoProps) {
   return (
     <button
       type={type}
       className={cx('lc-btn', `lc-btn--${variante}`, `lc-btn--${tamanho}`, className)}
+      disabled={disabled || carregando}
+      aria-busy={carregando || undefined}
       {...resto}
-    />
+    >
+      {carregando ? <span className="lc-spinner" aria-hidden="true" /> : null}
+      {children}
+    </button>
   );
 }
 

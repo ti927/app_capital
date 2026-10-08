@@ -83,7 +83,7 @@ function EntradaComSenha({ de }: { de: string }) {
         </p>
       ) : null}
 
-      <Botao variante="secondary" tamanho="lg" type="submit" disabled={enviando}>
+      <Botao variante="secondary" tamanho="lg" type="submit" carregando={enviando}>
         {enviando ? 'Entrando…' : 'Entrar com senha'}
       </Botao>
     </form>

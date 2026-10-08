@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
+import { useAvisos } from '@/components/ui/aviso';
 import { IconeDeletar, IconeMais, IconeSalvar } from '@/components/ui/icones';
 import {
   alternarColunaNoFluxo,
@@ -51,7 +52,8 @@ export function DialogoTags({
 }) {
   const [nova, setNova] = useState('');
   const [corNova, setCorNova] = useState(COR_PADRAO);
-  const [, transicao] = useTransition();
+  const [gravando, transicao] = useTransition();
+  const { avisar } = useAvisos();
 
   return (
     <Dialogo
@@ -83,10 +85,15 @@ export function DialogoTags({
         <Botao
           variante="secondary"
           disabled={!nova.trim()}
+          carregando={gravando}
           title="Criar tag"
           aria-label="Criar tag"
           onClick={() => {
-            transicao(() => void criarTag(quadroId, nova, corNova));
+            const dados = nova;
+            transicao(async () => {
+              await criarTag(quadroId, dados, corNova);
+              avisar('Tag criada');
+            });
             setNova('');
           }}
         >
@@ -100,7 +107,8 @@ export function DialogoTags({
 function LinhaDaTag({ tag }: { tag: TagFunil }) {
   const [nome, setNome] = useState(tag.nome);
   const [cor, setCor] = useState(tag.cor ?? COR_PADRAO);
-  const [, transicao] = useTransition();
+  const [gravando, transicao] = useTransition();
+  const { avisar } = useAvisos();
 
   const mudou = nome.trim() !== tag.nome || cor !== (tag.cor ?? COR_PADRAO);
 
@@ -114,9 +122,15 @@ function LinhaDaTag({ tag }: { tag: TagFunil }) {
         title="Salvar tag"
         aria-label={`Salvar tag ${tag.nome}`}
         disabled={!mudou || !nome.trim()}
-        onClick={() => transicao(() => void gravarTag(tag.id, nome, cor))}
+        carregando={gravando}
+        onClick={() =>
+          transicao(async () => {
+            await gravarTag(tag.id, nome, cor);
+            avisar('Tag salva');
+          })
+        }
       >
-        <IconeSalvar />
+        {gravando ? null : <IconeSalvar />}
       </Botao>
       <label className="interruptor" title="Tag ativa">
         <input
@@ -202,7 +216,8 @@ export function DialogoColunas({
 
 function LinhaDaColuna({ etapa }: { etapa: EtapaFunil }) {
   const [nome, setNome] = useState(etapa.nome);
-  const [, transicao] = useTransition();
+  const [gravando, transicao] = useTransition();
+  const { avisar } = useAvisos();
 
   return (
     <li className="gestao__linha">
@@ -221,9 +236,15 @@ function LinhaDaColuna({ etapa }: { etapa: EtapaFunil }) {
         title="Salvar nome"
         aria-label={`Salvar nome da coluna ${etapa.nome}`}
         disabled={nome.trim() === etapa.nome || !nome.trim()}
-        onClick={() => transicao(() => void renomearColuna(etapa.id, nome))}
+        carregando={gravando}
+        onClick={() =>
+          transicao(async () => {
+            await renomearColuna(etapa.id, nome);
+            avisar('Coluna salva');
+          })
+        }
       >
-        <IconeSalvar />
+        {gravando ? null : <IconeSalvar />}
       </Botao>
     </li>
   );

@@ -66,7 +66,7 @@ export async function gravarFornecedor(_anterior: unknown, dados: FormData) {
   if (vinculos.length) await supabase.from('fornecedor_tipo_operacao').insert(vinculos);
 
   revalidatePath('/fornecedores');
-  return { ok: true };
+  return { ok: true, id: alvo };
 }
 
 export async function arquivarFornecedor(id: string, arquivado: boolean) {

@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Botao } from '@/components/ui/base';
 import { Vazio } from '@/components/ui/base';
+import { classeDestaque, useDestaque } from '@/components/ui/aviso';
 import { TopoDaTela } from '@/components/ui/casca';
 import { AcoesLinha, BlocoArquivados, Busca, ConfirmarExclusao, ItemDaLista } from '@/components/listas';
 import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
@@ -52,6 +53,7 @@ export function TelaClientes({
   const [criando, setCriando] = useState(false);
   const [aExcluir, setAExcluir] = useState<Cliente | null>(null);
   const [, transicao] = useTransition();
+  const destaque = useDestaque();
 
   const filtrar = useCallback(
     (lista: Cliente[]) => {
@@ -102,6 +104,7 @@ export function TelaClientes({
             {lista.visiveis.map((c) => (
               <ItemDaLista
                 key={c.id}
+                className={classeDestaque(destaque, c.id)}
                 aoAbrir={() => setEmEdicao(c)}
                 rotuloAbrir={`Editar ${c.nome_razao}`}
                 acoes={
@@ -131,6 +134,7 @@ export function TelaClientes({
             {listaArquivados.visiveis.map((c) => (
               <ItemDaLista
                 key={c.id}
+                className={classeDestaque(destaque, c.id)}
                 aoAbrir={() => setEmEdicao(c)}
                 rotuloAbrir={`Editar ${c.nome_razao}`}
                 acoes={

@@ -857,3 +857,10 @@ body.arrastando-cartao * {
     animation: none;
   }
 }
+
+/* "Salvando…" / "Salvo automaticamente" no rodapé do cartão. */
+.funil__estado-grava {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}

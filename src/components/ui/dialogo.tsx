@@ -18,6 +18,23 @@ export interface DialogoProps {
   className?: string;
 }
 
+/**
+ * Número da abertura atual: cresce a cada vez que `aberto` vira verdadeiro.
+ * Serve de `key` para quem deixa o diálogo montado entre aberturas — o estado
+ * de `useActionState` (`{ ok: true }` do salvamento anterior) não pode
+ * sobreviver à próxima abertura: o efeito que fecha ao salvar fechava o
+ * diálogo no mesmo instante em que abria (bug do "não abre o pop-up").
+ */
+export function useSessaoDoDialogo(aberto: boolean) {
+  const [sessao, setSessao] = useState(0);
+  const [antes, setAntes] = useState(aberto);
+  if (aberto !== antes) {
+    setAntes(aberto);
+    if (aberto) setSessao((n) => n + 1);
+  }
+  return sessao;
+}
+
 /** Tem que bater com `--mov-saida` de `animacoes.css`. */
 const MS_SAIDA = 140;
 

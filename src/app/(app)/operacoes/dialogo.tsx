@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useState, useTransition } from 'react';
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useAvisos } from '@/components/ui/aviso';
 import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import {
@@ -74,11 +75,22 @@ export function DialogoOperacao({
     mesmo instante — e os interruptores, que são não controlados
     (`defaultChecked`), podiam carregar o estado da operação anterior.
   */
-  const [estado, agir, gravando] = useActionState(gravarOperacao, null as { erro?: string; ok?: boolean } | null);
+  const [estado, agir, gravando] = useActionState(gravarOperacao, null as { erro?: string; ok?: boolean; id?: string } | null);
+
+  const { avisar } = useAvisos();
+  // `aoFechar` é uma função nova a cada render da tela: fora das dependências,
+  // senão o efeito rodaria de novo (e o aviso sairia em dobro).
+  const ultimo = useRef({ aoFechar, avisar, nova: !operacao });
+  ultimo.current = { aoFechar, avisar, nova: !operacao };
 
   useEffect(() => {
-    if (estado?.ok) aoFechar();
-  }, [estado, aoFechar]);
+    if (estado?.ok) {
+      ultimo.current.avisar(ultimo.current.nova ? 'Operação cadastrada' : 'Operação salva', { id: estado.id });
+      ultimo.current.aoFechar();
+    } else if (estado?.erro) {
+      ultimo.current.avisar(estado.erro, { tipo: 'erro' });
+    }
+  }, [estado]);
 
   const [emailAberto, setEmailAberto] = useState(false);
   const nova = !operacao;
@@ -129,7 +141,7 @@ export function DialogoOperacao({
               Enviar Email
             </Botao>
           ) : null}
-          <Botao variante="primary" type="submit" form="forma-operacao" disabled={gravando}>
+          <Botao variante="primary" type="submit" form="forma-operacao" carregando={gravando}>
             {nova ? 'Cadastrar' : 'Salvar'}
           </Botao>
         </>
@@ -449,7 +461,8 @@ function TabelaDeEtapas({
     na_mao_de: null,
     status_id: null,
   });
-  const [, transicao] = useTransition();
+  const [salvandoEtapa, transicao] = useTransition();
+  const { avisar } = useAvisos();
 
   const abrirEdicao = (e: EtapaOperacao) => {
     setEditando(e.id);
@@ -468,7 +481,12 @@ function TabelaDeEtapas({
 
   const salvar = () => {
     if (!editando || !rascunho) return;
-    transicao(() => void atualizarEtapa(editando, rascunho));
+    const id = editando;
+    const dados = rascunho;
+    transicao(async () => {
+      await atualizarEtapa(id, dados);
+      avisar('Etapa salva');
+    });
     cancelar();
   };
 
@@ -499,19 +517,19 @@ function TabelaDeEtapas({
       {/* Linha de inclusão — acima das duas tabelas, só master. */}
       <div className="criar-etapa">
         <SeletorPopup
-          key={`novo-tipo-${nova.tipo_operacao_id ?? 'vazio'}`}
-          placeholder="Tipo de operação"
-          valorInicial={nova.tipo_operacao_id ? String(nova.tipo_operacao_id) : ''}
-          opcoes={tipos.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
-          aoEscolher={(v) => setNova((n) => ({ ...n, tipo_operacao_id: v ? Number(v) : null }))}
-        />
-
-        <SeletorPopup
           key={`novo-fundo-${nova.fornecedor_id ?? 'vazio'}`}
           placeholder="Fundo"
           valorInicial={nova.fornecedor_id ?? ''}
           opcoes={fornecedores.map((f) => ({ valor: f.id, rotulo: f.nome_fundo }))}
           aoEscolher={(v) => setNova((n) => ({ ...n, fornecedor_id: v || null }))}
+        />
+
+        <SeletorPopup
+          key={`novo-tipo-${nova.tipo_operacao_id ?? 'vazio'}`}
+          placeholder="Tipo de operação"
+          valorInicial={nova.tipo_operacao_id ? String(nova.tipo_operacao_id) : ''}
+          opcoes={tipos.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
+          aoEscolher={(v) => setNova((n) => ({ ...n, tipo_operacao_id: v ? Number(v) : null }))}
         />
 
         <SeletorPopup
@@ -540,8 +558,13 @@ function TabelaDeEtapas({
           title="Adicionar etapa"
           aria-label="Adicionar etapa"
           disabled={!nova.fornecedor_id && !nova.tipo_operacao_id}
+          carregando={salvandoEtapa}
           onClick={() => {
-            transicao(() => void criarEtapa(operacaoId, nova));
+            const dados = nova;
+            transicao(async () => {
+              await criarEtapa(operacaoId, dados);
+              avisar('Etapa adicionada');
+            });
             setNova({ fornecedor_id: null, tipo_operacao_id: null, na_mao_de: null, status_id: null });
           }}
         >

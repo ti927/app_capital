@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { Dialogo } from '@/components/ui/dialogo';
+import { useAvisos } from '@/components/ui/aviso';
 import { ALVOS, capturar, type Alvo } from '@/lib/email/capturar';
 import { textoPadrao } from '@/lib/email/status-operacao';
 import { emailsDaOperacao, enviarEmailDeStatus } from './acoes';
@@ -55,6 +56,7 @@ export function DialogoEmail({
   const [prints, setPrints] = useState<Partial<Record<Alvo, Print>>>({});
   const [resultado, setResultado] = useState<{ ok?: true; erro?: string } | null>(null);
   const [enviando, transicao] = useTransition();
+  const { avisar } = useAvisos();
 
   useEffect(() => {
     void emailsDaOperacao(operacaoId).then((r) => {
@@ -93,7 +95,10 @@ export function DialogoEmail({
       return typeof png === 'string' && png !== 'carregando' ? [{ id: c.alvo, png }] : [];
     });
     transicao(async () => {
-      setResultado(await enviarEmailDeStatus({ operacaoId, destinatarios: escolhidos, extra, texto, imagens }));
+      const r = await enviarEmailDeStatus({ operacaoId, destinatarios: escolhidos, extra, texto, imagens });
+      setResultado(r);
+      if (r?.ok) avisar('E-mail enviado');
+      else if (r?.erro) avisar(r.erro, { tipo: 'erro' });
     });
   }
 
@@ -119,8 +124,9 @@ export function DialogoEmail({
             <Botao
               variante="primary"
               onClick={enviar}
+              carregando={enviando}
               disabled={
-                enviando || preparando || Boolean(falta) || (!escolhidos.length && !extra.trim()) || !texto.trim()
+                preparando || Boolean(falta) || (!escolhidos.length && !extra.trim()) || !texto.trim()
               }
             >
               {enviando ? 'Enviando…' : 'Enviar'}

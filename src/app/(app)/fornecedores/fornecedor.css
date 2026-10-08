@@ -56,3 +56,76 @@
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
+
+/* ------------------------------------- 1º e 2º Linha: todos os nomes --- */
+
+/*
+  A célula já é `.matriz__celula` (quebra de linha liberada, acima). Os nomes
+  são itens inline com um respiro entre eles: a quebra cai entre nomes, nunca
+  no meio de um — "K2 - Kanal" fica inteiro. A linha da tabela cresce com o
+  conteúdo (a altura fixa de `.lc-table tbody tr` vira mínima).
+*/
+.matriz tbody tr {
+  height: auto;
+  min-height: var(--row-h-compact);
+}
+
+.matriz tbody td {
+  vertical-align: top;
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+}
+
+.matriz__nomes {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  line-height: 1.35;
+}
+
+.matriz__nome {
+  white-space: nowrap;
+  /* Nome maior que a coluna (celular) quebra por dentro em vez de vazar. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+  .matriz__nome {
+    white-space: normal;
+  }
+}
+
+/*
+  Celular: 18% de 390px dá ~37px de texto por coluna e os nomes quebravam no
+  meio da palavra ("Agrole / nd"). As colunas de nomes ganham mais largura, o
+  respiro lateral encolhe, e "Habilitados" (que são chips e quebram bem) cede.
+*/
+@media (max-width: 700px) {
+  .matriz col:nth-child(1) {
+    width: 17% !important;
+  }
+  .matriz col:nth-child(2),
+  .matriz col:nth-child(3) {
+    width: 27% !important;
+  }
+  .matriz col:nth-child(4) {
+    width: 29% !important;
+  }
+  /* Chip de fundo quebra linha em vez de cortar o nome. */
+  .matriz__tag {
+    height: auto;
+    min-height: var(--chip-h);
+    padding-top: 3px;
+    padding-bottom: 3px;
+    white-space: normal;
+    text-align: left;
+    line-height: 1.25;
+  }
+  .matriz th,
+  .matriz td {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+}

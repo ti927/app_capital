@@ -214,7 +214,7 @@ async function mexeSemMudarODado(pagina, seletor) {
 }
 
 /**
- * Salvar sem mudar nada NÃO vai ao servidor (src/components/ui/sem-mudancas.ts):
+ * Salvar sem mudar nada NÃO vai ao servidor (src/components/ui/salvar-otimista.ts):
  * o diálogo fecha na hora, com o aviso de sempre e sem nenhuma requisição POST
  * para a página. Confere o aviso, o fechamento em < 500ms e as zero requisições.
  *
@@ -249,44 +249,86 @@ async function salvarSemMudarEInstantaneo(pagina, { aviso, botao = '.lc-dialog__
 
 /**
  * Salvar um diálogo mudando só um espaço (o dado gravado não muda, mas o
- * formulário sim — vai ao servidor) e conferir o feedback inteiro: spinner no
- * botão, toast no canto, toast que some sozinho, e (o bug de 08/10) o diálogo
- * que abre de novo depois de salvar.
+ * formulário sim — vai ao servidor) e conferir o salvar otimista
+ * (src/components/ui/salvar-otimista.ts): com a gravação ainda presa no
+ * caminho, o diálogo já fechou e o aviso já subiu; erro do servidor vira aviso
+ * com "Tentar de novo", que reenvia; nome vazio nem fecha. E (o bug de 08/10)
+ * o diálogo abre de novo depois de salvar.
  */
 async function feedbackDeSalvar(pagina, { nome, abrir, aviso }) {
-  await passo(pagina, `${nome}-salvar-spinner`, async () => {
+  const campoNome = '.lc-dialog form input[name="nome_razao"], .lc-dialog form input[name="nome_fundo"]';
+
+  await passo(pagina, `${nome}-salvar-instantaneo`, async () => {
     await abrir();
     await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
-    await mexeSemMudarODado(pagina, '.lc-dialog form input[name="nome_razao"], .lc-dialog form input[name="nome_fundo"]');
+    await mexeSemMudarODado(pagina, campoNome);
+    // A gravação fica presa 1,2s: se o diálogo esperasse por ela, não fecharia a tempo.
     await seguraGravacoes(pagina, 1200);
-    const botao = pagina.locator('.lc-dialog__foot button[type="submit"]');
-    await botao.click();
-    await pagina.waitForSelector('.lc-dialog__foot .lc-spinner', { timeout: 3000 });
-    if (!(await botao.isDisabled())) throw new Error('o botão de salvar não ficou desabilitado');
-    if ((await botao.getAttribute('aria-busy')) !== 'true') throw new Error('o botão não marcou aria-busy');
-  });
-
-  await passo(pagina, `${nome}-salvar-toast`, async () => {
-    await pagina.waitForSelector('.lc-aviso', { timeout: 8000 });
-    await pagina.unroute(() => true).catch(() => {});
-    // Espera a entrada (340ms) assentar antes de medir.
-    await pagina.waitForTimeout(450);
+    const t0 = Date.now();
+    await pagina.locator('.lc-dialog__foot button[type="submit"]').click();
+    await pagina.waitForSelector('.lc-aviso', { timeout: 3000 });
+    await pagina.waitForSelector('.lc-overlay:not(.lc-overlay--saindo)', { state: 'detached', timeout: 3000 });
+    const ms = Date.now() - t0;
+    if (ms >= 500) throw new Error(`salvar com mudança levou ${ms}ms para fechar (esperado < 500ms)`);
     const texto = await pagina.locator('.lc-aviso').last().innerText();
     if (!texto.includes(aviso)) throw new Error(`aviso inesperado: "${texto}"`);
+    console.log(`        (com mudança: fechou em ${ms}ms, gravação ainda em curso)`);
+    // Deixa a gravação presa terminar antes de soltar as rotas.
+    await pagina.waitForTimeout(1600);
+    await pagina.unroute(() => true).catch(() => {});
     const caixa = await pagina.locator('.lc-aviso').last().boundingBox();
     const janela = pagina.viewportSize();
-    if (
-      !caixa ||
-      caixa.x < 0 ||
-      caixa.x + caixa.width > janela.width + 1 ||
-      caixa.y < 0 ||
-      caixa.y + caixa.height > janela.height + 1
-    ) {
+    if (caixa && (caixa.x < 0 || caixa.x + caixa.width > janela.width + 1 || caixa.y + caixa.height > janela.height + 1)) {
       throw new Error('o aviso não cabe na janela');
     }
-    if (await pagina.locator('.lc-overlay:not(.lc-overlay--saindo)').count()) {
-      throw new Error('o diálogo não fechou depois de salvar');
+  });
+
+  await passo(pagina, `${nome}-salvar-erro`, async () => {
+    await pagina.waitForSelector('.lc-aviso', { state: 'detached', timeout: 8000 }).catch(() => {});
+    await abrir();
+    await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+    await mexeSemMudarODado(pagina, campoNome);
+    // Primeira gravação falha no caminho; as seguintes passam.
+    let falhou = false;
+    await pagina.route(
+      (url) => !url.pathname.startsWith('/_next/'),
+      async (rota) => {
+        if (rota.request().method() === 'POST' && !falhou) {
+          falhou = true;
+          await rota.abort('failed');
+          return;
+        }
+        await rota.continue();
+      },
+    );
+    await pagina.locator('.lc-dialog__foot button[type="submit"]').click();
+    await pagina.waitForSelector('.lc-aviso--erro', { timeout: 8000 });
+    const acao = pagina.locator('.lc-aviso--erro .lc-aviso__acao');
+    if ((await acao.innerText()).trim() !== 'Tentar de novo') throw new Error('o erro não ofereceu "Tentar de novo"');
+    // A captura do passo mostra o aviso de erro; o clique vem depois dela.
+  });
+
+  await passo(pagina, `${nome}-salvar-tentar-de-novo`, async () => {
+    await pagina.locator('.lc-aviso--erro .lc-aviso__acao').click();
+    await pagina.waitForSelector('.lc-aviso--erro', { state: 'detached', timeout: 3000 });
+    // Reenviou e o servidor aceitou: nenhum erro novo aparece.
+    await pagina.waitForTimeout(2500);
+    if (await pagina.locator('.lc-aviso--erro').count()) throw new Error('tentar de novo falhou outra vez');
+    await pagina.unroute(() => true).catch(() => {});
+  });
+
+  await passo(pagina, `${nome}-salvar-sem-nome`, async () => {
+    await abrir();
+    await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+    await pagina.locator(campoNome).first().fill('');
+    await pagina.locator('.lc-dialog__foot button[type="submit"]').click();
+    await pagina.waitForSelector('.lc-aviso--erro', { timeout: 3000 });
+    await pagina.waitForTimeout(300);
+    if (!(await pagina.locator('.lc-overlay:not(.lc-overlay--saindo)').count())) {
+      throw new Error('nome vazio fechou o diálogo (o que foi digitado se perderia)');
     }
+    await pagina.keyboard.press('Escape');
+    await pagina.waitForSelector('.lc-overlay:not(.lc-overlay--saindo)', { state: 'detached', timeout: 3000 });
   });
 
   await passo(pagina, `${nome}-salvar-reabre`, async () => {
@@ -660,25 +702,25 @@ await passo(pagina, 'operacao-email-fechado', async () => {
   if (!(await pagina.locator('text=Editar operação').count())) throw new Error('fechar o envio fechou a operação');
 });
 
-await passo(pagina, 'operacao-salvar-spinner', async () => {
+await passo(pagina, 'operacao-salvar-instantaneo', async () => {
+  // Salvar otimista: com a gravação presa 1,2s, o diálogo já fecha e o aviso
+  // já sobe — e o destaque já está na linha, antes de o servidor responder.
   await mexeSemMudarODado(pagina, '.lc-dialog form input[name="identificador"]');
   await seguraGravacoes(pagina, 1200);
+  const t0 = Date.now();
   await pagina.locator('.lc-dialog__foot button[type="submit"]').click();
-  await pagina.waitForSelector('.lc-dialog__foot .lc-spinner', { timeout: 3000 });
-});
-
-await passo(pagina, 'operacao-salvar-toast', async () => {
-  await pagina.waitForSelector('.lc-aviso', { timeout: 8000 });
-  await pagina.unroute(() => true).catch(() => {});
+  await pagina.waitForSelector('.lc-aviso', { timeout: 3000 });
+  await pagina.waitForSelector('.lc-overlay:not(.lc-overlay--saindo)', { state: 'detached', timeout: 3000 });
+  const ms = Date.now() - t0;
+  if (ms >= 500) throw new Error(`salvar a operação levou ${ms}ms para fechar (esperado < 500ms)`);
   const texto = await pagina.locator('.lc-aviso').last().innerText();
   if (!texto.includes('Operação salva')) throw new Error(`aviso inesperado: "${texto}"`);
-});
-
-await passo(pagina, 'operacao-brilho-no-salvo', async () => {
-  // A lista dá o brilho na operação salva (a classe dura ~1,2s).
   if (!(await pagina.locator('.lista__item.lc-salvo').count())) {
-    throw new Error('nenhuma linha de operação recebeu o brilho');
+    throw new Error('nenhuma linha de operação recebeu o destaque');
   }
+  console.log(`        (com mudança: fechou em ${ms}ms, gravação ainda em curso)`);
+  await pagina.waitForTimeout(1600);
+  await pagina.unroute(() => true).catch(() => {});
 });
 
 await passo(pagina, 'operacao-salvar-reabre', async () => {

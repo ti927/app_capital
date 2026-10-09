@@ -1,12 +1,11 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState, useTransition, type ComponentProps } from 'react';
+import { useEffect, useState, useTransition, type ComponentProps } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import { IconeFechar, IconeMais } from '@/components/ui/icones';
 import { Dialogo, useSessaoDoDialogo } from '@/components/ui/dialogo';
-import { useAvisos } from '@/components/ui/aviso';
-import { useSemMudancas } from '@/components/ui/sem-mudancas';
+import { useSalvarOtimista } from '@/components/ui/salvar-otimista';
 import { STATUS_CLIENTE, type Cliente } from '@/lib/dominio';
 import { adicionarEmail, gravarCliente, removerEmail } from './acoes';
 import type { CartaoDoFunil, EmailCliente } from './tela';
@@ -47,26 +46,10 @@ function CorpoDialogoCliente({
   cartoesDoFunil: CartaoDoFunil[];
   aoFechar: () => void;
 }) {
-  const [estado, agir, gravando] = useActionState(gravarCliente, null as { erro?: string; ok?: boolean; id?: string } | null);
   const [emailAberto, setEmailAberto] = useState(false);
   // Cartão escolhido em "Puxar do funil". Só preenche o formulário — nada é
   // gravado antes de o usuário mandar salvar.
   const [doFunil, setDoFunil] = useState<CartaoDoFunil | null>(null);
-
-  const { avisar } = useAvisos();
-  // `aoFechar` é uma função nova a cada render da tela: fora das dependências,
-  // senão o efeito rodaria de novo (e o aviso sairia em dobro).
-  const ultimo = useRef({ aoFechar, avisar, editando: Boolean(cliente?.nome_razao) });
-  ultimo.current = { aoFechar, avisar, editando: Boolean(cliente?.nome_razao) };
-
-  useEffect(() => {
-    if (estado?.ok) {
-      ultimo.current.avisar(ultimo.current.editando ? 'Cliente salvo' : 'Cliente cadastrado', { id: estado.id });
-      ultimo.current.aoFechar();
-    } else if (estado?.erro) {
-      ultimo.current.avisar(estado.erro, { tipo: 'erro' });
-    }
-  }, [estado]);
 
   // O diálogo fica montado entre uma abertura e outra: sem isto, o cartão
   // puxado num cadastro novo reapareceria nos campos do próximo cliente.
@@ -76,9 +59,15 @@ function CorpoDialogoCliente({
 
   const editando = Boolean(cliente?.nome_razao);
 
-  // Salvar sem ter mexido em nada não vai ao servidor: fecha na hora, com o
-  // mesmo aviso (src/components/ui/sem-mudancas.ts).
-  const semMudancas = useSemMudancas(Boolean(cliente));
+  // Fecha e avisa no clique; grava em segundo plano (salvar-otimista.ts).
+  const salvar = useSalvarOtimista(gravarCliente, {
+    existente: Boolean(cliente?.id),
+    id: cliente?.id,
+    mensagem: editando ? 'Cliente salvo' : 'Cliente cadastrado',
+    oQue: 'o cliente',
+    aoFechar,
+    validar: (d) => (String(d.get('nome_razao') ?? '').trim() ? null : 'O nome/razão social é obrigatório.'),
+  });
 
   // Puxar do funil só vale para cliente novo — em edição o cadastro é a fonte.
   const cartao = cliente ? null : doFunil;
@@ -95,7 +84,7 @@ function CorpoDialogoCliente({
         titulo={editando ? cliente?.nome_razao : 'Novo cliente'}
         largura="md"
         rodape={
-          <Botao variante="primary" type="submit" form="forma-cliente" carregando={gravando}>
+          <Botao variante="primary" type="submit" form="forma-cliente">
             {editando ? 'Salvar' : 'Cadastrar'}
           </Botao>
         }
@@ -106,12 +95,8 @@ function CorpoDialogoCliente({
         <form
           key={cartao?.id ?? 'vazio'}
           id="forma-cliente"
-          ref={semMudancas.ref}
-          onSubmit={semMudancas.aoEnviar(() => {
-            avisar('Cliente salvo', { id: cliente?.id });
-            aoFechar();
-          })}
-          action={agir}
+          ref={salvar.ref}
+          onSubmit={salvar.aoEnviar}
           className="grade"
         >
           <input type="hidden" name="id" value={cliente?.id ?? ''} />
@@ -186,11 +171,6 @@ function CorpoDialogoCliente({
             opcoes={STATUS_CLIENTE.map((s) => ({ valor: s, rotulo: s }))}
           />
 
-          {estado?.erro ? (
-            <p className="lc-field__msg grade__inteiro" role="alert">
-              {estado.erro}
-            </p>
-          ) : null}
         </form>
       </Dialogo>
 

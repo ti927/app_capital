@@ -304,7 +304,7 @@
    - Spinner no botão que está gravando (`<Botao carregando>`).
    - Aviso de canto de tela (components/ui/aviso.tsx): entra deslizando, fica
      ~3s e sai sozinho. Empilha de baixo para cima.
-   - Brilho curto no registro que acabou de ser salvo (`.lc-salvo`).
+   - Destaque curto no registro que acabou de ser salvo (`.lc-salvo`).
    =========================================================================== */
 
 /* --- spinner --------------------------------------------------------------- */
@@ -404,6 +404,24 @@
   opacity: 1;
 }
 
+/* "Tentar de novo" no aviso de erro: botão contornado, na cor do aviso. */
+.lc-aviso__acao {
+  flex: none;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-w) solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lc-aviso__acao:hover {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
 @keyframes lc-aviso-entra {
   from {
     opacity: 0;
@@ -442,34 +460,112 @@
   }
 }
 
-/* --- brilho do registro salvo ----------------------------------------------
+/* --- destaque do registro salvo --------------------------------------------
 
-   Nas linhas de tabela e de lista o brilho vai no filho (`td`, botão): a
-   linha em si já tem a animação de cascata da troca de tela, e trocar o
-   `animation` dela faria a cascata rodar de novo quando a classe saísse.
+   Discreto: uma barra fina de acento entra pela borda esquerda, um brilho
+   suave varre o registro da esquerda para a direita e tudo se apaga sozinho
+   (~1,3s, `MS_BRILHO` em aviso.tsx). Nada muda de tamanho: só cor, sombra
+   interna e opacidade.
+
+   - Lista e cartão do funil: o efeito mora num `::after` por cima do item,
+     com o mesmo arredondamento. Assim não disputa o `animation` do próprio
+     item (cascata da troca de tela, "pousou" do arrastar).
+   - Tabela: `tr` posicionado não é confiável, então vai nas células — um véu
+     leve em todas e a barra só na primeira. A linha em si tem a cascata, e
+     trocar o `animation` dela faria a cascata rodar de novo.
    --------------------------------------------------------------------------- */
 
-.lc-table tbody tr.lc-salvo > td,
-.lista__item.lc-salvo > .lista__abrir,
-.lista__item.lc-salvo > .lista__texto {
-  animation: lc-salvo 1200ms ease-out;
-}
-
+.lista__item.lc-salvo,
 .funil__cartao.lc-salvo {
-  animation: lc-salvo-cartao 1200ms ease-out;
+  position: relative;
 }
 
-@keyframes lc-salvo {
-  0%,
-  25% {
-    background-color: color-mix(in srgb, var(--accent) 40%, transparent);
+.lista__item.lc-salvo::after,
+.funil__cartao.lc-salvo::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--border-w) * -1);
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: linear-gradient(
+    105deg,
+    transparent 38%,
+    color-mix(in srgb, var(--accent) 26%, transparent) 50%,
+    transparent 62%
+  );
+  background-repeat: no-repeat;
+  background-size: 260% 100%;
+  animation: lc-salvo-varre 1300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes lc-salvo-varre {
+  0% {
+    opacity: 0;
+    background-position: 100% 0;
+    background-color: transparent;
+    box-shadow:
+      inset 0 0 0 var(--accent),
+      inset 0 0 0 0 transparent;
+  }
+  14% {
+    opacity: 1;
+    background-color: color-mix(in srgb, var(--accent) 7%, transparent);
+    box-shadow:
+      inset 3px 0 0 var(--accent),
+      inset 0 0 0 1px color-mix(in srgb, var(--accent) 75%, transparent);
+  }
+  65% {
+    opacity: 1;
+    background-position: 0% 0;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  100% {
+    opacity: 0;
+    background-position: 0% 0;
+    background-color: color-mix(in srgb, var(--accent) 7%, transparent);
+    box-shadow:
+      inset 3px 0 0 var(--accent),
+      inset 0 0 0 1px color-mix(in srgb, var(--accent) 75%, transparent);
   }
 }
 
-@keyframes lc-salvo-cartao {
-  0%,
-  25% {
-    box-shadow: 0 0 0 3px var(--accent);
+.lc-table tbody tr.lc-salvo > td {
+  animation: lc-salvo-veu 1300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lc-table tbody tr.lc-salvo > td:first-child {
+  animation:
+    lc-salvo-veu 1300ms cubic-bezier(0.22, 1, 0.36, 1),
+    lc-salvo-barra 1300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes lc-salvo-veu {
+  0% {
+    background-color: transparent;
+  }
+  16% {
+    background-color: color-mix(in srgb, var(--accent) 13%, transparent);
+  }
+  45% {
+    background-color: color-mix(in srgb, var(--accent) 9%, transparent);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes lc-salvo-barra {
+  0% {
+    box-shadow: inset 0 0 0 var(--accent);
+  }
+  14%,
+  60% {
+    box-shadow: inset 3px 0 0 var(--accent);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  100% {
+    box-shadow: inset 0 0 0 var(--accent);
   }
 }
 
@@ -485,16 +581,26 @@
   .lc-aviso--saindo {
     display: none;
   }
-  /* Sem movimento, o destaque fica parado e some junto com a classe. */
+  /* Sem movimento: barra, contorno e véu parados; somem junto com a classe. */
   .lc-table tbody tr.lc-salvo > td,
-  .lista__item.lc-salvo > .lista__abrir,
-  .lista__item.lc-salvo > .lista__texto,
-  .funil__cartao.lc-salvo {
+  .lc-table tbody tr.lc-salvo > td:first-child,
+  .lista__item.lc-salvo::after,
+  .funil__cartao.lc-salvo::after {
     animation: none;
   }
-  .lc-table tbody tr.lc-salvo > td,
-  .lista__item.lc-salvo > .lista__abrir {
-    background-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  .lc-table tbody tr.lc-salvo > td {
+    background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+  .lc-table tbody tr.lc-salvo > td:first-child {
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .lista__item.lc-salvo::after,
+  .funil__cartao.lc-salvo::after {
+    background-image: none;
+    background-color: color-mix(in srgb, var(--accent) 7%, transparent);
+    box-shadow:
+      inset 3px 0 0 var(--accent),
+      inset 0 0 0 1px color-mix(in srgb, var(--accent) 75%, transparent);
   }
 }
 

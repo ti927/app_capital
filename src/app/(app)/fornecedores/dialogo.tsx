@@ -1,11 +1,10 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import { Dialogo, useSessaoDoDialogo } from '@/components/ui/dialogo';
-import { useAvisos } from '@/components/ui/aviso';
-import { useSemMudancas } from '@/components/ui/sem-mudancas';
+import { useSalvarOtimista } from '@/components/ui/salvar-otimista';
 import { STATUS_FORNECEDOR, type Fornecedor, type TabelaApoio } from '@/lib/dominio';
 import { gravarFornecedor } from './acoes';
 import type { VinculoTipo } from './page';
@@ -38,8 +37,6 @@ function CorpoDialogoFornecedor({
   vinculos,
   aoFechar,
 }: PropsDialogoFornecedor) {
-  const [estado, agir, gravando] = useActionState(gravarFornecedor, null as { erro?: string; ok?: boolean; id?: string } | null);
-
   const inicial = (papel: VinculoTipo['papel']) =>
     vinculos.filter((v) => v.papel === papel).map((v) => String(v.tipo_operacao_id));
 
@@ -49,24 +46,16 @@ function CorpoDialogoFornecedor({
     setNaoAtendidas(vinculos.filter((v) => v.papel === 'nao_atende').map((v) => String(v.tipo_operacao_id)));
   }, [vinculos]);
 
-  const { avisar } = useAvisos();
   const editando = Boolean(fornecedor?.nome_fundo);
-  // `aoFechar` é uma função nova a cada render da tela: fora das dependências,
-  // senão o efeito rodaria de novo (e o aviso sairia em dobro).
-  const ultimo = useRef({ aoFechar, avisar, editando });
-  ultimo.current = { aoFechar, avisar, editando };
-
-  useEffect(() => {
-    if (estado?.ok) {
-      ultimo.current.avisar(ultimo.current.editando ? 'Fundo salvo' : 'Fundo cadastrado', { id: estado.id });
-      ultimo.current.aoFechar();
-    } else if (estado?.erro) {
-      ultimo.current.avisar(estado.erro, { tipo: 'erro' });
-    }
-  }, [estado]);
-
-  // Salvar sem ter mexido em nada não vai ao servidor (sem-mudancas.ts).
-  const semMudancas = useSemMudancas(Boolean(fornecedor));
+  // Fecha e avisa no clique; grava em segundo plano (salvar-otimista.ts).
+  const salvar = useSalvarOtimista(gravarFornecedor, {
+    existente: Boolean(fornecedor?.id),
+    id: fornecedor?.id,
+    mensagem: editando ? 'Fundo salvo' : 'Fundo cadastrado',
+    oQue: 'o fundo',
+    aoFechar,
+    validar: (d) => (String(d.get('nome_fundo') ?? '').trim() ? null : 'O nome do fundo é obrigatório.'),
+  });
 
   // 1ª e 2ª Linha só oferecem tipos que não estão em "não atendidas".
   const disponiveis = useMemo(
@@ -81,19 +70,15 @@ function CorpoDialogoFornecedor({
       titulo={editando ? 'Editar fundo' : 'Novo fundo'}
       largura="md"
       rodape={
-        <Botao variante="primary" type="submit" form="forma-fornecedor" carregando={gravando}>
+        <Botao variante="primary" type="submit" form="forma-fornecedor">
           {editando ? 'Salvar' : 'Cadastrar'}
         </Botao>
       }
     >
       <form
         id="forma-fornecedor"
-        ref={semMudancas.ref}
-        onSubmit={semMudancas.aoEnviar(() => {
-          avisar('Fundo salvo', { id: fornecedor?.id });
-          aoFechar();
-        })}
-        action={agir}
+        ref={salvar.ref}
+        onSubmit={salvar.aoEnviar}
         className="grade"
       >
         <input type="hidden" name="id" value={fornecedor?.id ?? ''} />
@@ -181,11 +166,6 @@ function CorpoDialogoFornecedor({
         <Campo rotulo="Segmento foco" nome="segmento_foco" valorInicial={fornecedor?.segmento_foco ?? ''} placeholder="Digite aqui" />
         <Campo rotulo="Segmento que não atua" nome="segmento_nao_atua" valorInicial={fornecedor?.segmento_nao_atua ?? ''} placeholder="Digite aqui" />
 
-        {estado?.erro ? (
-          <p className="lc-field__msg grade__inteiro" role="alert">
-            {estado.erro}
-          </p>
-        ) : null}
       </form>
     </Dialogo>
   );

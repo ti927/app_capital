@@ -1,8 +1,8 @@
 'use client';
 
-import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useAvisos } from '@/components/ui/aviso';
-import { useSemMudancas } from '@/components/ui/sem-mudancas';
+import { useSalvarOtimista } from '@/components/ui/salvar-otimista';
 import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import {
@@ -70,32 +70,18 @@ export function DialogoOperacao({
   aoFechar: () => void;
 }) {
   /*
-    O estado da ação é desta abertura só: `tela.tsx` monta o diálogo com uma
-    `key` nova a cada vez que abre. Sem isso o `{ ok: true }` de um salvamento
-    sobrevivia até a próxima abertura e o efeito abaixo fechava o diálogo no
-    mesmo instante — e os interruptores, que são não controlados
-    (`defaultChecked`), podiam carregar o estado da operação anterior.
+    Fecha e avisa no clique; grava em segundo plano (salvar-otimista.ts).
+    `tela.tsx` monta o diálogo com uma `key` nova a cada abertura: os
+    interruptores, não controlados (`defaultChecked`), não carregam o estado
+    da operação anterior. O do rodapé entra no envio pelo `form=` dele.
   */
-  const [estado, agir, gravando] = useActionState(gravarOperacao, null as { erro?: string; ok?: boolean; id?: string } | null);
-
-  const { avisar } = useAvisos();
-  // `aoFechar` é uma função nova a cada render da tela: fora das dependências,
-  // senão o efeito rodaria de novo (e o aviso sairia em dobro).
-  const ultimo = useRef({ aoFechar, avisar, nova: !operacao });
-  ultimo.current = { aoFechar, avisar, nova: !operacao };
-
-  useEffect(() => {
-    if (estado?.ok) {
-      ultimo.current.avisar(ultimo.current.nova ? 'Operação cadastrada' : 'Operação salva', { id: estado.id });
-      ultimo.current.aoFechar();
-    } else if (estado?.erro) {
-      ultimo.current.avisar(estado.erro, { tipo: 'erro' });
-    }
-  }, [estado]);
-
-  // Salvar sem ter mexido em nada não vai ao servidor (sem-mudancas.ts). O
-  // interruptor do rodapé entra na conta pelo `form=` dele.
-  const semMudancas = useSemMudancas(Boolean(operacao));
+  const salvar = useSalvarOtimista(gravarOperacao, {
+    existente: Boolean(operacao?.id),
+    id: operacao?.id,
+    mensagem: operacao ? 'Operação salva' : 'Operação cadastrada',
+    oQue: 'a operação',
+    aoFechar,
+  });
 
   const [emailAberto, setEmailAberto] = useState(false);
   const [faturamento, setFaturamento] = useState(operacao?.faturamento_anual ?? '');
@@ -147,7 +133,7 @@ export function DialogoOperacao({
               Enviar Email
             </Botao>
           ) : null}
-          <Botao variante="primary" type="submit" form="forma-operacao" carregando={gravando}>
+          <Botao variante="primary" type="submit" form="forma-operacao">
             {nova ? 'Cadastrar' : 'Salvar'}
           </Botao>
         </>
@@ -155,12 +141,8 @@ export function DialogoOperacao({
     >
       <form
         id="forma-operacao"
-        ref={semMudancas.ref}
-        onSubmit={semMudancas.aoEnviar(() => {
-          avisar('Operação salva', { id: operacao?.id });
-          aoFechar();
-        })}
-        action={agir}
+        ref={salvar.ref}
+        onSubmit={salvar.aoEnviar}
         className="grade"
       >
         <input type="hidden" name="id" value={operacao?.id ?? ''} />
@@ -277,11 +259,6 @@ export function DialogoOperacao({
         <Declinios fornecedores={fundosOrdenados} escolhidos={declinios} />
         <Campo className="grade__inteiro" rotulo="Limites/fundos assinados" nome="limites_fundos_assinados" valorInicial={operacao?.limites_fundos_assinados ?? ''} placeholder="Digite aqui" />
 
-        {estado?.erro ? (
-          <p className="lc-field__msg grade__inteiro" role="alert">
-            {estado.erro}
-          </p>
-        ) : null}
       </form>
 
       {/* A tabela de etapas some quando não há nenhuma etapa. */}

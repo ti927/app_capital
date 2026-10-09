@@ -278,7 +278,7 @@ máquina e contra o mesmo banco — `next build` + `next start` do `HEAD` (cópi
 limpa do commit) e do código novo, lado a lado. A coluna "produção" é o ponto de
 partida real: o "depois" em produção só existe depois do deploy.
 
-**1. Sem mudança = instantâneo.** `src/components/ui/sem-mudancas.ts`: o
+**1. Sem mudança = instantâneo.** `src/components/ui/salvar-otimista.ts` (era `sem-mudancas.ts`): o
 navegador tira uma fotografia do `FormData` do formulário logo depois de ele
 aparecer e, no submit, compara. Igual → não chama o servidor, fecha o diálogo e
 mostra o aviso de sempre ("Cliente salvo"), sem spinner: **3ms e zero POST**
@@ -308,16 +308,38 @@ falhar, regrava o conjunto inteiro, como sempre foi. O parecer do cliente só é
 gravado quando mudou de verdade, e `/clientes` só é revalidada nesse caso. Regra
 de negócio e RLS não mudaram.
 
-**O que sobra do tempo com mudança** (~380ms local): middleware `getUser` (~70ms)
-+ a fila da action (~100–120ms, medida com `[T]` no log) + **re-render da página
-pelo `revalidatePath`, ~140ms**. Isso último foi medido tirando o
-`revalidatePath` do `gravarCliente`: 396ms → 256ms. **Não aplicado**: o
-`revalidate` é o que faz a lista já voltar atualizada junto com o aviso; trocar
-por `router.refresh()` em segundo plano deixaria a linha velha na tela por
-~150ms depois do "Cliente salvo", e fechar o diálogo antes de o servidor
-responder (otimista de verdade) faria o aviso de sucesso mentir quando a gravação
-falha. Se o tempo com mudança voltar a ser queixa, esta é a próxima alavanca —
-com a lista atualizada localmente junto.
+**O que sobrava do tempo com mudança** (~380ms local, ~320–470ms em produção):
+middleware `getUser` (~70ms) + a fila da action (~100–120ms) + re-render da
+página pelo `revalidatePath` (~140ms, medido tirando o `revalidatePath` do
+`gravarCliente`: 396ms → 256ms). Resolvido em 3.8 sem cortar nenhum deles: a
+pessoa simplesmente deixa de esperar por eles.
+
+### 3.8 Salvar otimista (09/10/2026)
+
+Decisão do usuário ("o objetivo é ficar o mais rápido possível; se der erro,
+mande o aviso"): **o diálogo fecha e o aviso sobe no clique**, e a gravação
+segue em segundo plano. `src/components/ui/salvar-otimista.ts`, usado por
+cliente, fornecedor, operação, cartão do funil e tarefa.
+
+- **Sucesso:** aviso e destaque da linha na hora (registro existente); a lista
+  troca para o dado novo quando a resposta chega, ~0,3–0,5s depois, já com o
+  `revalidatePath` que continua na action. Registro novo ganha o destaque
+  quando o id chega (`destacar` em `aviso.tsx`).
+- **Erro do servidor ou da rede:** aviso de erro ("Não consegui salvar o
+  cliente.") com o botão **"Tentar de novo"**, que reenvia exatamente o
+  `FormData` que foi digitado: fechar antes não perde nada. Esse aviso fica
+  15s (os de erro comuns, 5s).
+- **O que dá para saber sem servidor** (nome/razão vazio, nome do fundo vazio,
+  tarefa sem cartão) é conferido antes de fechar: o diálogo fica aberto e o
+  aviso de erro sobe. Assim o "salvo" não é desmentido segundos depois.
+- **Tarefa com Google Agenda:** a tarefa salva e a agenda falhou. Antes o
+  diálogo ficava aberto com a explicação; agora vira aviso de erro "Salvei a
+  tarefa, mas: <motivo>".
+- O botão do rodapé não tem mais spinner: não há o que esperar.
+
+QA: `*-salvar-instantaneo` (com a gravação presa 1,2s no caminho, o diálogo
+tem que fechar em < 500ms), `*-salvar-erro` e `*-salvar-tentar-de-novo` (a
+primeira gravação é derrubada na rede e o reenvio passa) e `*-salvar-sem-nome`.
 
 ---
 

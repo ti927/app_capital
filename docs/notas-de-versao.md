@@ -4,6 +4,22 @@ Uma seção por rodada, a mais recente no topo. Escrito para quem usa o sistema.
 
 ---
 
+## 09/10/2026 — salvar na hora
+
+### Em todo o sistema
+
+- **Salvar é instantâneo.** Ao clicar em Salvar, a janela fecha na hora e o
+  aviso aparece; a gravação termina sozinha em segundo plano. Se você não mudou
+  nada, nem chega a ir ao servidor.
+- **Se a gravação falhar, você fica sabendo.** Aparece um aviso vermelho com o
+  botão "Tentar de novo", que reenvia exatamente o que você tinha digitado.
+- **Campo obrigatório vazio** (nome do cliente, nome do fundo, cartão da
+  tarefa) avisa na hora e a janela continua aberta.
+- **Sistema mais rápido em geral:** o servidor do app agora fica em São Paulo,
+  ao lado do banco de dados.
+
+---
+
 ## 08/10/2026 — salvar com retorno, sincronização e funil vivo
 
 ### Em todo o sistema

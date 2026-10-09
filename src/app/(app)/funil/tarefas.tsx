@@ -1,11 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useActionState, useEffect, useMemo, useRef, useState, useTransition, type ComponentProps, type ReactNode } from 'react';
+import { useMemo, useState, useTransition, type ComponentProps, type ReactNode } from 'react';
 import { Botao, Campo, Vazio } from '@/components/ui/base';
 import { Dialogo, useSessaoDoDialogo } from '@/components/ui/dialogo';
-import { useAvisos } from '@/components/ui/aviso';
-import { useSemMudancas } from '@/components/ui/sem-mudancas';
+import { useSalvarOtimista } from '@/components/ui/salvar-otimista';
 import { SeletorPopup } from '@/components/ui/seletor-popup';
 import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import {
@@ -394,34 +393,21 @@ function CorpoDialogoTarefa({
   prazoInicial?: string | null;
   aoFechar: () => void;
 }) {
-  const [estado, agir, gravando] = useActionState(
-    tarefa ? gravarTarefa : criarTarefa,
-    null as { erro?: string; ok?: boolean; aviso?: string } | null,
-  );
   const [cartaoId, setCartaoId] = useState(tarefa?.cartao_id ?? cartaoFixo ?? '');
   const [tipo, setTipo] = useState<string>(tarefa?.tipo ?? '');
   const [responsavelId, setResponsavelId] = useState(tarefa?.responsavel_id ?? perfilId);
   const [convidar, setConvidar] = useState(tarefa?.convidar_contato ?? false);
 
-  // Com aviso da agenda, o diálogo fica aberto para a pessoa ler: a tarefa já
-  // salvou, e o rodapé vira só "Fechar" — "Criar" de novo duplicaria.
-  const salvouComAviso = Boolean(estado?.ok && estado.aviso);
-  const { avisar } = useAvisos();
-  // `aoFechar` é uma função nova a cada render da tela: fora das dependências,
-  // senão o efeito rodaria de novo (e o aviso sairia em dobro).
-  const ultimo = useRef({ aoFechar, avisar, editando: Boolean(tarefa) });
-  ultimo.current = { aoFechar, avisar, editando: Boolean(tarefa) };
-  useEffect(() => {
-    if (estado?.ok) {
-      ultimo.current.avisar(ultimo.current.editando ? 'Tarefa salva' : 'Tarefa criada');
-      if (!estado.aviso) ultimo.current.aoFechar();
-    } else if (estado?.erro) {
-      ultimo.current.avisar(estado.erro, { tipo: 'erro' });
-    }
-  }, [estado]);
-
-  // Salvar sem ter mexido em nada não vai ao servidor (sem-mudancas.ts).
-  const semMudancas = useSemMudancas(Boolean(tarefa));
+  // Fecha e avisa no clique; grava (e fala com o Google Agenda) em segundo
+  // plano. Se a agenda falhar, a tarefa já salvou e o aviso diz isso
+  // (salvar-otimista.ts).
+  const salvar = useSalvarOtimista(tarefa ? gravarTarefa : criarTarefa, {
+    existente: Boolean(tarefa),
+    mensagem: tarefa ? 'Tarefa salva' : 'Tarefa criada',
+    oQue: 'a tarefa',
+    aoFechar,
+    validar: (d) => (String(d.get('cartao_id') ?? '').trim() ? null : 'Escolha o cartão a que a tarefa pertence.'),
+  });
 
   if (!aberto) return null;
 
@@ -437,30 +423,20 @@ function CorpoDialogoTarefa({
       contexto={cartaoFixo ? nomeDoCartao || 'Cartão em branco' : undefined}
       largura="sm"
       rodape={
-        salvouComAviso ? (
-          <Botao variante="primary" onClick={aoFechar}>
-            Fechar
+        <>
+          <Botao variante="secondary" onClick={aoFechar}>
+            Cancelar
           </Botao>
-        ) : (
-          <>
-            <Botao variante="secondary" onClick={aoFechar}>
-              Cancelar
-            </Botao>
-            <Botao variante="primary" type="submit" form="forma-tarefa" carregando={gravando} disabled={!cartaoId}>
-              {gravando ? 'Gravando…' : tarefa ? 'Salvar' : 'Criar tarefa'}
-            </Botao>
-          </>
-        )
+          <Botao variante="primary" type="submit" form="forma-tarefa" disabled={!cartaoId}>
+            {tarefa ? 'Salvar' : 'Criar tarefa'}
+          </Botao>
+        </>
       }
     >
       <form
         id="forma-tarefa"
-        ref={semMudancas.ref}
-        onSubmit={semMudancas.aoEnviar(() => {
-          avisar('Tarefa salva');
-          aoFechar();
-        })}
-        action={agir}
+        ref={salvar.ref}
+        onSubmit={salvar.aoEnviar}
         className="grade"
       >
         <input type="hidden" name="id" value={tarefa?.id ?? ''} />
@@ -555,24 +531,12 @@ function CorpoDialogoTarefa({
           </div>
         ) : null}
 
-        {salvouComAviso ? (
-          <div className="lc-notice lc-notice--neutral grade__inteiro" role="status">
-            <p className="lc-notice__title">Tarefa salva, mas não foi para a agenda</p>
-            <div className="lc-notice__body">{estado?.aviso}</div>
-          </div>
-        ) : null}
-
         {!cartaoId ? (
           <p className="apoio grade__inteiro">
             Toda tarefa pertence a um cartão — escolha o cartão para poder salvar.
           </p>
         ) : null}
 
-        {estado?.erro ? (
-          <p className="lc-field__msg grade__inteiro" role="alert">
-            {estado.erro}
-          </p>
-        ) : null}
       </form>
     </Dialogo>
   );

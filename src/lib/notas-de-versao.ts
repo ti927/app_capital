@@ -21,6 +21,34 @@ export interface RodadaDeNotas {
 /** Mais recente primeiro, como no .md. */
 export const NOTAS_DE_VERSAO: RodadaDeNotas[] = [
   {
+    "id": "2026-10-09-salvar-na-hora",
+    "data": "09/10/2026",
+    "titulo": "salvar na hora",
+    "grupos": [
+      {
+        "titulo": "Em todo o sistema",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Salvar é instantâneo.** Ao clicar em Salvar, a janela fecha na hora e o aviso aparece; a gravação termina sozinha em segundo plano. Se você não mudou nada, nem chega a ir ao servidor."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Se a gravação falhar, você fica sabendo.** Aparece um aviso vermelho com o botão \"Tentar de novo\", que reenvia exatamente o que você tinha digitado."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Campo obrigatório vazio** (nome do cliente, nome do fundo, cartão da tarefa) avisa na hora e a janela continua aberta."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Sistema mais rápido em geral:** o servidor do app agora fica em São Paulo, ao lado do banco de dados."
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "2026-10-08-salvar-com-retorno-sincronizacao-e-funil-vivo",
     "data": "08/10/2026",
     "titulo": "salvar com retorno, sincronização e funil vivo",

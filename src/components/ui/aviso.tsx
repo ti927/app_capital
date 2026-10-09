@@ -18,30 +18,42 @@ interface Aviso {
   texto: string;
   tipo: TipoAviso;
   saindo: boolean;
+  acao?: AcaoDoAviso;
+}
+
+/** Botão no próprio aviso — ex.: "Tentar de novo" quando a gravação falha. */
+export interface AcaoDoAviso {
+  rotulo: string;
+  fazer: () => void;
 }
 
 interface Opcoes {
   tipo?: TipoAviso;
   /** Id do registro salvo: a linha dele dá um brilho curto (`useDestaque`). */
   id?: string | null;
+  acao?: AcaoDoAviso;
 }
 
 interface Contexto {
   avisar: (texto: string, opcoes?: Opcoes) => void;
+  /** Só o destaque, sem aviso: registro novo cujo id chegou depois. */
+  destacar: (id: string) => void;
   destaque: string | null;
 }
 
 /** Quanto o aviso fica na tela. Erro fica mais: dá tempo de ler. */
 const MS_OK = 3000;
 const MS_ERRO = 5000;
+/** Erro com ação ("Tentar de novo") fica bem mais: é a única chance de refazer. */
+const MS_ERRO_COM_ACAO = 15000;
 /** Tem que bater com `--mov-saida` de `animacoes.css`. */
 const MS_SAIDA = 160;
-/** Duração do brilho — igual à do keyframe `lc-salvo`. */
-const MS_BRILHO = 1200;
+/** Duração do destaque — igual à dos keyframes `lc-salvo-*` (1300ms). */
+const MS_BRILHO = 1300;
 const MAXIMO = 4;
 
 // Fora do provider (teste, tela pública) `avisar` simplesmente não faz nada.
-const Ctx = createContext<Contexto>({ avisar: () => {}, destaque: null });
+const Ctx = createContext<Contexto>({ avisar: () => {}, destacar: () => {}, destaque: null });
 
 export function AvisosProvider({ children }: { children: ReactNode }) {
   const [avisos, setAvisos] = useState<Aviso[]>([]);
@@ -74,22 +86,23 @@ export function AvisosProvider({ children }: { children: ReactNode }) {
     [depois],
   );
 
-  const avisar = useCallback(
-    (texto: string, { tipo = 'ok', id }: Opcoes = {}) => {
-      const chave = ++proxima.current;
-      setAvisos((l) => [...l.slice(-(MAXIMO - 1)), { chave, texto, tipo, saindo: false }]);
-      depois(tipo === 'erro' ? MS_ERRO : MS_OK, () => dispensar(chave));
+  const destacar = useCallback((id: string) => {
+    if (relogioBrilho.current) clearTimeout(relogioBrilho.current);
+    setDestaque(id);
+    relogioBrilho.current = setTimeout(() => setDestaque(null), MS_BRILHO);
+  }, []);
 
-      if (id) {
-        if (relogioBrilho.current) clearTimeout(relogioBrilho.current);
-        setDestaque(id);
-        relogioBrilho.current = setTimeout(() => setDestaque(null), MS_BRILHO);
-      }
+  const avisar = useCallback(
+    (texto: string, { tipo = 'ok', id, acao }: Opcoes = {}) => {
+      const chave = ++proxima.current;
+      setAvisos((l) => [...l.slice(-(MAXIMO - 1)), { chave, texto, tipo, saindo: false, acao }]);
+      depois(tipo === 'erro' ? (acao ? MS_ERRO_COM_ACAO : MS_ERRO) : MS_OK, () => dispensar(chave));
+      if (id) destacar(id);
     },
-    [depois, dispensar],
+    [depois, dispensar, destacar],
   );
 
-  const valor = useMemo(() => ({ avisar, destaque }), [avisar, destaque]);
+  const valor = useMemo(() => ({ avisar, destacar, destaque }), [avisar, destacar, destaque]);
 
   return (
     <Ctx.Provider value={valor}>
@@ -108,6 +121,18 @@ export function AvisosProvider({ children }: { children: ReactNode }) {
               {a.tipo === 'ok' ? <IconeSalvar tamanho={14} /> : <IconeFechar tamanho={14} />}
             </span>
             <span className="lc-aviso__texto">{a.texto}</span>
+            {a.acao && (
+              <button
+                type="button"
+                className="lc-aviso__acao"
+                onClick={() => {
+                  dispensar(a.chave);
+                  a.acao?.fazer();
+                }}
+              >
+                {a.acao.rotulo}
+              </button>
+            )}
             <button
               type="button"
               className="lc-aviso__fechar"
@@ -125,11 +150,11 @@ export function AvisosProvider({ children }: { children: ReactNode }) {
 
 /** `avisar('Cliente salvo', { id })` — toast + brilho na linha do registro. */
 export function useAvisos() {
-  const { avisar } = useContext(Ctx);
-  return { avisar };
+  const { avisar, destacar } = useContext(Ctx);
+  return { avisar, destacar };
 }
 
-/** Id do registro que acabou de ser salvo (por ~1,2s), ou `null`. */
+/** Id do registro que acabou de ser salvo (por ~1,3s), ou `null`. */
 export function useDestaque() {
   return useContext(Ctx).destaque;
 }

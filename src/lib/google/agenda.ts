@@ -76,11 +76,14 @@ const COLUNAS =
 export async function sincronizarEventoDaTarefa(tarefaId: string, origem: string): Promise<{ aviso?: string }> {
   try {
     const admin = clienteAdmin();
-    const { data } = await admin.from('funil_tarefa').select(COLUNAS).eq('id', tarefaId).maybeSingle();
+    // A tarefa e quem tem agenda conectada não dependem um do outro.
+    const [{ data }, conectados] = await Promise.all([
+      admin.from('funil_tarefa').select(COLUNAS).eq('id', tarefaId).maybeSingle(),
+      perfisConectados(),
+    ]);
     if (!data) return {};
     const tarefa = data as unknown as TarefaParaAgenda & { cartao_id: string };
 
-    const conectados = await perfisConectados();
     const plano = planejar(tarefa, precisaDeEvento(tarefa, (p) => conectados.has(p)));
     if (plano.acao === 'nada') return {};
 

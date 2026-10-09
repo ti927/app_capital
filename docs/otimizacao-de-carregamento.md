@@ -244,6 +244,81 @@ abre. Agora monta na primeira vez que é aberta e fica montada daí em diante,
 que é o que o `hidden` já garantia: trocar de aba continua não remontando o
 quadro nem perdendo busca e filtro.
 
+### 3.7 Botão Salvar (09/10/2026)
+
+Queixa: "os botões de salvar demoram, até quando não tem informação nova".
+
+**Região das funções (iad1 → gru1).** As funções da Vercel passaram de
+Washington para São Paulo, ao lado do Supabase (sa-east-1). Uma chamada
+autenticada que lê o banco (`listar_funil`, no MCP) caiu de **1245ms para 191ms**
+(mediana). Foi o maior ganho disto tudo; o resto abaixo é o que sobrou.
+
+**Como foi medido.** `scripts/medir-salvar.mjs`: Playwright, login programático
+(`signInWithPassword` + cookies do `@supabase/ssr` injetados no contexto — a
+`/entrar` com senha não está ligada em produção), relógio **dentro da página**,
+do clique em Salvar até o `.lc-aviso` entrar no DOM. Registros de teste
+("ZZ-MEDICAO-SALVAR": um cliente com vínculo, um fornecedor com 4 vínculos, uma
+operação com 1 declínio) criados e apagados pelo próprio script; a "mudança" é
+trocar um campo de texto, e depois restaurar (a restauração não entra na conta).
+Mediana de 5 repetições, descartada a primeira volta.
+
+| Diálogo | Produção hoje (gru1, código antigo) | Local, código antigo | Local, código novo |
+|---|---|---|---|
+| **sem mudança** — cliente | 480ms | 541ms | **3ms** |
+| sem mudança — fornecedor | 451ms | 450ms | **3ms** |
+| sem mudança — operação | 532ms | 541ms | **3ms** |
+| **com mudança** — cliente | 493ms | 591ms | **377ms** |
+| com mudança — fornecedor | 363ms | 466ms | **379ms** |
+| com mudança — operação | 481ms | 652ms | **403ms** |
+
+⚠️ **Produção e local não são comparáveis entre si** (a máquina local fala com o
+Supabase pela internet, a função da Vercel fala de dentro de São Paulo). A
+comparação que vale é a da mesma coluna: antes e depois do código, na mesma
+máquina e contra o mesmo banco — `next build` + `next start` do `HEAD` (cópia
+limpa do commit) e do código novo, lado a lado. A coluna "produção" é o ponto de
+partida real: o "depois" em produção só existe depois do deploy.
+
+**1. Sem mudança = instantâneo.** `src/components/ui/sem-mudancas.ts`: o
+navegador tira uma fotografia do `FormData` do formulário logo depois de ele
+aparecer e, no submit, compara. Igual → não chama o servidor, fecha o diálogo e
+mostra o aviso de sempre ("Cliente salvo"), sem spinner: **3ms e zero POST**
+(o QA confere as duas coisas). A fotografia é do `FormData`, então já inclui
+campos controlados, multisseleção (as fichas são `<input type="hidden">`),
+interruptores e o que mora fora da `<form>` com `form="id"` — o "Estruturação em
+Andamento" do rodapé da operação, coberto por um passo próprio do QA (mexer só
+nele **tem** que ir ao servidor). Vale para cliente, fornecedor, operação,
+cartão do funil e tarefa — só em **edição**: cadastro novo sempre vai ao servidor.
+Na dúvida o envio segue (fotografia ainda não tirada, ou qualquer diferença).
+
+**2. Com mudança: menos idas em fila.** Idas ao banco em SEQUÊNCIA por salvamento
+de um registro existente (a leitura que corre junto com o `update` conta como a
+mesma ida):
+
+| Ação | Antes | Depois |
+|---|---|---|
+| Cliente (master) | getUser → perfil → update → delete vínculos → insert vínculos: **5** | getUser → perfil ‖ update ‖ ler vínculos: **2** (+1 só se "quem visualiza" mudou) |
+| Fornecedor | update → delete → insert: **3** | update ‖ ler vínculos: **1** (+1 só se algum vínculo mudou) |
+| Operação | update → update do parecer do cliente → delete → insert: **3 a 4** | update ‖ ler parecer ‖ ler declínios: **1** (+1 se o parecer do cliente mudou, +1 se os declínios mudaram) |
+| Cartão | update → delete tags → insert tags: **3** | update ‖ ler tags: **1** (+1 só se as tags mudaram) |
+| Tarefa (agenda) | update → ler tarefa → ler conectados → …: **3+** | update → ler tarefa ‖ ler conectados → …: **2+** |
+
+Os vínculos (visualizadores, tipos de operação, tags, declínios) agora gravam só a
+diferença (`src/lib/diferenca.ts`, com teste). Se a leitura do conjunto atual
+falhar, regrava o conjunto inteiro, como sempre foi. O parecer do cliente só é
+gravado quando mudou de verdade, e `/clientes` só é revalidada nesse caso. Regra
+de negócio e RLS não mudaram.
+
+**O que sobra do tempo com mudança** (~380ms local): middleware `getUser` (~70ms)
++ a fila da action (~100–120ms, medida com `[T]` no log) + **re-render da página
+pelo `revalidatePath`, ~140ms**. Isso último foi medido tirando o
+`revalidatePath` do `gravarCliente`: 396ms → 256ms. **Não aplicado**: o
+`revalidate` é o que faz a lista já voltar atualizada junto com o aviso; trocar
+por `router.refresh()` em segundo plano deixaria a linha velha na tela por
+~150ms depois do "Cliente salvo", e fechar o diálogo antes de o servidor
+responder (otimista de verdade) faria o aviso de sucesso mentir quando a gravação
+falha. Se o tempo com mudança voltar a ser queixa, esta é a próxima alavanca —
+com a lista atualizada localmente junto.
+
 ---
 
 ## 4. Resultado

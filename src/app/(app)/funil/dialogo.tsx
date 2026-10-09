@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState, useTransition } from 'react';
 import { useAvisos } from '@/components/ui/aviso';
+import { useSemMudancas } from '@/components/ui/sem-mudancas';
 import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import { Dialogo } from '@/components/ui/dialogo';
@@ -68,6 +69,9 @@ export function DialogoCartao({
       ultimo.current.avisar(estado.erro, { tipo: 'erro' });
     }
   }, [estado]);
+
+  // Fechar sem ter mexido em nada não vai ao servidor (sem-mudancas.ts).
+  const semMudancas = useSemMudancas(Boolean(cartao));
 
   const novo = !cartao;
   const emBranco = novo || (!cartao?.empresa && !cartao?.contato);
@@ -139,7 +143,16 @@ export function DialogoCartao({
           colunas explícitas, a altura é a da coluna mais alta — e os campos de
           texto, que são elásticos, absorvem a sobra.
         */}
-        <form id="forma-cartao" action={agir} className="funil__cartao-forma">
+        <form
+          id="forma-cartao"
+          ref={semMudancas.ref}
+          onSubmit={semMudancas.aoEnviar(() => {
+            avisar('Cartão salvo', { id: cartao?.id });
+            aoFechar();
+          })}
+          action={agir}
+          className="funil__cartao-forma"
+        >
           <input type="hidden" name="id" value={cartao?.id ?? ''} />
           <input type="hidden" name="quadro_id" value={quadroId} />
           {escolhidas.map((t) => (

@@ -5,6 +5,7 @@ import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import { Dialogo, useSessaoDoDialogo } from '@/components/ui/dialogo';
 import { useAvisos } from '@/components/ui/aviso';
+import { useSemMudancas } from '@/components/ui/sem-mudancas';
 import { STATUS_FORNECEDOR, type Fornecedor, type TabelaApoio } from '@/lib/dominio';
 import { gravarFornecedor } from './acoes';
 import type { VinculoTipo } from './page';
@@ -64,6 +65,9 @@ function CorpoDialogoFornecedor({
     }
   }, [estado]);
 
+  // Salvar sem ter mexido em nada não vai ao servidor (sem-mudancas.ts).
+  const semMudancas = useSemMudancas(Boolean(fornecedor));
+
   // 1ª e 2ª Linha só oferecem tipos que não estão em "não atendidas".
   const disponiveis = useMemo(
     () => tipos.filter((t) => !naoAtendidas.includes(String(t.id))),
@@ -82,7 +86,16 @@ function CorpoDialogoFornecedor({
         </Botao>
       }
     >
-      <form id="forma-fornecedor" action={agir} className="grade">
+      <form
+        id="forma-fornecedor"
+        ref={semMudancas.ref}
+        onSubmit={semMudancas.aoEnviar(() => {
+          avisar('Fundo salvo', { id: fornecedor?.id });
+          aoFechar();
+        })}
+        action={agir}
+        className="grade"
+      >
         <input type="hidden" name="id" value={fornecedor?.id ?? ''} />
 
         {/* 1 — o nome do fundo é o título editável do corpo */}

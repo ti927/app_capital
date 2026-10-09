@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useAvisos } from '@/components/ui/aviso';
+import { useSemMudancas } from '@/components/ui/sem-mudancas';
 import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import {
@@ -92,6 +93,10 @@ export function DialogoOperacao({
     }
   }, [estado]);
 
+  // Salvar sem ter mexido em nada não vai ao servidor (sem-mudancas.ts). O
+  // interruptor do rodapé entra na conta pelo `form=` dele.
+  const semMudancas = useSemMudancas(Boolean(operacao));
+
   const [emailAberto, setEmailAberto] = useState(false);
   const [faturamento, setFaturamento] = useState(operacao?.faturamento_anual ?? '');
   const nova = !operacao;
@@ -148,7 +153,16 @@ export function DialogoOperacao({
         </>
       }
     >
-      <form id="forma-operacao" action={agir} className="grade">
+      <form
+        id="forma-operacao"
+        ref={semMudancas.ref}
+        onSubmit={semMudancas.aoEnviar(() => {
+          avisar('Operação salva', { id: operacao?.id });
+          aoFechar();
+        })}
+        action={agir}
+        className="grade"
+      >
         <input type="hidden" name="id" value={operacao?.id ?? ''} />
 
         {/*

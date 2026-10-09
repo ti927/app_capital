@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { clienteServidor } from '@/lib/supabase/servidor';
+import { diferenca } from '@/lib/diferenca';
 
 const texto = (dados: FormData, chave: string) => {
   const v = String(dados.get(chave) ?? '').trim();
@@ -43,27 +44,65 @@ export async function gravarFornecedor(_anterior: unknown, dados: FormData) {
     segmento_nao_atua: texto(dados, 'segmento_nao_atua'),
   };
 
+  // O que o formulário quer: (tipo, papel) de cada vínculo.
+  const chave = (v: { tipo_operacao_id: number; papel: string }) => `${v.tipo_operacao_id}:${v.papel}`;
+  const quer = [
+    ...new Map(
+      PAPEIS.flatMap(([campo, papel]) =>
+        numeros(dados, campo).map((tipo_operacao_id) => ({ tipo_operacao_id, papel })),
+      ).map((v) => [chave(v), v] as const),
+    ).values(),
+  ];
+
   let alvo = id;
+  let atuais: Array<{ tipo_operacao_id: number; papel: string }> | null = [];
   if (id) {
-    const { error } = await supabase.from('fornecedor').update(campos).eq('id', id);
-    if (error) return { erro: 'Não consegui salvar. Tente de novo.' };
+    // O update e a leitura dos vínculos atuais não dependem um do outro.
+    const [atualizado, lidos] = await Promise.all([
+      supabase.from('fornecedor').update(campos).eq('id', id),
+      supabase.from('fornecedor_tipo_operacao').select('tipo_operacao_id, papel').eq('fornecedor_id', id),
+    ]);
+    if (atualizado.error) return { erro: 'Não consegui salvar. Tente de novo.' };
+    atuais = lidos.error ? null : (lidos.data as Array<{ tipo_operacao_id: number; papel: string }>);
   } else {
     const { data, error } = await supabase.from('fornecedor').insert(campos).select('id').single();
     if (error || !data) return { erro: 'Não consegui cadastrar. Tente de novo.' };
     alvo = data.id as string;
   }
 
-  // Regrava os quatro papéis de uma vez: é mais simples que diferenciar, e o
-  // volume é pequeno (31 tipos, 73 fornecedores).
-  await supabase.from('fornecedor_tipo_operacao').delete().eq('fornecedor_id', alvo);
-  const vinculos = PAPEIS.flatMap(([campo, papel]) =>
-    numeros(dados, campo).map((tipo_operacao_id) => ({
-      fornecedor_id: alvo,
-      tipo_operacao_id,
-      papel,
-    })),
-  );
-  if (vinculos.length) await supabase.from('fornecedor_tipo_operacao').insert(vinculos);
+  if (atuais === null) {
+    // Sem a leitura, regrava os quatro papéis de uma vez, como sempre foi.
+    await supabase.from('fornecedor_tipo_operacao').delete().eq('fornecedor_id', alvo);
+    if (quer.length) {
+      await supabase
+        .from('fornecedor_tipo_operacao')
+        .insert(quer.map((v) => ({ fornecedor_id: alvo, ...v })));
+    }
+  } else {
+    // Só a diferença vai ao banco; sem mudança, nenhuma ida.
+    const { remover, incluir } = diferenca(atuais.map(chave), quer.map(chave));
+    const saem = new Map<string, number[]>();
+    for (const c of remover) {
+      const [tipo, papel] = c.split(':');
+      saem.set(papel, [...(saem.get(papel) ?? []), Number(tipo)]);
+    }
+    const entram = new Set(incluir);
+    await Promise.all([
+      ...[...saem].map(([papel, tipos]) =>
+        supabase
+          .from('fornecedor_tipo_operacao')
+          .delete()
+          .eq('fornecedor_id', alvo)
+          .eq('papel', papel)
+          .in('tipo_operacao_id', tipos),
+      ),
+      entram.size
+        ? supabase
+            .from('fornecedor_tipo_operacao')
+            .insert(quer.filter((v) => entram.has(chave(v))).map((v) => ({ fornecedor_id: alvo, ...v })))
+        : null,
+    ]);
+  }
 
   revalidatePath('/fornecedores');
   return { ok: true, id: alvo };

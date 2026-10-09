@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
+import { diferenca } from '@/lib/diferenca';
 import { apagarEventoDaTarefa, sincronizarEventoDaTarefa } from '@/lib/google/agenda';
 import { criarClienteDoCartaoCom } from '@/lib/funil/cliente-do-cartao';
 
@@ -40,10 +41,18 @@ export async function gravarCartao(_anterior: unknown, dados: FormData) {
     data_kb: texto(dados, 'data_kb'),
   };
 
+  const tags = [...new Set(dados.getAll('tags').map(String).filter(Boolean))];
+
   let alvo = id;
+  let atuais: string[] | null = [];
   if (id) {
-    const { error } = await supabase.from('funil_cartao').update(campos).eq('id', id);
-    if (error) return { erro: 'Não consegui salvar.' };
+    // O update e a leitura das tags atuais não dependem um do outro.
+    const [gravado, lidas] = await Promise.all([
+      supabase.from('funil_cartao').update(campos).eq('id', id),
+      supabase.from('funil_cartao_tag').select('tag_id').eq('cartao_id', id),
+    ]);
+    if (gravado.error) return { erro: 'Não consegui salvar.' };
+    atuais = lidas.error ? null : (lidas.data ?? []).map((t) => t.tag_id as string);
   } else {
     const quadroId = String(dados.get('quadro_id') ?? '');
     const { data, error } = await supabase
@@ -55,10 +64,20 @@ export async function gravarCartao(_anterior: unknown, dados: FormData) {
     alvo = data.id as string;
   }
 
-  const tags = dados.getAll('tags').map(String).filter(Boolean);
-  await supabase.from('funil_cartao_tag').delete().eq('cartao_id', alvo);
-  if (tags.length) {
-    await supabase.from('funil_cartao_tag').insert(tags.map((tag_id) => ({ cartao_id: alvo, tag_id })));
+  // Tags: só a diferença; sem mudança, nenhuma ida ao banco.
+  if (atuais === null) {
+    await supabase.from('funil_cartao_tag').delete().eq('cartao_id', alvo);
+    if (tags.length) {
+      await supabase.from('funil_cartao_tag').insert(tags.map((tag_id) => ({ cartao_id: alvo, tag_id })));
+    }
+  } else {
+    const { remover, incluir } = diferenca(atuais, tags);
+    await Promise.all([
+      remover.length ? supabase.from('funil_cartao_tag').delete().eq('cartao_id', alvo).in('tag_id', remover) : null,
+      incluir.length
+        ? supabase.from('funil_cartao_tag').insert(incluir.map((tag_id) => ({ cartao_id: alvo, tag_id })))
+        : null,
+    ]);
   }
 
   revalidatePath('/funil');

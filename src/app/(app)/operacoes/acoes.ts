@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
+import { diferenca } from '@/lib/diferenca';
 import { emailValido, montarEmailDeStatus } from '@/lib/email/status-operacao';
 import { enviar, ErroDeEnvio, faltaConfigurar } from '@/lib/email/resend';
 
@@ -50,43 +51,79 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
     estruturacao_em_andamento: marcado(dados, 'estruturacao_em_andamento'),
   };
 
-  let alvo = id;
-  if (id) {
-    const { error } = await supabase.from('operacao').update(campos).eq('id', id);
-    if (error) return { erro: 'Não consegui salvar. Tente de novo.' };
-  } else {
-    const { data, error } = await supabase.from('operacao').insert(campos).select('id').single();
-    if (error || !data) return { erro: 'Não consegui cadastrar. Tente de novo.' };
-    alvo = data.id as string;
-  }
-
   /*
     "Parecer do cliente": no Bubble o ipt.parecercliente do diálogo de operação
     grava em `cliente.parecer` (documentacao-completa.md:2105–2120). O campo só
     vai no formulário quando a operação tem cliente — sem ele, nada a gravar.
   */
-  if (dados.has('parecer_cliente') && campos.cliente_id) {
-    // O navegador envia <textarea> com CRLF; sem normalizar, abrir e salvar sem
-    // mexer reescrevia o parecer do cliente (e o log registrava mudança falsa).
-    const parecerCliente = texto(dados, 'parecer_cliente')?.replace(/\r\n/g, '\n') ?? null;
-    const { error } = await supabase
-      .from('cliente')
-      .update({ parecer: parecerCliente })
-      .eq('id', campos.cliente_id);
-    if (error) return { erro: 'Salvei a operação, mas não o parecer do cliente. Tente de novo.' };
+  const temParecerCliente = dados.has('parecer_cliente') && Boolean(campos.cliente_id);
+  // O navegador envia <textarea> com CRLF; sem normalizar, abrir e salvar sem
+  // mexer reescrevia o parecer do cliente (e o log registrava mudança falsa).
+  const parecerCliente = texto(dados, 'parecer_cliente')?.replace(/\r\n/g, '\n') ?? null;
+  const declinios = [...new Set(dados.getAll('declinios').map(String).filter(Boolean))];
+
+  // A gravação da operação, a leitura do parecer atual do cliente e a dos
+  // declínios atuais não dependem uma da outra: uma ida só, em vez de quatro em
+  // fila. Os dois últimos existem para gravar SÓ o que mudou.
+  const lerParecer = temParecerCliente
+    ? supabase.from('cliente').select('parecer').eq('id', campos.cliente_id!).maybeSingle()
+    : null;
+
+  let alvo = id;
+  let atuais: string[] | null = [];
+  let parecerAtual: { data: { parecer: string | null } | null; error: unknown } | null = null;
+  if (id) {
+    const [gravada, parecer, lidos] = await Promise.all([
+      supabase.from('operacao').update(campos).eq('id', id),
+      lerParecer,
+      supabase.from('operacao_declinio').select('fornecedor_id').eq('operacao_id', id),
+    ]);
+    if (gravada.error) return { erro: 'Não consegui salvar. Tente de novo.' };
+    parecerAtual = parecer;
+    atuais = lidos.error ? null : (lidos.data ?? []).map((d) => d.fornecedor_id as string);
+  } else {
+    const [criada, parecer] = await Promise.all([
+      supabase.from('operacao').insert(campos).select('id').single(),
+      lerParecer,
+    ]);
+    if (criada.error || !criada.data) return { erro: 'Não consegui cadastrar. Tente de novo.' };
+    alvo = criada.data.id as string;
+    parecerAtual = parecer;
   }
 
-  // Declínios: regrava o conjunto inteiro.
-  const declinios = dados.getAll('declinios').map(String).filter(Boolean);
-  await supabase.from('operacao_declinio').delete().eq('operacao_id', alvo);
-  if (declinios.length) {
-    await supabase
-      .from('operacao_declinio')
-      .insert(declinios.map((fornecedor_id) => ({ operacao_id: alvo, fornecedor_id })));
+  // Só mexe no cliente quando o parecer dele mudou de verdade.
+  let clienteMudou = false;
+  if (temParecerCliente && (parecerAtual?.error || (parecerAtual?.data?.parecer ?? null) !== parecerCliente)) {
+    const { error } = await supabase.from('cliente').update({ parecer: parecerCliente }).eq('id', campos.cliente_id!);
+    if (error) return { erro: 'Salvei a operação, mas não o parecer do cliente. Tente de novo.' };
+    clienteMudou = true;
+  }
+
+  // Declínios: só a diferença; sem mudança, nenhuma ida ao banco.
+  if (atuais === null) {
+    await supabase.from('operacao_declinio').delete().eq('operacao_id', alvo);
+    if (declinios.length) {
+      await supabase
+        .from('operacao_declinio')
+        .insert(declinios.map((fornecedor_id) => ({ operacao_id: alvo, fornecedor_id })));
+    }
+  } else {
+    const { remover, incluir } = diferenca(atuais, declinios);
+    await Promise.all([
+      remover.length
+        ? supabase.from('operacao_declinio').delete().eq('operacao_id', alvo).in('fornecedor_id', remover)
+        : null,
+      incluir.length
+        ? supabase
+            .from('operacao_declinio')
+            .insert(incluir.map((fornecedor_id) => ({ operacao_id: alvo, fornecedor_id })))
+        : null,
+    ]);
   }
 
   revalidatePath('/operacoes');
-  revalidatePath('/clientes');
+  // O parecer do cliente aparece na tela de clientes; só ela precisa saber.
+  if (clienteMudou) revalidatePath('/clientes');
   return { ok: true, id: alvo };
 }
 

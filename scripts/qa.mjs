@@ -204,14 +204,60 @@ async function seguraGravacoes(pagina, ms) {
 }
 
 /**
- * Salvar um diálogo sem mudar nada — grava os mesmos dados — e conferir o
- * feedback inteiro: spinner no botão, toast no canto, toast que some sozinho,
- * e (o bug de 08/10) o diálogo que abre de novo depois de salvar.
+ * Acrescenta um espaço ao fim de um campo de texto do diálogo aberto. Para o
+ * formulário, é uma mudança (o salvar vai ao servidor); para o banco, não é: o
+ * servidor apara os espaços, então o dado gravado é o mesmo de antes.
+ */
+async function mexeSemMudarODado(pagina, seletor) {
+  const campo = pagina.locator(seletor).first();
+  await campo.fill(`${await campo.inputValue()} `);
+}
+
+/**
+ * Salvar sem mudar nada NÃO vai ao servidor (src/components/ui/sem-mudancas.ts):
+ * o diálogo fecha na hora, com o aviso de sempre e sem nenhuma requisição POST
+ * para a página. Confere o aviso, o fechamento em < 500ms e as zero requisições.
+ *
+ * Precisa de um diálogo de edição já aberto. `botao` é o submit do rodapé.
+ */
+async function salvarSemMudarEInstantaneo(pagina, { aviso, botao = '.lc-dialog__foot button[type="submit"]' }) {
+  // A fotografia do formulário é tirada logo depois da montagem.
+  await pagina.waitForTimeout(400);
+  let posts = 0;
+  const contar = (r) => {
+    if (r.method() === 'POST' && !r.url().includes('/_next/')) posts += 1;
+  };
+  pagina.on('request', contar);
+  try {
+    const t0 = Date.now();
+    await pagina.locator(botao).click();
+    await pagina.waitForSelector('.lc-aviso', { timeout: 3000 });
+    await pagina.waitForSelector('.lc-overlay:not(.lc-overlay--saindo)', { state: 'detached', timeout: 3000 });
+    const ms = Date.now() - t0;
+    const texto = await pagina.locator('.lc-aviso').last().innerText();
+    if (!texto.includes(aviso)) throw new Error(`aviso inesperado: "${texto}"`);
+    if (ms >= 500) throw new Error(`salvar sem mudança levou ${ms}ms (esperado < 500ms)`);
+    // Dá tempo de uma requisição atrasada aparecer antes de contar.
+    await pagina.waitForTimeout(300);
+    if (posts) throw new Error(`salvar sem mudança fez ${posts} requisição(ões) ao servidor`);
+    console.log(`        (sem mudança: ${ms}ms, ${posts} requisições)`);
+  } finally {
+    pagina.off('request', contar);
+  }
+  // O aviso fica na tela: é o que a captura do passo vai mostrar.
+}
+
+/**
+ * Salvar um diálogo mudando só um espaço (o dado gravado não muda, mas o
+ * formulário sim — vai ao servidor) e conferir o feedback inteiro: spinner no
+ * botão, toast no canto, toast que some sozinho, e (o bug de 08/10) o diálogo
+ * que abre de novo depois de salvar.
  */
 async function feedbackDeSalvar(pagina, { nome, abrir, aviso }) {
   await passo(pagina, `${nome}-salvar-spinner`, async () => {
     await abrir();
     await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+    await mexeSemMudarODado(pagina, '.lc-dialog form input[name="nome_razao"], .lc-dialog form input[name="nome_fundo"]');
     await seguraGravacoes(pagina, 1200);
     const botao = pagina.locator('.lc-dialog__foot button[type="submit"]');
     await botao.click();
@@ -351,6 +397,12 @@ await feedbackDeSalvar(pagina, {
   abrir: () => pagina.locator('.lista__abrir').first().click(),
 });
 
+await passo(pagina, 'cliente-salvar-sem-mudar-instantaneo', async () => {
+  await pagina.locator('.lista__abrir').first().click();
+  await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+  await salvarSemMudarEInstantaneo(pagina, { aviso: 'Cliente salvo' });
+});
+
 await passo(pagina, 'cliente-brilho-no-salvo', async () => {
   // O brilho dura ~1,2s: salva de novo e olha já na volta.
   await pagina.locator('.lista__abrir').first().click();
@@ -432,6 +484,12 @@ await feedbackDeSalvar(pagina, {
   nome: 'fornecedor',
   aviso: 'Fundo salvo',
   abrir: () => pagina.locator('.celula-abrir').first().click(),
+});
+
+await passo(pagina, 'fornecedor-salvar-sem-mudar-instantaneo', async () => {
+  await pagina.locator('.celula-abrir').first().click();
+  await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+  await salvarSemMudarEInstantaneo(pagina, { aviso: 'Fundo salvo' });
 });
 
 // --------------------------------------------------------------- operação ---
@@ -603,6 +661,7 @@ await passo(pagina, 'operacao-email-fechado', async () => {
 });
 
 await passo(pagina, 'operacao-salvar-spinner', async () => {
+  await mexeSemMudarODado(pagina, '.lc-dialog form input[name="identificador"]');
   await seguraGravacoes(pagina, 1200);
   await pagina.locator('.lc-dialog__foot button[type="submit"]').click();
   await pagina.waitForSelector('.lc-dialog__foot .lc-spinner', { timeout: 3000 });
@@ -634,6 +693,48 @@ await passo(pagina, 'operacao-salvar-reabre', async () => {
 await passo(pagina, 'operacao-fechado', async () => {
   await pagina.keyboard.press('Escape');
   await pagina.waitForTimeout(400);
+});
+
+await passo(pagina, 'operacao-salvar-sem-mudar-instantaneo', async () => {
+  // Inclui o interruptor "Estruturação em Andamento", que mora no rodapé,
+  // fora da <form>: ele entra na comparação pelo `form=`.
+  await pagina.locator('.lista__abrir').first().click();
+  await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+  await salvarSemMudarEInstantaneo(pagina, { aviso: 'Operação salva' });
+});
+
+await passo(pagina, 'operacao-interruptor-do-rodape-conta-como-mudanca', async () => {
+  // O outro lado da moeda: mexer SÓ no interruptor do rodapé (fora da <form>)
+  // não pode ser tomado por "nada mudou". Liga o interruptor, salva (tem que
+  // sair uma requisição) e desliga de volta pelo mesmo caminho — o dado da
+  // operação termina como começou, mesmo que o passo falhe no meio.
+  let posts = 0;
+  const contar = (r) => {
+    if (r.method() === 'POST' && !r.url().includes('/_next/')) posts += 1;
+  };
+  pagina.on('request', contar);
+  const virar = async () => {
+    await pagina.waitForSelector('.lc-aviso', { state: 'detached', timeout: 6000 }).catch(() => {});
+    await pagina.locator('.lista__abrir').first().click();
+    await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+    await pagina.waitForTimeout(400);
+    posts = 0;
+    await pagina.locator('.lc-dialog__foot input[name="estruturacao_em_andamento"]').evaluate((el) => el.click());
+    await pagina.locator('.lc-dialog__foot button[type="submit"]').click();
+    await pagina.waitForSelector('.lc-aviso', { timeout: 8000 });
+    await pagina.waitForSelector('.lc-overlay:not(.lc-overlay--saindo)', { state: 'detached', timeout: 5000 });
+    const foram = posts;
+    await pagina.waitForSelector('.lc-aviso', { state: 'detached', timeout: 6000 });
+    return foram;
+  };
+  let viradas = 0;
+  try {
+    if (!(await virar())) throw new Error('mexer só no interruptor do rodapé foi tomado por "sem mudança"');
+    viradas += 1;
+  } finally {
+    pagina.off('request', contar);
+    if (viradas) await virar(); // desliga de volta
+  }
 });
 
 await passo(pagina, 'operacao-nova-faturamento-do-cliente', async () => {
@@ -734,6 +835,11 @@ await passo(pagina, 'funil-cartao-dialogo', async () => {
   await pagina.locator('.funil__cartao-corpo').first().click();
   await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
   await conferePopUp(pagina, 'diálogo do cartão');
+});
+
+await passo(pagina, 'funil-cartao-fechar-sem-mudar-instantaneo', async () => {
+  // O "Fechar" do cartão é o submit do formulário: sem mudança, não grava.
+  await salvarSemMudarEInstantaneo(pagina, { aviso: 'Cartão salvo' });
 });
 
 await passo(pagina, 'funil-fechado', async () => {
@@ -845,6 +951,13 @@ await passo(pagina, 'funil-tarefa-criada', async () => {
   tarefaCriada = true;
   // A tarefa de hoje tem que cair no grupo "Hoje", com a contagem ao lado.
   await pagina.waitForSelector('.tarefas__grupo-topo:has-text("Hoje")', { timeout: 5000 });
+});
+
+await passo(pagina, 'funil-tarefa-salvar-sem-mudar-instantaneo', async () => {
+  if (!tarefaCriada) return;
+  await pagina.locator(`.tarefas__linha:has-text("${TITULO_QA}") .tarefas__titulo`).first().click();
+  await pagina.waitForSelector('#forma-tarefa', { timeout: 5000 });
+  await salvarSemMudarEInstantaneo(pagina, { aviso: 'Tarefa salva' });
 });
 
 await passo(pagina, 'funil-tarefa-concluida', async () => {

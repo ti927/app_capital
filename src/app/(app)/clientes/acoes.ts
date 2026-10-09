@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
+import { diferenca } from '@/lib/diferenca';
 
 const texto = (dados: FormData, chave: string) => {
   const v = String(dados.get(chave) ?? '').trim();
@@ -11,7 +12,6 @@ const texto = (dados: FormData, chave: string) => {
 
 /** Criar e editar são o mesmo formulário: o `id` decide qual é. */
 export async function gravarCliente(_anterior: unknown, dados: FormData) {
-  const perfil = await perfilAtual();
   const supabase = await clienteServidor();
 
   const id = String(dados.get('id') ?? '');
@@ -38,9 +38,46 @@ export async function gravarCliente(_anterior: unknown, dados: FormData) {
 
   let salvoId = id;
   if (id) {
-    const { error } = await supabase.from('cliente').update(campos).eq('id', id);
-    if (error) return { erro: 'Não consegui salvar. Tente de novo.' };
+    // Edição: o perfil, o update e a leitura dos vínculos atuais não dependem
+    // um do outro — uma ida só, em vez de quatro em fila. (O perfil só decide
+    // se "quem visualiza" é gravado; o update corre igual para todos.)
+    const [perfil, atualizado, vinculos] = await Promise.all([
+      perfilAtual(),
+      supabase.from('cliente').update(campos).eq('id', id),
+      supabase.from('cliente_visualizador').select('perfil_id').eq('cliente_id', id),
+    ]);
+    if (atualizado.error) return { erro: 'Não consegui salvar. Tente de novo.' };
+
+    // "Quem visualiza" só master edita. Grava só a diferença: sem mudança, nenhuma ida.
+    if (perfil.nivel_acesso === 'master') {
+      const escolhidos = dados.getAll('quem_visualiza').map(String).filter(Boolean);
+      if (vinculos.error) {
+        // Sem a leitura, regrava o conjunto inteiro, como sempre foi.
+        await supabase.from('cliente_visualizador').delete().eq('cliente_id', id);
+        if (escolhidos.length) {
+          await supabase
+            .from('cliente_visualizador')
+            .insert(escolhidos.map((perfil_id) => ({ cliente_id: id, perfil_id })));
+        }
+      } else {
+        const { remover, incluir } = diferenca(
+          (vinculos.data ?? []).map((v) => v.perfil_id as string),
+          escolhidos,
+        );
+        await Promise.all([
+          remover.length
+            ? supabase.from('cliente_visualizador').delete().eq('cliente_id', id).in('perfil_id', remover)
+            : null,
+          incluir.length
+            ? supabase
+                .from('cliente_visualizador')
+                .insert(incluir.map((perfil_id) => ({ cliente_id: id, perfil_id })))
+            : null,
+        ]);
+      }
+    }
   } else {
+    const perfil = await perfilAtual();
     // `criado_por` fecha a outra metade do recorte do indicante: ele enxerga
     // quem cadastrou, mesmo que ninguém o tenha posto em "quem visualiza".
     const { data, error } = await supabase
@@ -68,17 +105,6 @@ export async function gravarCliente(_anterior: unknown, dados: FormData) {
     if (cartaoId) {
       await supabase.from('funil_cartao').update({ cliente_id: data.id }).eq('id', cartaoId);
       revalidatePath('/funil');
-    }
-  }
-
-  // "Quem visualiza" só master edita.
-  if (perfil.nivel_acesso === 'master' && id) {
-    const escolhidos = dados.getAll('quem_visualiza').map(String).filter(Boolean);
-    await supabase.from('cliente_visualizador').delete().eq('cliente_id', id);
-    if (escolhidos.length) {
-      await supabase
-        .from('cliente_visualizador')
-        .insert(escolhidos.map((perfil_id) => ({ cliente_id: id, perfil_id })));
     }
   }
 

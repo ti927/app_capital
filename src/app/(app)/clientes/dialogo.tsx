@@ -6,6 +6,7 @@ import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popu
 import { IconeFechar, IconeMais } from '@/components/ui/icones';
 import { Dialogo, useSessaoDoDialogo } from '@/components/ui/dialogo';
 import { useAvisos } from '@/components/ui/aviso';
+import { useSemMudancas } from '@/components/ui/sem-mudancas';
 import { STATUS_CLIENTE, type Cliente } from '@/lib/dominio';
 import { adicionarEmail, gravarCliente, removerEmail } from './acoes';
 import type { CartaoDoFunil, EmailCliente } from './tela';
@@ -75,6 +76,10 @@ function CorpoDialogoCliente({
 
   const editando = Boolean(cliente?.nome_razao);
 
+  // Salvar sem ter mexido em nada não vai ao servidor: fecha na hora, com o
+  // mesmo aviso (src/components/ui/sem-mudancas.ts).
+  const semMudancas = useSemMudancas(Boolean(cliente));
+
   // Puxar do funil só vale para cliente novo — em edição o cadastro é a fonte.
   const cartao = cliente ? null : doFunil;
 
@@ -98,7 +103,17 @@ function CorpoDialogoCliente({
         {/* `key`: escolher um cartão remonta o formulário para os campos
             nascerem com o valor do funil. Só aparece em cliente novo, então
             não há o que perder de digitado. */}
-        <form key={cartao?.id ?? 'vazio'} id="forma-cliente" action={agir} className="grade">
+        <form
+          key={cartao?.id ?? 'vazio'}
+          id="forma-cliente"
+          ref={semMudancas.ref}
+          onSubmit={semMudancas.aoEnviar(() => {
+            avisar('Cliente salvo', { id: cliente?.id });
+            aoFechar();
+          })}
+          action={agir}
+          className="grade"
+        >
           <input type="hidden" name="id" value={cliente?.id ?? ''} />
           {/* Grava `funil_cartao.cliente_id` depois de cadastrar, para o cartão
               não voltar a ser oferecido. */}

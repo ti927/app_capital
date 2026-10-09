@@ -5,6 +5,7 @@ import { useActionState, useEffect, useMemo, useRef, useState, useTransition, ty
 import { Botao, Campo, Vazio } from '@/components/ui/base';
 import { Dialogo, useSessaoDoDialogo } from '@/components/ui/dialogo';
 import { useAvisos } from '@/components/ui/aviso';
+import { useSemMudancas } from '@/components/ui/sem-mudancas';
 import { SeletorPopup } from '@/components/ui/seletor-popup';
 import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import {
@@ -419,6 +420,9 @@ function CorpoDialogoTarefa({
     }
   }, [estado]);
 
+  // Salvar sem ter mexido em nada não vai ao servidor (sem-mudancas.ts).
+  const semMudancas = useSemMudancas(Boolean(tarefa));
+
   if (!aberto) return null;
 
   const cartaoAtual = cartoes.find((c) => c.id === (cartaoFixo ?? cartaoId));
@@ -449,7 +453,16 @@ function CorpoDialogoTarefa({
         )
       }
     >
-      <form id="forma-tarefa" action={agir} className="grade">
+      <form
+        id="forma-tarefa"
+        ref={semMudancas.ref}
+        onSubmit={semMudancas.aoEnviar(() => {
+          avisar('Tarefa salva');
+          aoFechar();
+        })}
+        action={agir}
+        className="grade"
+      >
         <input type="hidden" name="id" value={tarefa?.id ?? ''} />
         <input type="hidden" name="quadro_id" value={quadroId} />
         {cartaoFixo ? <input type="hidden" name="cartao_id" value={cartaoFixo} /> : null}

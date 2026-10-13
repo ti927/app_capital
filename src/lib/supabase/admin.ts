@@ -5,8 +5,9 @@ import { createClient } from '@supabase/supabase-js';
  * não tem `NEXT_PUBLIC_`, então nem chega ao bundle, e a trava abaixo acusa se
  * alguém importar isto num componente client (CLAUDE.md, regra 2).
  *
- * Existe para uma coisa: `google_conexao` (db/010), que é fechada para `anon`
- * e `authenticated` de propósito. Não use para contornar o recorte de acesso
+ * Existe para duas coisas: `google_conexao` (db/010), que é fechada para
+ * `anon` e `authenticated` de propósito, e criar a conta de login de quem o
+ * master cadastra pelo MCP (`cadastrar_pessoa`, specs/12). Não use para contornar o recorte de acesso
  * das telas — para isso é `clienteServidor()`, com a sessão do usuário.
  */
 export function clienteAdmin() {

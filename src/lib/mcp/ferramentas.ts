@@ -13,7 +13,8 @@ import { acrescentarAoHistorico, mesclarCampos, mesmoNome, termoDeBusca } from '
  * mesmo que pelo app. As de operação e fornecedor ainda conferem master aqui
  * porque as telas desses são só de master, e a RLS deixa o catálogo aberto.
  *
- * Não há ferramenta de excluir. Excluir é no app, com uma pessoa clicando.
+ * Aqui não há ferramenta de excluir. A de master (excluir, com confirmação
+ * da pessoa) e o resto do acesso total ficam em `ferramentas-master.ts`.
  */
 
 export interface ContextoMcp {

@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { createClient } from '@supabase/supabase-js';
 import { registrarFerramentas } from '@/lib/mcp/ferramentas';
+import { registrarFerramentasMaster, registrarReuniao } from '@/lib/mcp/ferramentas-master';
 import { origemDe } from '@/lib/mcp/origem';
 
 /**
@@ -30,6 +31,22 @@ function naoAutorizado(origem: string, motivo: string) {
   });
 }
 
+/** O que o Claude lê ao conectar: o que é o app e como trabalhar com ele. */
+function instrucoes(ehMaster: boolean) {
+  return [
+    'Lure Capital: o sistema da Lure — funil comercial (cartões e tarefas), clientes,',
+    'fornecedores (fundos), operações e a esteira de estruturação. Datas yyyy-mm-dd;',
+    'valores de faturamento/demanda são texto, como a equipe escreve ("40MM").',
+    'Reuniões: se o Read.ai também estiver conectado, leia a reunião por ele e registre',
+    'aqui com registrar_reuniao (resumo no histórico do cartão + tarefas dos próximos passos).',
+    ehMaster
+      ? 'Você está como master: consultar lê qualquer tabela para relatórios; gravar cria e ' +
+        'altera; excluir apaga de vez e SÓ depois de a pessoa confirmar; cadastrar_pessoa dá ' +
+        'acesso ao app. Confirme com a pessoa antes de alterar ou criar em lote.'
+      : 'Você está como indicante: só os clientes e cartões desta pessoa aparecem.',
+  ].join(' ');
+}
+
 async function atender(req: Request) {
   const origem = origemDe(req);
   const token = req.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
@@ -55,12 +72,20 @@ async function atender(req: Request) {
     });
   }
 
-  const servidor = new McpServer({ name: 'lure-capital', version: '1.0.0' });
-  registrarFerramentas(servidor, {
+  const ehMaster = perfil.nivel_acesso === 'master';
+  const servidor = new McpServer(
+    { name: 'lure-capital', version: '1.1.0' },
+    { instructions: instrucoes(ehMaster) },
+  );
+  const ctx = {
     supabase,
     perfil: { id: perfil.id as string, nome: perfil.nome as string, nivel_acesso: perfil.nivel_acesso as string },
     origem,
-  });
+  };
+  registrarFerramentas(servidor, ctx);
+  registrarReuniao(servidor, ctx);
+  // Acesso total (consultar, gravar, excluir, pessoas): só master.
+  if (ehMaster) registrarFerramentasMaster(servidor, ctx);
 
   const transporte = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,

@@ -32,12 +32,45 @@ Escrita: `criar_cartao`, `atualizar_cartao`, `anotar_no_cartao`,
 `mover_cartao`, `criar_tarefa` (reunião vai para o Google Agenda pelo mesmo
 caminho do app — specs/11), `concluir_tarefa`, `transformar_em_cliente`.
 
-**Não existe** ferramenta de excluir, nem de escrever em operação e esteira.
-Excluir continua só pelo app, com uma pessoa clicando.
+Para quem não é master, **não existe** ferramenta de excluir, nem de escrever
+em operação e esteira.
 
 `atualizar_cartao` **não sobrescreve** campo já preenchido, a menos que se
 peça `sobrescrever: true`. `anotar_no_cartao` acrescenta ao histórico com data
 e nome de quem anotou — nunca apaga o que havia.
+
+## Acesso total do master — 13/10/2026
+
+Decisão do usuário: "quem vai usar esse mcp vai ser apenas o maicon e ele, como
+dono do app, vai ter acesso total, inclusive já podendo cadastrar pessoas". Uso:
+o Claude de outra máquina puxa dados para relatórios e organiza arquivos.
+
+Só para **master** (`src/lib/mcp/ferramentas-master.ts`; quem é indicante nem vê
+essas ferramentas):
+
+- `consultar` — lê qualquer tabela, com filtros, ordem, paginação (até 1000 por
+  vez) e tabela ligada. Tudo menos `google_conexao` (tokens).
+- `gravar` — cria ou altera registro em qualquer cadastro (lista em
+  `regras-master.ts`). Fora: `perfil` (ferramentas próprias), `evento` (log),
+  tabelas de apoio e `funil_quadro`. Tarefa gravada sincroniza o Google Agenda.
+- `excluir` — apaga de vez. Exige `pessoa_confirmou: true` e a descrição manda o
+  Claude mostrar o registro e esperar o "sim". Fica no log de `evento` (antes/depois).
+- `listar_pessoas`, `cadastrar_pessoa`, `atualizar_pessoa` — dar acesso ao app.
+  Cadastrar cria a conta no Auth (service_role, só no servidor) e o perfil com o
+  token de quem pediu (RLS de master + log). O login é pelo Google com o mesmo
+  e-mail. Ninguém tira o próprio acesso de master.
+
+Tudo, menos criar a conta no Auth, roda com o token da pessoa: a RLS continua
+valendo e o log registra quem fez.
+
+## Read.ai pelo Claude — 13/10/2026
+
+Sem webhook nem plano Pro: o Claude conecta os dois conectores (Read.ai e este
+MCP). Ele lê a reunião pelo Read.ai e chama `registrar_reuniao` (para todos,
+com RLS): acha o cartão pelo nome da empresa (ou cria), anota o resumo no
+histórico com data e participantes, preenche `data_call` vazia e cria uma
+tarefa de follow-up por próximo passo. Nome parecido em mais de um cartão:
+devolve os candidatos em vez de adivinhar.
 
 ## Reuniões do Read.ai — a fazer
 

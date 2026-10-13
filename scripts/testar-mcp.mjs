@@ -9,7 +9,13 @@
  * `WWW-Authenticate` certo, e — entrando com a primeira conta de
  * dados/credenciais-provisorias.txt, como o QA — conversa com /api/mcp como
  * um cliente MCP: initialize, tools/list e algumas ferramentas de leitura.
- * Não escreve nada.
+ * Sem flag, não escreve nada.
+ *
+ *   node scripts/testar-mcp.mjs --escrita
+ *
+ * Também exercita o acesso total do master (gravar, excluir, registrar_reuniao,
+ * cadastrar_pessoa) em registros de teste "ZZ-MCP-TESTE", apagados no fim —
+ * mesmo se der erro. A pessoa de teste usa um e-mail @example.com.
  */
 import fs from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
@@ -81,7 +87,13 @@ conferir(ini.result?.serverInfo?.name === 'lure-capital', 'initialize', JSON.str
 
 const lista = await rpc('tools/list', {});
 const nomes = lista.result?.tools?.map((t) => t.name) ?? [];
-conferir(nomes.length >= 15 && !nomes.some((n) => n.startsWith('excluir')), 'tools/list', nomes.join(', '));
+const MASTER = ['consultar', 'gravar', 'excluir', 'listar_pessoas', 'cadastrar_pessoa', 'atualizar_pessoa'];
+conferir(
+  nomes.length >= 20 && [...MASTER, 'registrar_reuniao'].every((n) => nomes.includes(n)),
+  'tools/list (master, com acesso total)',
+  nomes.join(', '),
+);
+conferir(Boolean(ini.result?.instructions), 'instruções do servidor', (ini.result?.instructions ?? '').slice(0, 80));
 
 const eu = await ferramenta('quem_sou_eu');
 conferir(!eu?.isError, 'quem_sou_eu', eu?.content?.[0]?.text?.replace(/\s+/g, ' '));
@@ -95,6 +107,87 @@ conferir(!busca?.isError, 'buscar_clientes com vírgula e parênteses');
 
 const tarefas = await ferramenta('listar_tarefas', { apenas_minhas: false });
 conferir(!tarefas?.isError, 'listar_tarefas');
+
+const texto = (r) => r?.content?.[0]?.text ?? '';
+const json = (r) => {
+  try {
+    return JSON.parse(texto(r));
+  } catch {
+    return null;
+  }
+};
+
+const contagem = await ferramenta('consultar', {
+  tabela: 'operacao',
+  colunas: 'id, identificador, cliente(nome_razao), status_operacao(rotulo)',
+  filtros: [{ coluna: 'arquivado', operador: 'eq', valor: false }],
+  limite: 2,
+});
+conferir(!contagem?.isError && typeof json(contagem)?.total === 'number', 'consultar com tabela ligada', `total=${json(contagem)?.total}`);
+
+const injecao = await ferramenta('consultar', { tabela: 'cliente', filtros: [{ coluna: 'id;drop', operador: 'eq', valor: 'x' }] });
+conferir(injecao?.isError, 'consultar recusa coluna inválida');
+
+const tokens = await rpc('tools/call', { name: 'consultar', arguments: { tabela: 'google_conexao' } });
+conferir(Boolean(tokens.error || tokens.result?.isError), 'consultar não lê tokens do Google');
+
+if (process.argv.includes('--escrita')) {
+  const MARCA = 'ZZ-MCP-TESTE';
+  const EMAIL_TESTE = 'zz-mcp-teste@example.com';
+  const limpar = [];
+  try {
+    const criado = json(await ferramenta('gravar', { tabela: 'cliente', campos: { nome_razao: MARCA, cidade: 'a' } }))?.criado;
+    conferir(Boolean(criado?.id) && criado.criado_por, 'gravar cria cliente (com criado_por)');
+    if (criado?.id) limpar.push(['cliente', criado.id]);
+
+    const alterado = json(await ferramenta('gravar', { tabela: 'cliente', id: criado?.id, campos: { cidade: 'b' } }))?.alterado;
+    conferir(alterado?.cidade === 'b', 'gravar altera cliente');
+
+    const semConfirmar = await rpc('tools/call', { name: 'excluir', arguments: { tabela: 'cliente', chave: { id: criado?.id } } });
+    conferir(Boolean(semConfirmar.error || semConfirmar.result?.isError), 'excluir sem confirmação é recusado');
+
+    const reuniao = json(
+      await ferramenta('registrar_reuniao', {
+        empresa: MARCA,
+        resumo: 'Teste automático do MCP.',
+        participantes: ['Fulano'],
+        proximos_passos: [{ titulo: 'Mandar proposta (teste)', prazo: '2099-01-01' }],
+      }),
+    );
+    conferir(reuniao?.cartao_criado_agora && reuniao?.tarefas_criadas === 1, 'registrar_reuniao cria cartão e tarefa');
+    if (reuniao?.cartao_id) limpar.push(['funil_cartao', reuniao.cartao_id]);
+    const card = json(await ferramenta('detalhar_cartao', { id: reuniao?.cartao_id }));
+    conferir((card?.historico ?? '').includes('Teste automático do MCP.'), 'reunião anotada no histórico');
+
+    const pessoa = json(await ferramenta('cadastrar_pessoa', { email: EMAIL_TESTE, nome: 'ZZ Teste MCP' }));
+    conferir(Boolean(pessoa?.id) && pessoa.nivel_acesso === 'indicante', 'cadastrar_pessoa', pessoa?.como_entrar ?? '');
+    if (pessoa?.id) limpar.push(['pessoa', pessoa.id]);
+    const desativada = json(await ferramenta('atualizar_pessoa', { id: pessoa?.id, ativo: false }));
+    conferir(desativada?.ativo === false, 'atualizar_pessoa desativa');
+    const eu2 = json(await ferramenta('listar_pessoas', {}))?.find?.((p) => p.nome === json(eu)?.nome);
+    const auto = await ferramenta('atualizar_pessoa', { id: eu2?.id, ativo: false });
+    conferir(auto?.isError, 'master não tira o próprio acesso');
+  } finally {
+    // Ordem inversa: tarefas e cartão antes do cliente; pessoa pelo admin.
+    for (const [tabela, id] of limpar.reverse()) {
+      if (tabela === 'pessoa') {
+        const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+        await admin.from('perfil').delete().eq('id', id);
+        const { error } = await admin.auth.admin.deleteUser(id);
+        conferir(!error, 'limpeza: pessoa de teste apagada');
+        continue;
+      }
+      if (tabela === 'funil_cartao') {
+        const tarefas = json(await ferramenta('consultar', { tabela: 'funil_tarefa', filtros: [{ coluna: 'cartao_id', operador: 'eq', valor: id }] }));
+        for (const t of tarefas?.linhas ?? []) {
+          await ferramenta('excluir', { tabela: 'funil_tarefa', chave: { id: t.id }, pessoa_confirmou: true });
+        }
+      }
+      const r = await ferramenta('excluir', { tabela, chave: { id }, pessoa_confirmou: true });
+      conferir(!r?.isError, `limpeza: excluir ${tabela}`, texto(r).slice(0, 80));
+    }
+  }
+}
 
 console.log(falhas.length ? `\n${falhas.length} falha(s)` : '\ntudo ok');
 process.exit(falhas.length ? 1 : 0);

@@ -75,6 +75,10 @@ export function TelaOperacoes(props: {
     [clientes],
   );
   const rotuloTipo = useMemo(() => new Map(tipos.map((t) => [t.id, t.rotulo])), [tipos]);
+  const clientesArquivados = useMemo(
+    () => new Set(clientes.filter((c) => c.arquivado).map((c) => c.id)),
+    [clientes],
+  );
 
   const nomePerfil = useMemo(() => new Map(props.perfis.map((p) => [p.id, p.nome])), [props.perfis]);
 
@@ -235,7 +239,8 @@ export function TelaOperacoes(props: {
         <AbaFornecedor
           fornecedores={props.fornecedores}
           etapas={etapas}
-          operacoes={[...operacoes, ...arquivadas]}
+          operacoes={operacoes}
+          clientesArquivados={clientesArquivados}
           nomeCliente={nomeCliente}
           rotuloTipo={rotuloTipo}
           statusEtapa={statusEtapa}
@@ -292,13 +297,16 @@ function AbaFornecedor({
   fornecedores,
   etapas,
   operacoes,
+  clientesArquivados,
   nomeCliente,
   rotuloTipo,
   statusEtapa,
 }: {
   fornecedores: Array<Pick<Fornecedor, 'id' | 'nome_fundo'>>;
   etapas: EtapaOperacao[];
+  /** Só as ativas: etapa de operação arquivada não entra na tabela. */
   operacoes: Operacao[];
+  clientesArquivados: Set<string>;
   nomeCliente: Map<string, string>;
   rotuloTipo: Map<number, string>;
   statusEtapa: TabelaApoio[];
@@ -337,6 +345,8 @@ function AbaFornecedor({
     const nome = (e: EtapaOperacao) => (e.cliente_id && nomeCliente.get(e.cliente_id)) || '';
     return etapas
       .filter((e) => e.fornecedor_id === fundo)
+      // Só o que está ativo: operação arquivada ou cliente arquivado ficam de fora.
+      .filter((e) => operacaoPorId.has(e.operacao_id) && !(e.cliente_id && clientesArquivados.has(e.cliente_id)))
       .filter((e) => semFiltro || String(e.status_id) === filtroStatus)
       .sort((a, b) => {
         const na = nome(a);
@@ -344,7 +354,7 @@ function AbaFornecedor({
         if (!na || !nb) return na ? -1 : nb ? 1 : 0;
         return na.localeCompare(nb, 'pt-BR', { sensitivity: 'base' });
       });
-  }, [etapas, fundo, filtroStatus, nomeCliente]);
+  }, [etapas, fundo, filtroStatus, nomeCliente, operacaoPorId, clientesArquivados]);
 
   /**
    * A tabela por fundo é a que mais cresce da tela: são 383 etapas no total e

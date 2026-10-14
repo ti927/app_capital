@@ -12,6 +12,8 @@ import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import { tokenDoStatus, type EtapaOperacao, type Fornecedor, type Operacao, type TabelaApoio } from '@/lib/dominio';
 import { arquivarOperacao, excluirOperacao } from './acoes';
 import { DialogoOperacao } from './dialogo';
+import { DialogoOperacaoModerno } from './dialogo-moderno';
+import { usePreferencias } from '@/components/preferencias';
 import type { ClienteResumo, Declinio, Observacao, Visualizador } from './page';
 import './operacao.css';
 
@@ -69,6 +71,9 @@ export function TelaOperacoes(props: {
   const [aExcluir, setAExcluir] = useState<Operacao | null>(null);
   const [, transicao] = useTransition();
   const destaque = useDestaque();
+  // Pop-up clássico ou moderno: preferência da pessoa (Configurações), lida do
+  // perfil no layout — nenhuma consulta a mais aqui.
+  const DialogoDaTela = usePreferencias().popups === 'moderna' ? DialogoOperacaoModerno : DialogoOperacao;
 
   const nomeCliente = useMemo(
     () => new Map(clientes.map((c) => [c.id, c.nome_razao])),
@@ -257,7 +262,7 @@ export function TelaOperacoes(props: {
       ) : null}
       </div>
 
-      <DialogoOperacao
+      <DialogoDaTela
         key={dialogo.sessao}
         aberto={dialogo.aberto}
         operacao={emEdicao}

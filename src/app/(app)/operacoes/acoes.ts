@@ -29,34 +29,47 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
   const supabase = await clienteServidor();
   const id = String(dados.get('id') ?? '');
 
-  const campos = {
-    identificador: texto(dados, 'identificador'),
-    cliente_id: texto(dados, 'cliente_id'),
-    status_operacao_id: numero(dados, 'status_operacao_id'),
-    garantias_sugeridas: texto(dados, 'garantias_sugeridas'),
-    limites_fundos_assinados: texto(dados, 'limites_fundos_assinados'),
-    pmts: texto(dados, 'pmts'),
-    prazo: texto(dados, 'prazo'),
-    carencia: texto(dados, 'carencia'),
-    demanda_inicial: texto(dados, 'demanda_inicial'),
-    demanda_final: texto(dados, 'demanda_final'),
-    destino_recurso: texto(dados, 'destino_recurso'),
-    faturamento_anual: texto(dados, 'faturamento_anual'),
-    comissao: texto(dados, 'comissao'),
-    parecer: texto(dados, 'parecer'),
+  /*
+    Coluna de texto/número só entra na gravação quando o campo veio no
+    formulário. PMTS, Comissão e Demanda final saíram da tela em 14/10/2026,
+    mas o dado continua no banco: gravar `null` por o campo não ter vindo
+    apagaria o que já existe. Interruptor desmarcado não viaja no FormData,
+    por isso os cinco continuam sempre gravados — o formulário sempre os tem.
+  */
+  const COLUNAS_DE_TEXTO = [
+    'identificador',
+    'cliente_id',
+    'garantias_sugeridas',
+    'limites_fundos_assinados',
+    'pmts',
+    'prazo',
+    'carencia',
+    'demanda_inicial',
+    'demanda_final',
+    'destino_recurso',
+    'faturamento_anual',
+    'comissao',
+    'parecer',
+  ] as const;
+  const campos: Record<string, string | number | boolean | null> = {
     tem_fee: marcado(dados, 'tem_fee'),
     nda_assinado: marcado(dados, 'nda_assinado'),
     mandato_assinado: marcado(dados, 'mandato_assinado'),
     mandato_assinado_fornecedor: marcado(dados, 'mandato_assinado_fornecedor'),
     estruturacao_em_andamento: marcado(dados, 'estruturacao_em_andamento'),
   };
+  for (const coluna of COLUNAS_DE_TEXTO) {
+    if (dados.has(coluna)) campos[coluna] = texto(dados, coluna);
+  }
+  if (dados.has('status_operacao_id')) campos.status_operacao_id = numero(dados, 'status_operacao_id');
+  const clienteId = texto(dados, 'cliente_id');
 
   /*
     "Parecer do cliente": no Bubble o ipt.parecercliente do diálogo de operação
     grava em `cliente.parecer` (documentacao-completa.md:2105–2120). O campo só
     vai no formulário quando a operação tem cliente — sem ele, nada a gravar.
   */
-  const temParecerCliente = dados.has('parecer_cliente') && Boolean(campos.cliente_id);
+  const temParecerCliente = dados.has('parecer_cliente') && Boolean(clienteId);
   // O navegador envia <textarea> com CRLF; sem normalizar, abrir e salvar sem
   // mexer reescrevia o parecer do cliente (e o log registrava mudança falsa).
   const parecerCliente = texto(dados, 'parecer_cliente')?.replace(/\r\n/g, '\n') ?? null;
@@ -66,7 +79,7 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
   // declínios atuais não dependem uma da outra: uma ida só, em vez de quatro em
   // fila. Os dois últimos existem para gravar SÓ o que mudou.
   const lerParecer = temParecerCliente
-    ? supabase.from('cliente').select('parecer').eq('id', campos.cliente_id!).maybeSingle()
+    ? supabase.from('cliente').select('parecer').eq('id', clienteId!).maybeSingle()
     : null;
 
   let alvo = id;
@@ -94,7 +107,7 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
   // Só mexe no cliente quando o parecer dele mudou de verdade.
   let clienteMudou = false;
   if (temParecerCliente && (parecerAtual?.error || (parecerAtual?.data?.parecer ?? null) !== parecerCliente)) {
-    const { error } = await supabase.from('cliente').update({ parecer: parecerCliente }).eq('id', campos.cliente_id!);
+    const { error } = await supabase.from('cliente').update({ parecer: parecerCliente }).eq('id', clienteId!);
     if (error) return { erro: 'Salvei a operação, mas não o parecer do cliente. Tente de novo.' };
     clienteMudou = true;
   }

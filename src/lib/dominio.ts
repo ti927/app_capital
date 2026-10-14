@@ -10,7 +10,11 @@ export interface Perfil {
   email: string;
   nivel_acesso: NivelAcesso;
   ativo: boolean;
+  /** Pop-ups de cadastro: clássica (padrão) ou moderna (db/014_ui_popups.sql). */
+  ui_popups: PreferenciaPopups;
 }
+
+export type PreferenciaPopups = 'classica' | 'moderna';
 
 export interface Cliente {
   id: string;

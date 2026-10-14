@@ -79,7 +79,7 @@ function CorpoDialogoFornecedor({
         id="forma-fornecedor"
         ref={salvar.ref}
         onSubmit={salvar.aoEnviar}
-        className="grade"
+        className="grade grade--rotulo-ao-lado"
       >
         <input type="hidden" name="id" value={fornecedor?.id ?? ''} />
 

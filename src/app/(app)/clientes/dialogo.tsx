@@ -97,7 +97,7 @@ function CorpoDialogoCliente({
           id="forma-cliente"
           ref={salvar.ref}
           onSubmit={salvar.aoEnviar}
-          className="grade"
+          className="grade grade--rotulo-ao-lado"
         >
           <input type="hidden" name="id" value={cliente?.id ?? ''} />
           {/* Grava `funil_cartao.cliente_id` depois de cadastrar, para o cartão
@@ -190,7 +190,7 @@ function CorpoDialogoCliente({
  * viraram cliente e preenche os seis campos do de-para. Preenche no cliente:
  * nada é gravado antes de o usuário mandar salvar.
  */
-function PuxarDoFunil({
+export function PuxarDoFunil({
   cartoes,
   escolhido,
   aoEscolher,
@@ -218,7 +218,7 @@ function PuxarDoFunil({
   );
 }
 
-function ListaDeEmails({ emails }: { emails: EmailCliente[] }) {
+export function ListaDeEmails({ emails }: { emails: EmailCliente[] }) {
   const [, transicao] = useTransition();
   return (
     <ul className="lista" style={{ marginTop: 'var(--space-3)' }}>
@@ -240,7 +240,7 @@ function ListaDeEmails({ emails }: { emails: EmailCliente[] }) {
   );
 }
 
-function QuemVisualiza({
+export function QuemVisualiza({
   usuarios,
   escolhidos,
   desabilitado,
@@ -261,7 +261,7 @@ function QuemVisualiza({
   );
 }
 
-function DialogoAdicionarEmail({
+export function DialogoAdicionarEmail({
   aberto,
   clienteId,
   aoFechar,

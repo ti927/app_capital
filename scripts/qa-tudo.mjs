@@ -13,6 +13,7 @@
  * ordem, não embaralhado.
  */
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 
 const FORMAS = [
   { nome: 'claro', args: [] },
@@ -22,11 +23,18 @@ const FORMAS = [
 
 const inicio = Date.now();
 
+// O bloco da UI 2 (scripts/qa.mjs) espera as três chegarem antes de trocar a
+// preferência da conta: a barreira começa vazia e conta quantas são.
+fs.rmSync('qa/.ui2-chegou', { recursive: true, force: true });
+fs.rmSync('qa/.trava-ui2', { recursive: true, force: true });
+fs.rmSync('qa/.trava-notas', { recursive: true, force: true });
+fs.rmSync('qa/.trava-interruptor', { recursive: true, force: true });
+
 const corridas = FORMAS.map(
   ({ nome, args }) =>
     new Promise((resolve) => {
       const filho = spawn(process.execPath, ['scripts/qa.mjs', ...args], {
-        env: process.env,
+        env: { ...process.env, QA_PARALELO: String(FORMAS.length) },
         stdio: ['ignore', 'pipe', 'pipe'],
       });
 
@@ -47,8 +55,9 @@ const corridas = FORMAS.map(
       filho.stdout.on('data', eco);
       filho.stderr.on('data', eco);
 
-      // Corrida que passa de 4 minutos está travada: mata e segue.
-      const relogio = setTimeout(() => filho.kill(), 240000);
+      // Corrida que passa de 12 minutos está travada: mata e segue. Eram 4; o
+      // bloco da UI 2 (14/10/2026) espera as três e roda uma forma por vez no fim.
+      const relogio = setTimeout(() => filho.kill(), 720000);
       filho.on('close', () => clearTimeout(relogio));
       filho.on('close', (codigo) => resolve({ nome, codigo, saida }));
     }),

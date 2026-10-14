@@ -5,6 +5,7 @@ import { BotaoDeTema } from '@/components/ui/tema';
 import { Transicao } from '@/components/ui/transicao';
 import { AvisosProvider } from '@/components/ui/aviso';
 import { BotaoConfiguracoes, type UsuarioDoAcesso } from '@/components/configuracoes';
+import { PreferenciasProvider } from '@/components/preferencias';
 import { IconeAgenda, IconeSair, IconeSenha } from '@/components/ui/icones';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
@@ -46,6 +47,10 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
 
   return (
     <AvisosProvider>
+    {/* A preferência de pop-ups vem do perfil já lido acima: nenhuma tela
+        consulta de novo. Só master escolhe (decisão de 14/10/2026): o
+        indicante fica sempre no clássico, mesmo com outro valor no banco. */}
+    <PreferenciasProvider popups={perfil.nivel_acesso === 'master' ? perfil.ui_popups : 'classica'}>
     <div className="casca">
       <BarraApp
         perfil={<PerfilNaBarra nome={perfil.nome} nivel={perfil.nivel_acesso} />}
@@ -69,7 +74,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
               <BotaoNotasDeVersao rodadas={NOTAS_DE_VERSAO.slice(0, 3)} haNovidade={notas.haNovidade} />
             ) : null}
             <BotaoDeTema />
-            {/* Configurações só para master: abre em pop-up, não tem rota. */}
+            {/* Configurações só para master (Preferências e Acesso às páginas):
+                abre em pop-up, não tem rota. */}
             {perfil.nivel_acesso === 'master' ? (
               <BotaoConfiguracoes
                 paginas={ITENS_NAV.map((item) => ({
@@ -77,6 +83,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
                   niveis: niveisQueVeem(item),
                 }))}
                 usuarios={usuarios}
+                master
               />
             ) : null}
             {/* Ferramenta de dev: só a conta de SINCRONIZACAO_EMAIL. A ação
@@ -92,6 +99,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         </main>
       </div>
     </div>
+    </PreferenciasProvider>
     </AvisosProvider>
   );
 }

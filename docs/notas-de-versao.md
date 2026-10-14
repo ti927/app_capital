@@ -4,6 +4,30 @@ Uma seção por rodada, a mais recente no topo. Escrito para quem usa o sistema.
 
 ---
 
+## 14/10/2026 — pop-ups de cadastro e opção Moderna
+
+### Clientes, Fornecedores e Operações
+
+- **Rótulo ao lado do campo** nos pop-ups de cliente, fornecedor e operação:
+  cabe mais na tela e se lê de uma vez. No celular, o rótulo continua em cima.
+- **Operação em pares:** Cliente | Identificador, Faturamento anual | Status,
+  Demanda | Prazo, Garantias sugeridas | Carência e Destino do recurso sozinho.
+- **PMTS, Comissão e Demanda final saíram da tela.** O que já estava gravado
+  continua no banco; salvar a operação não apaga esses dados.
+- **Faturamento anual vem do cliente** também ao abrir uma operação que estava
+  com ele vazio.
+
+### Nova opção: pop-ups Modernos
+
+- Em **Configurações → Preferências** (agora para todos), escolha entre
+  **Clássico** (padrão) e **Moderno**. Vale na hora e em qualquer aparelho.
+- O Moderno mostra o registro como uma ficha: ícone, nome grande, status e os
+  números principais no topo; campos agrupados por seção, na mesma ordem do
+  Clássico; aviso de "Alterações não salvas" no rodapé e **Ctrl+Enter** salva.
+  Na operação, um índice no topo leva direto a cada seção.
+
+---
+
 ## 09/10/2026 — salvar na hora
 
 ### Em todo o sistema

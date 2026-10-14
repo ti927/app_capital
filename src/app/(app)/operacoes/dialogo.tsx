@@ -33,7 +33,7 @@ import {
 import type { ClienteResumo, Observacao } from './page';
 import { DialogoEmail } from './email';
 
-type Fundo = Pick<Fornecedor, 'id' | 'nome_fundo'>;
+export type Fundo = Pick<Fornecedor, 'id' | 'nome_fundo'>;
 
 /**
  * Diálogo de operação — o mais pesado do sistema.
@@ -84,7 +84,16 @@ export function DialogoOperacao({
   });
 
   const [emailAberto, setEmailAberto] = useState(false);
-  const [faturamento, setFaturamento] = useState(operacao?.faturamento_anual ?? '');
+  // Faturamento vazio na operação: abre com o do cadastro do cliente (pedido de
+  // 14/10/2026). Grava junto no próximo salvar com mudança.
+  const [faturamento, setFaturamento] = useState(
+    () =>
+      operacao?.faturamento_anual ||
+      (operacao?.cliente_id
+        ? clientes.find((c) => c.id === operacao.cliente_id)?.faturamento_anual
+        : null) ||
+      '',
+  );
   const nova = !operacao;
   const temCliente = Boolean(operacao?.cliente_id);
   const nomeCliente = operacao?.cliente_id
@@ -143,17 +152,25 @@ export function DialogoOperacao({
         id="forma-operacao"
         ref={salvar.ref}
         onSubmit={salvar.aoEnviar}
-        className="grade"
+        className="grade grade--rotulo-ao-lado"
       >
         <input type="hidden" name="id" value={operacao?.id ?? ''} />
 
         {/*
+          Ordem pedida em 14/10/2026, aos pares na mesma linha:
+            Cliente | Identificador
+            Faturamento anual | Status atual da operação
+            Demanda | Prazo
+            Garantias sugeridas | Carência
+            Destino do recurso (sozinho)
+          PMTS, Comissão e Demanda final saíram da tela — as colunas e o dado
+          ficam; `gravarOperacao` só grava o que vem no formulário.
+
           "Escolher cliente:" só aparece quando a operação é nova. Em edição o
           cliente não troca, mas o nome dele aparece — somente leitura.
         */}
         {nova ? (
           <SeletorPopup
-            className="grade__inteiro"
             rotulo="Escolher cliente:"
             nome="cliente_id"
             opcoes={clientesOrdenados.map((c) => ({ valor: c.id, rotulo: c.nome_razao }))}
@@ -168,7 +185,6 @@ export function DialogoOperacao({
           <>
             <input type="hidden" name="cliente_id" value={operacao?.cliente_id ?? ''} />
             <Campo
-              className="grade__inteiro"
               id="operacao-cliente"
               rotulo="Cliente"
               somenteLeitura
@@ -176,8 +192,10 @@ export function DialogoOperacao({
             />
           </>
         )}
-
         <Campo rotulo="Identificador" nome="identificador" valorInicial={operacao?.identificador ?? ''} placeholder="Digite aqui" />
+
+        {/* Texto livre, vem do cadastro do cliente e continua editável aqui. */}
+        <Campo rotulo="Faturamento anual" nome="faturamento_anual" valor={faturamento} aoMudar={setFaturamento} placeholder="Digite aqui" />
         <SeletorPopup
           rotulo="Status Atual da Operação"
           nome="status_operacao_id"
@@ -185,22 +203,14 @@ export function DialogoOperacao({
           opcoes={statusOperacao.map((s) => ({ valor: String(s.id), rotulo: s.rotulo }))}
         />
 
-        <Campo className="grade__inteiro" rotulo="Garantias sugeridas" nome="garantias_sugeridas" valorInicial={operacao?.garantias_sugeridas ?? ''} placeholder="Digite aqui" />
-
-        <Campo rotulo="PMTS" nome="pmts" valorInicial={operacao?.pmts ?? ''} placeholder="Digite aqui" />
+        {/* Texto livre: o banco guarda "40MM", "40.000.000", "quarenta milhões". */}
+        <Campo rotulo="Demanda" nome="demanda_inicial" valorInicial={operacao?.demanda_inicial ?? ''} placeholder="Digite aqui" />
         <Campo rotulo="Prazo" nome="prazo" valorInicial={operacao?.prazo ?? ''} placeholder="Digite aqui" />
+
+        <Campo rotulo="Garantias sugeridas" nome="garantias_sugeridas" valorInicial={operacao?.garantias_sugeridas ?? ''} placeholder="Digite aqui" />
         <Campo rotulo="Carência" nome="carencia" valorInicial={operacao?.carencia ?? ''} placeholder="Digite aqui" />
 
-        {/* Texto livre: o banco guarda "40MM", "40.000.000", "quarenta milhões". */}
-        <Campo rotulo="Demanda em R$" nome="demanda_inicial" valorInicial={operacao?.demanda_inicial ?? ''} placeholder="Digite aqui" />
-        <Campo rotulo="Demanda final" nome="demanda_final" valorInicial={operacao?.demanda_final ?? ''} placeholder="Digite aqui" />
-
-        {/* Texto livre: veio do cliente na migração, mas edita-se aqui. */}
-        <Campo rotulo="Faturamento anual" nome="faturamento_anual" valor={faturamento} aoMudar={setFaturamento} placeholder="Digite aqui" />
-        <Campo rotulo="Comissão" nome="comissao" valorInicial={operacao?.comissao ?? ''} placeholder="Digite aqui" />
-
-        {/* Group VZ do Bubble: Comissão e Destino do recurso lado a lado. */}
-        <Campo rotulo="Destino do recurso" nome="destino_recurso" valorInicial={operacao?.destino_recurso ?? ''} placeholder="Digite aqui" />
+        <Campo className="grade__inteiro" rotulo="Destino do recurso" nome="destino_recurso" valorInicial={operacao?.destino_recurso ?? ''} placeholder="Digite aqui" />
 
         {/*
           Os dois pareceres lado a lado. O do cliente (ipt.parecercliente no
@@ -302,13 +312,13 @@ export function DialogoOperacao({
 }
 
 /** Ordem alfabética pt-BR, sem diferenciar acento nem caixa. Não muda a lista original. */
-function ordenarPtBr<T>(lista: T[], rotulo: (item: T) => string): T[] {
+export function ordenarPtBr<T>(lista: T[], rotulo: (item: T) => string): T[] {
   return [...lista].sort((a, b) => rotulo(a).localeCompare(rotulo(b), 'pt-BR', { sensitivity: 'base' }));
 }
 
 /* ------------------------------------------------------------ interruptor -- */
 
-function Interruptor({
+export function Interruptor({
   nome,
   rotulo,
   inicial,
@@ -333,7 +343,7 @@ function Interruptor({
 /* -------------------------------------------------------------- declínios -- */
 
 /** Quais fornecedores recusaram a operação. Desabilitado para indicante. */
-function Declinios({ fornecedores, escolhidos }: { fornecedores: Fundo[]; escolhidos: string[] }) {
+export function Declinios({ fornecedores, escolhidos }: { fornecedores: Fundo[]; escolhidos: string[] }) {
   return (
     <SeletorMultiploPopup
       className="grade__inteiro"
@@ -347,7 +357,7 @@ function Declinios({ fornecedores, escolhidos }: { fornecedores: Fundo[]; escolh
 
 /* ----------------------------------------------------------- observações --- */
 
-function BlocoObservacoes({ operacaoId, observacoes }: { operacaoId: string; observacoes: Observacao[] }) {
+export function BlocoObservacoes({ operacaoId, observacoes }: { operacaoId: string; observacoes: Observacao[] }) {
   const [nova, setNova] = useState('');
   const [, transicao] = useTransition();
 
@@ -402,7 +412,7 @@ function BlocoObservacoes({ operacaoId, observacoes }: { operacaoId: string; obs
  * (documentacao-completa.md:1839 — `tbl.etapas` exclui os três,
  * `tbl.etapas copy 2` mostra só eles).
  */
-const STATUS_DECLINADOS = new Set([
+export const STATUS_DECLINADOS = new Set([
   'ja_cliente_do_fundo',
   'declinado_pelo_fundo',
   'declinado_pelo_cliente',
@@ -413,7 +423,7 @@ const STATUS_DECLINADOS = new Set([
  * fundo vai para o fim). Usada pela tabela da tela e pelos prints do e-mail —
  * que precisam mostrar exatamente as mesmas linhas.
  */
-function separarEtapas(etapas: EtapaOperacao[], fornecedores: Fundo[], statusEtapa: TabelaApoio[]) {
+export function separarEtapas(etapas: EtapaOperacao[], fornecedores: Fundo[], statusEtapa: TabelaApoio[]) {
   const statusPorId = new Map(statusEtapa.map((s) => [s.id, s]));
   const declinada = (e: EtapaOperacao) => {
     const st = e.status_id ? statusPorId.get(e.status_id) : undefined;
@@ -438,7 +448,7 @@ function separarEtapas(etapas: EtapaOperacao[], fornecedores: Fundo[], statusEta
  * O estado de edição mora aqui, e não na grade, porque as duas grades — a
  * principal e a dos declinados — compartilham a mesma linha em edição.
  */
-function TabelaDeEtapas({
+export function TabelaDeEtapas({
   operacaoId,
   etapas,
   fornecedores,
@@ -595,7 +605,7 @@ function TabelaDeEtapas({
  * Fotografar cópias, e não a tela, é o que evita a página piscar: nada do que
  * a pessoa vê muda de tema ou de tamanho durante o print.
  */
-function PrintsParaEmail({
+export function PrintsParaEmail({
   observacoes,
   etapas,
   fornecedores,
@@ -652,7 +662,7 @@ function PrintsParaEmail({
  * "Fundos3Colunas" / tbl.etapasEmail do Bubble. Fica fora da tela e não é
  * lida por leitor de tela; o envio de e-mail a fotografa (specs/13-email.md).
  */
-function ResumoParaEmail({
+export function ResumoParaEmail({
   linhas,
   fornecedores,
   statusEtapa,
@@ -700,7 +710,7 @@ function ResumoParaEmail({
 }
 
 /** Uma grade de etapas. Devolve `null` sem linha — as duas somem quando vazias. */
-function GradeDeEtapas({
+export function GradeDeEtapas({
   titulo,
   linhas,
   fornecedores,

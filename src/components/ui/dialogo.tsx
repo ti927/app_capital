@@ -16,6 +16,11 @@ export interface DialogoProps {
   rodape?: ReactNode;
   children?: ReactNode;
   className?: string;
+  /**
+   * Substitui contexto + título no cabeçalho (pop-ups modernos, UI 2). O
+   * botão de fechar continua aqui; `titulo` em texto vira só o nome acessível.
+   */
+  cabecalho?: ReactNode;
 }
 
 /**
@@ -55,6 +60,7 @@ export function Dialogo({
   rodape,
   children,
   className,
+  cabecalho,
 }: DialogoProps) {
   const caixa = useRef<HTMLDivElement>(null);
   const focoAnterior = useRef<HTMLElement | null>(null);
@@ -146,10 +152,12 @@ export function Dialogo({
         aria-label={typeof titulo === 'string' ? titulo : undefined}
       >
         <div className="lc-dialog__head">
-          <div>
-            {contexto ? <p className="lc-dialog__ctx">{contexto}</p> : null}
-            {titulo ? <p className="lc-dialog__title">{titulo}</p> : null}
-          </div>
+          {cabecalho ?? (
+            <div>
+              {contexto ? <p className="lc-dialog__ctx">{contexto}</p> : null}
+              {titulo ? <p className="lc-dialog__title">{titulo}</p> : null}
+            </div>
+          )}
           <button type="button" className="lc-btn lc-btn--tertiary lc-btn--row" onClick={aoFechar} aria-label="Fechar">
             ✕
           </button>

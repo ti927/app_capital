@@ -10,6 +10,8 @@ import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import type { Cliente, NivelAcesso } from '@/lib/dominio';
 import { arquivarCliente, excluirCliente } from './acoes';
 import { DialogoCliente } from './dialogo';
+import { DialogoClienteModerno } from './dialogo-moderno';
+import { usePreferencias } from '@/components/preferencias';
 
 export interface EmailCliente {
   id: number;
@@ -54,6 +56,9 @@ export function TelaClientes({
   const [aExcluir, setAExcluir] = useState<Cliente | null>(null);
   const [, transicao] = useTransition();
   const destaque = useDestaque();
+  // Pop-up clássico ou moderno: preferência da pessoa (Configurações), lida do
+  // perfil no layout — nenhuma consulta a mais aqui.
+  const DialogoDaTela = usePreferencias().popups === 'moderna' ? DialogoClienteModerno : DialogoCliente;
 
   const filtrar = useCallback(
     (lista: Cliente[]) => {
@@ -159,7 +164,7 @@ export function TelaClientes({
       ) : null}
 
       {/* Um diálogo só para criar e editar — o botão é que muda de rótulo. */}
-      <DialogoCliente
+      <DialogoDaTela
         aberto={criando || emEdicao !== null}
         cliente={emEdicao}
         emails={emEdicao ? emailsDe(emEdicao.id) : []}

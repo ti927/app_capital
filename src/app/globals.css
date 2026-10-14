@@ -226,6 +226,42 @@ textarea {
   grid-column: 1 / -1;
 }
 
+/*
+  Rótulo ao lado do campo (pop-ups de cliente, fornecedor e operação — UI 1,
+  pedido de 14/10/2026): o nome do campo à esquerda, numa coluna de largura
+  fixa, e o campo à direita. Vale para Campo e para os seletores em pop-up,
+  que usam o mesmo `.lc-field`. Fica de fora:
+  - campo sem rótulo (a nova observação, por exemplo);
+  - textarea (pareceres): ao lado, o rótulo comeria a largura do texto longo.
+  No celular o rótulo volta para cima (media query abaixo).
+*/
+.grade--rotulo-ao-lado {
+  --rotulo-ao-lado: 128px;
+  row-gap: var(--space-4);
+}
+.grade--rotulo-ao-lado .lc-field:has(> .lc-field__label):not(:has(> textarea)) {
+  display: grid;
+  grid-template-columns: var(--rotulo-ao-lado) minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-4);
+}
+.grade--rotulo-ao-lado .lc-field:has(> .lc-field__label):not(:has(> textarea)) > .lc-field__label {
+  margin-bottom: 0;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+.grade--rotulo-ao-lado .lc-field:has(> .lc-field__label):not(:has(> textarea)) > .lc-field__msg {
+  grid-column: 2;
+}
+@media (max-width: 639px) {
+  .grade--rotulo-ao-lado .lc-field:has(> .lc-field__label):not(:has(> textarea)) {
+    display: block;
+  }
+  .grade--rotulo-ao-lado .lc-field:has(> .lc-field__label):not(:has(> textarea)) > .lc-field__label {
+    margin-bottom: 5px;
+  }
+}
+
 .grade__regua {
   grid-column: 1 / -1;
   height: var(--border-w);

@@ -232,3 +232,104 @@ export const IconeChevronCima = (p: IconeProps) => (
     <path d="m5 15 7-7 7 7" />
   </Base>
 );
+
+/* ------------------------------------------- pop-ups modernos (UI 2) ---------
+   design/ui2-popups.md, seção 3. Ícone nunca substitui rótulo. */
+
+export const IconeEmail = (p: IconeProps) => (
+  <Base {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m3.5 6.5 8.5 6 8.5-6" />
+  </Base>
+);
+
+export const IconeTelefone = (p: IconeProps) => (
+  <Base {...p}>
+    <path d="M5 4h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" />
+  </Base>
+);
+
+export const IconeLocal = (p: IconeProps) => (
+  <Base {...p}>
+    <path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z" />
+    <circle cx="12" cy="10" r="2" />
+  </Base>
+);
+
+export const IconeMoeda = (p: IconeProps) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M14.5 9a2.5 2 0 0 0-2.5-1.5c-1.4 0-2.5.8-2.5 2s1.1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2A2.5 2 0 0 1 9.5 15M12 6v1.5M12 16.5V18" />
+  </Base>
+);
+
+export const IconeRelogio = (p: IconeProps) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </Base>
+);
+
+export const IconeEscudo = (p: IconeProps) => (
+  <Base {...p}>
+    <path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z" />
+  </Base>
+);
+
+export const IconeAlvo = (p: IconeProps) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="5" />
+    <circle cx="12" cy="12" r="1" />
+  </Base>
+);
+
+export const IconeNota = (p: IconeProps) => (
+  <Base {...p}>
+    <path d="M5 4h14v12l-4 4H5z" />
+    <path d="M15 20v-4h4" />
+    <path d="M9 9h6M9 13h4" />
+  </Base>
+);
+
+export const IconeOlho = (p: IconeProps) => (
+  <Base {...p}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </Base>
+);
+
+export const IconeTag = (p: IconeProps) => (
+  <Base {...p}>
+    <path d="M3 12V4h8l10 10-8 8z" />
+    <circle cx="7.5" cy="7.5" r="1.5" />
+  </Base>
+);
+
+export const IconeProibido = (p: IconeProps) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M5.6 5.6l12.8 12.8" />
+  </Base>
+);
+
+export const IconeAssinatura = (p: IconeProps) => (
+  <Base {...p}>
+    <path d="M4 18c3-6 5-6 6-3s3 1 4-1 2-1 3 1" />
+    <path d="M3 21h18" />
+  </Base>
+);
+
+export const IconeLista = (p: IconeProps) => (
+  <Base {...p}>
+    <path d="M8 7h12M8 12h12M8 17h12" />
+    <path d="M4 7h.01M4 12h.01M4 17h.01" />
+  </Base>
+);
+
+export const IconeLink = (p: IconeProps) => (
+  <Base {...p}>
+    <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" />
+    <path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+  </Base>
+);

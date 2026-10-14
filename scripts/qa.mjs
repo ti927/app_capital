@@ -83,7 +83,17 @@ async function sql(consulta, valores = []) {
  * bolinha. A trava é um diretório (mkdir é atômico).
  */
 const TRAVA_NOTAS = path.join('qa', '.trava-notas');
+/**
+ * Trava de corrida morta no meio (Ctrl+C, qa-tudo que matou por tempo) nunca
+ * seria solta: com mais de 8 minutos, nenhuma corrida viva a segura — some.
+ */
+function tiraTravaVencida(trava) {
+  try {
+    if (Date.now() - fs.statSync(trava).mtimeMs > 8 * 60_000) fs.rmSync(trava, { recursive: true, force: true });
+  } catch {}
+}
 async function pegaTravaDasNotas() {
+  tiraTravaVencida(TRAVA_NOTAS);
   for (let i = 0; i < 240; i++) {
     try {
       fs.mkdirSync(TRAVA_NOTAS);
@@ -584,6 +594,38 @@ await passo(pagina, 'operacao-dialogo', async () => {
   await conferePopUp(pagina, 'diálogo de operação');
 });
 
+await passo(pagina, 'operacao-dialogo-campos', async () => {
+  // Pedido de 14/10: PMTS, Comissão e Demanda final saem da tela; os campos
+  // vêm aos pares (Cliente | Identificador, Faturamento | Status, Demanda |
+  // Prazo, Garantias | Carência) e o rótulo fica ao lado do campo — no
+  // celular, em cima.
+  for (const nome of ['pmts', 'comissao', 'demanda_final']) {
+    if (await pagina.locator(`.lc-dialog [name="${nome}"]`).count()) throw new Error(`o campo ${nome} ainda aparece`);
+  }
+  const caixa = async (nome) => pagina.locator(`.lc-dialog [name="${nome}"]`).first().boundingBox();
+  // A coluna da esquerda, de cima para baixo.
+  let anterior = -1;
+  for (const a of ['identificador', 'faturamento_anual', 'demanda_inicial', 'garantias_sugeridas']) {
+    const y = (await caixa(a))?.y ?? -1;
+    if (!(y > anterior)) throw new Error(`ordem dos campos: ${a} fora do lugar`);
+    anterior = y;
+  }
+  const destino = (await caixa('destino_recurso'))?.y ?? -1;
+  if (!(destino > anterior)) throw new Error('Destino do recurso fora do lugar');
+  if (!CELULAR) {
+    const fat = await caixa('faturamento_anual');
+    const prazo = await caixa('prazo');
+    const demanda = await caixa('demanda_inicial');
+    if (!fat || !prazo || !demanda || Math.abs(prazo.y - demanda.y) > 2) {
+      throw new Error('Demanda e Prazo não estão na mesma linha');
+    }
+    const rotulo = await pagina.locator('.lc-dialog label[for="faturamento_anual"]').boundingBox();
+    if (!rotulo || !(rotulo.x + rotulo.width <= fat.x) || Math.abs(rotulo.y + rotulo.height / 2 - (fat.y + fat.height / 2)) > 6) {
+      throw new Error('o rótulo do faturamento não está ao lado do campo');
+    }
+  }
+});
+
 await passo(pagina, 'operacao-dialogo-ordem', async () => {
   // Ordem pedida em 05/10: Observações → Declínios → Limites → Lista de Fornecedores.
   if (!(await pagina.locator('text=Lista de Fornecedores').count())) return;
@@ -769,13 +811,31 @@ await passo(pagina, 'operacao-interruptor-do-rodape-conta-como-mudanca', async (
     await pagina.waitForSelector('.lc-aviso', { state: 'detached', timeout: 6000 });
     return foram;
   };
+  // As três formas do qa:tudo mexem neste mesmo interruptor da mesma operação.
+  // Sem trava, uma ligava enquanto a outra desligava e o dado real terminava
+  // trocado (14/10/2026). Uma corrida por vez.
+  const TRAVA = path.join('qa', '.trava-interruptor');
+  tiraTravaVencida(TRAVA);
+  for (let i = 0; ; i++) {
+    try {
+      fs.mkdirSync(TRAVA);
+      break;
+    } catch {
+      if (i > 240) throw new Error('trava do interruptor não liberou em 2 minutos');
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
   let viradas = 0;
   try {
     if (!(await virar())) throw new Error('mexer só no interruptor do rodapé foi tomado por "sem mudança"');
     viradas += 1;
   } finally {
     pagina.off('request', contar);
-    if (viradas) await virar(); // desliga de volta
+    try {
+      if (viradas) await virar(); // desliga de volta
+    } finally {
+      fs.rmSync(TRAVA, { recursive: true, force: true });
+    }
   }
 });
 
@@ -1285,6 +1345,252 @@ await passo(pagina, 'conta-agenda', async () => {
     { timeout: 15000 },
   );
 });
+
+// ------------------------------------------------- pop-ups modernos (UI 2) ---
+// design/ui2-popups.md. Liga a preferência "Moderno" pelas Configurações, abre
+// os três pop-ups, salva o de cliente com e sem mudança e volta para o
+// "Clássico" no fim.
+//
+// A preferência é da CONTA, e as três formas do qa:tudo usam a mesma conta:
+// ligar o moderno no meio de outra corrida trocaria os pop-ups dela. Por isso
+// cada corrida espera as outras chegarem aqui (barreira; QA_PARALELO vem do
+// qa-tudo.mjs) e o bloco roda uma corrida por vez (trava).
+const BARREIRA_UI2 = path.join('qa', '.ui2-chegou');
+const TRAVA_UI2 = path.join('qa', '.trava-ui2');
+const paralelas = Number(process.env.QA_PARALELO ?? 1);
+
+async function esperaAsOutrasCorridas() {
+  fs.mkdirSync(BARREIRA_UI2, { recursive: true });
+  fs.writeFileSync(path.join(BARREIRA_UI2, path.basename(SAIDA)), '');
+  // Até 7 minutos: a corrida mais lenta (celular, servidor frio) chega bem
+  // depois. Seguir antes trocaria os pop-ups no meio dos passos clássicos dela.
+  for (let i = 0; i < 840 && fs.readdirSync(BARREIRA_UI2).length < paralelas; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  tiraTravaVencida(TRAVA_UI2);
+  for (let i = 0; i < 360; i++) {
+    try {
+      fs.mkdirSync(TRAVA_UI2);
+      return;
+    } catch {
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  throw new Error('trava da UI 2 não liberou em 3 minutos');
+}
+
+/** Escolhe Clássico/Moderno nas Configurações e confere que ficou (não voltou por erro). */
+async function escolhePopups(pagina, opcao) {
+  await pagina.locator('header button:has-text("Configurações")').first().click();
+  await pagina.waitForSelector('.ui2-preferencia__opcao', { timeout: 5000 });
+  const jaEstava = await pagina.locator(`.ui2-preferencia__opcao[data-opcao="${opcao}"] input`).isChecked();
+  await pagina.locator(`.ui2-preferencia__opcao[data-opcao="${opcao}"]`).click();
+  // Opção já marcada não muda nada, e não há aviso a esperar.
+  if (!jaEstava) await pagina.waitForSelector('.lc-aviso:has-text("Preferência salva")', { timeout: 3000 });
+  // A gravação segue em segundo plano; se falhar, a escolha volta sozinha.
+  await pagina.waitForTimeout(1500);
+  const marcada = await pagina.locator(`.ui2-preferencia__opcao[data-opcao="${opcao}"] input`).isChecked();
+  if (!marcada) throw new Error(`a preferência "${opcao}" não ficou gravada (db/014 aplicada?)`);
+}
+
+/** A ficha moderna está aberta, dentro da janela, com o rodapé à vista sem rolar. */
+async function confereFicha(pagina, onde) {
+  await pagina.waitForSelector('.ui2-dialogo .ui2-cabeca__titulo', { timeout: 5000 });
+  await conferePopUp(pagina, onde);
+  await pagina.waitForTimeout(250);
+  const janela = pagina.viewportSize();
+  const caixa = await pagina.locator('.ui2-dialogo').boundingBox();
+  const rodape = await pagina.locator('.ui2-dialogo .lc-dialog__foot').boundingBox();
+  if (!caixa || caixa.x < -1 || caixa.x + caixa.width > janela.width + 1) {
+    throw new Error(`${onde}: a ficha passa da lateral da janela`);
+  }
+  if (!rodape || rodape.y + rodape.height > janela.height + 1) {
+    throw new Error(`${onde}: o rodapé não aparece sem rolar`);
+  }
+  const sobra = await pagina
+    .locator('.ui2-dialogo .lc-dialog__body')
+    .evaluate((el) => el.scrollWidth - el.clientWidth);
+  if (sobra > 1) throw new Error(`${onde}: corpo com rolagem horizontal (${sobra}px)`);
+}
+
+async function fecharDialogo(pagina) {
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForSelector('.lc-overlay', { state: 'detached', timeout: 3000 }).catch(() => {});
+  await pagina.waitForTimeout(150);
+}
+
+const semAviso = (pagina) =>
+  pagina.waitForSelector('.lc-aviso', { state: 'detached', timeout: 6000 }).catch(() => {});
+
+let ui2Ligada = false;
+try {
+  await esperaAsOutrasCorridas();
+
+  await passo(pagina, 'ui2-preferencia-moderna', async () => {
+    await pagina.goto(`${BASE}/clientes`, { waitUntil: 'networkidle' });
+    await pagina.waitForSelector(ITEM_REAL, { timeout: 20000 });
+    await escolhePopups(pagina, 'moderna');
+    ui2Ligada = true;
+  });
+
+  await passo(pagina, 'ui2-preferencia-fechada', async () => {
+    await fecharDialogo(pagina);
+  });
+
+  await passo(pagina, 'ui2-cliente', async () => {
+    await semAviso(pagina);
+    await pagina.locator('.lista__abrir').first().click();
+    await confereFicha(pagina, 'ficha de cliente');
+    for (const nome of ['nome_razao', 'cnpj', 'faturamento_anual', 'parecer', 'status']) {
+      if (!(await pagina.locator(`.ui2-dialogo [name="${nome}"]`).count())) throw new Error(`campo ${nome} sumiu`);
+    }
+  });
+
+  await passo(pagina, 'ui2-cliente-rolado', async () => {
+    await pagina.locator('.ui2-dialogo .lc-dialog__body').evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  });
+
+  await passo(pagina, 'ui2-cliente-salvar-sem-mudar', async () => {
+    await salvarSemMudarEInstantaneo(pagina, { aviso: 'Cliente salvo' });
+  });
+
+  await passo(pagina, 'ui2-cliente-alteracoes-nao-salvas', async () => {
+    await semAviso(pagina);
+    await pagina.locator('.lista__abrir').first().click();
+    await confereFicha(pagina, 'ficha de cliente');
+    await pagina.waitForTimeout(300);
+    // Um espaço no fim: muda o formulário, não o dado (o servidor apara).
+    await mexeSemMudarODado(pagina, '.ui2-dialogo input[name="cnpj"]');
+    await pagina.waitForSelector('.ui2-rodape__estado--sujo', { timeout: 2000 });
+  });
+
+  await passo(pagina, 'ui2-cliente-salvar-com-mudanca', async () => {
+    let posts = 0;
+    const contar = (r) => {
+      if (r.method() === 'POST' && !r.url().includes('/_next/')) posts += 1;
+    };
+    pagina.on('request', contar);
+    try {
+      const t0 = Date.now();
+      // Ctrl+Enter salva, como o botão.
+      await pagina.locator('.ui2-dialogo input[name="cnpj"]').press('Control+Enter');
+      await pagina.waitForSelector('.lc-aviso:has-text("Cliente salvo")', { timeout: 3000 });
+      await pagina.waitForSelector('.lc-overlay:not(.lc-overlay--saindo)', { state: 'detached', timeout: 3000 });
+      const ms = Date.now() - t0;
+      if (ms >= 500) throw new Error(`salvar com mudança levou ${ms}ms para fechar`);
+      await pagina.waitForTimeout(800);
+      if (!posts) throw new Error('salvar com mudança não foi ao servidor');
+      if (!(await pagina.locator('.lista__item.lc-salvo').count())) throw new Error('a linha salva não recebeu o destaque');
+    } finally {
+      pagina.off('request', contar);
+    }
+  });
+
+  await passo(pagina, 'ui2-fornecedor', async () => {
+    await semAviso(pagina);
+    await pagina.click('a[href="/fornecedores"]');
+    await pagina.waitForURL('**/fornecedores', { timeout: 20000 });
+    await pagina.waitForSelector('.celula-abrir', { timeout: 20000 });
+    await pagina.locator('.celula-abrir').first().click();
+    await confereFicha(pagina, 'ficha de fornecedor');
+    if (!(await pagina.locator('.ui2-dialogo .ui2-cabeca input[name="nome_fundo"]').inputValue())) {
+      throw new Error('o nome do fundo não veio no título');
+    }
+  });
+
+  await passo(pagina, 'ui2-fornecedor-rolado', async () => {
+    await pagina.locator('.ui2-dialogo .lc-dialog__body').evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  });
+
+  await passo(pagina, 'ui2-fornecedor-salvar-sem-mudar', async () => {
+    await salvarSemMudarEInstantaneo(pagina, { aviso: 'Fundo salvo' });
+  });
+
+  await passo(pagina, 'ui2-operacao', async () => {
+    await semAviso(pagina);
+    await pagina.click('a[href="/operacoes"]');
+    await pagina.waitForURL('**/operacoes', { timeout: 20000 });
+    await pagina.click('button[role="tab"]:has-text("Cliente")');
+    await pagina.waitForSelector(ITEM_REAL, { timeout: 20000 });
+    await pagina.locator('.lista__abrir').first().click();
+    await confereFicha(pagina, 'ficha de operação');
+    for (const nome of ['pmts', 'comissao', 'demanda_final']) {
+      if (await pagina.locator(`.ui2-dialogo [name="${nome}"]`).count()) throw new Error(`o campo ${nome} aparece`);
+    }
+    if (!CELULAR) {
+      // Os pares na mesma linha.
+      const y = async (nome) => (await pagina.locator(`.ui2-dialogo [name="${nome}"]`).first().boundingBox())?.y ?? -999;
+      for (const [a, b] of [
+        ['demanda_inicial', 'prazo'],
+        ['garantias_sugeridas', 'carencia'],
+      ]) {
+        if (Math.abs((await y(a)) - (await y(b))) > 2) throw new Error(`${a} e ${b} não estão na mesma linha`);
+      }
+    }
+  });
+
+  await passo(pagina, 'ui2-operacao-indice-contratos', async () => {
+    if (CELULAR) {
+      await pagina.locator('.ui2-indice__compacto select').selectOption('ui2-op-contratos');
+    } else {
+      await pagina.locator('.ui2-indice__item:has-text("Contratos")').click();
+    }
+    await pagina.waitForTimeout(600);
+  });
+
+  await passo(pagina, 'ui2-operacao-fundos', async () => {
+    await pagina.locator('.ui2-dialogo .lc-dialog__body').evaluate((el) => el.scrollTo(0, el.scrollHeight));
+    await pagina.waitForTimeout(200);
+  });
+
+  await passo(pagina, 'ui2-operacao-salvar-sem-mudar', async () => {
+    await salvarSemMudarEInstantaneo(pagina, { aviso: 'Operação salva' });
+  });
+
+  await passo(pagina, 'ui2-operacao-nova-faturamento', async () => {
+    await semAviso(pagina);
+    const nova = pagina.locator('button:has-text("Nova Operação")').first();
+    if (!(await nova.count())) return;
+    await nova.click();
+    await confereFicha(pagina, 'ficha de operação nova');
+    const campo = pagina.locator('.ui2-dialogo input[name="faturamento_anual"]');
+    for (let i = 0; i < 12 && !(await campo.inputValue()); i += 1) {
+      await pagina.locator('.ui2-dialogo .lc-field:has-text("Escolher cliente") .gatilho').click();
+      const opcoes = pagina.locator('.opcoes__item:visible');
+      if (i >= (await opcoes.count())) break;
+      await opcoes.nth(i).click();
+      await pagina.waitForTimeout(150);
+    }
+    if (!(await campo.inputValue())) throw new Error('nenhum cliente trouxe o faturamento');
+    if (!(await pagina.locator('.ui2-campo__nota:has-text("Do cadastro do cliente")').count())) {
+      throw new Error('faltou a nota "Do cadastro do cliente"');
+    }
+  });
+
+  await passo(pagina, 'ui2-operacao-nova-fechada', async () => {
+    await fecharDialogo(pagina);
+  });
+
+  await passo(pagina, 'ui2-preferencia-classica', async () => {
+    await semAviso(pagina);
+    await escolhePopups(pagina, 'classica');
+    ui2Ligada = false;
+  });
+
+  await passo(pagina, 'ui2-classica-de-volta', async () => {
+    await fecharDialogo(pagina);
+    await pagina.locator('.lista__abrir').first().click();
+    await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+    if (await pagina.locator('.ui2-dialogo').count()) throw new Error('voltou para a clássica, mas o pop-up é o moderno');
+    await fecharDialogo(pagina);
+  });
+} finally {
+  // Rede de segurança: a conta nunca fica no moderno por um passo que falhou.
+  if (ui2Ligada) {
+    await sql(`update public.perfil set ui_popups = 'classica' where email = $1`, [email]).catch(() => {});
+  }
+  fs.rmSync(TRAVA_UI2, { recursive: true, force: true });
+}
 
 await navegador.close();
 

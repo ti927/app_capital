@@ -31,7 +31,7 @@ export const perfilAtual = cache(async function perfilAtual(): Promise<Perfil> {
 
   const { data: perfil } = await supabase
     .from('perfil')
-    .select('id, nome, email, nivel_acesso, ativo')
+    .select('id, nome, email, nivel_acesso, ativo, ui_popups')
     .eq('id', id)
     .single();
 
@@ -40,7 +40,8 @@ export const perfilAtual = cache(async function perfilAtual(): Promise<Perfil> {
     redirect('/sem-acesso');
   }
 
-  return perfil as Perfil;
+  // `ui_popups` (db/014): qualquer valor fora do enum vira o padrão.
+  return { ...perfil, ui_popups: perfil.ui_popups === 'moderna' ? 'moderna' : 'classica' } as Perfil;
 });
 
 /** `true` quando o usuário da sessão é master. */

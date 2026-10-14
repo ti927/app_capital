@@ -98,7 +98,7 @@ try {
 
   const operacao = await supabase
     .from('operacao')
-    .insert({ identificador: MARCA, cliente_id: criados.cliente, pmts: 'a' })
+    .insert({ identificador: MARCA, cliente_id: criados.cliente, prazo: 'a' })
     .select('id')
     .single();
   if (operacao.error) throw new Error(`operação de teste: ${operacao.error.message}`);
@@ -168,7 +168,7 @@ try {
       rota: '/operacoes',
       busca: 'Buscar operações',
       abrir: '.lista__abrir',
-      campo: 'input[name="pmts"]',
+      campo: 'input[name="prazo"]',
     },
   ];
 

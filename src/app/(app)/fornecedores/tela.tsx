@@ -12,6 +12,8 @@ import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import type { Fornecedor, TabelaApoio } from '@/lib/dominio';
 import { arquivarFornecedor, excluirFornecedor } from './acoes';
 import { DialogoFornecedor } from './dialogo';
+import { DialogoFornecedorModerno } from './dialogo-moderno';
+import { usePreferencias } from '@/components/preferencias';
 import type { VinculoTipo } from './page';
 import './fornecedor.css';
 
@@ -45,6 +47,9 @@ export function TelaFornecedores({
   const [aExcluir, setAExcluir] = useState<Fornecedor | null>(null);
   const [, transicao] = useTransition();
   const destaque = useDestaque();
+  // Pop-up clássico ou moderno: preferência da pessoa (Configurações), lida do
+  // perfil no layout — nenhuma consulta a mais aqui.
+  const DialogoDaTela = usePreferencias().popups === 'moderna' ? DialogoFornecedorModerno : DialogoFornecedor;
 
   const filtrar = useCallback(
     (lista: Fornecedor[]) => {
@@ -175,7 +180,7 @@ export function TelaFornecedores({
       )}
       </div>
 
-      <DialogoFornecedor
+      <DialogoDaTela
         aberto={criando || emEdicao !== null}
         fornecedor={emEdicao}
         tipos={tipos}

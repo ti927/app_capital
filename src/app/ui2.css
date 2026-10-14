@@ -1,0 +1,1087 @@
+/* ===========================================================================
+   UI 2 — pop-ups modernos de Cliente, Fornecedor e Operação ("ficha").
+   Desenho em design/ui2-popups.md. Só tokens existentes; nenhuma cor nova.
+   Amarelo só na ação primária, no foco-dentro da seção e no pulso de valor
+   preenchido sozinho. Tudo que se move desliga em prefers-reduced-motion
+   (fim do arquivo).
+   =========================================================================== */
+
+.ui2-dialogo {
+  --ui2-pad: var(--space-8);
+}
+
+/* --- cabeçalho-resumo ------------------------------------------------------ */
+
+.ui2-dialogo .lc-dialog__head {
+  padding: var(--space-6) var(--ui2-pad) 0;
+  align-items: flex-start;
+}
+
+.ui2-cabeca {
+  flex: 1;
+  min-width: 0;
+}
+
+.ui2-cabeca__topo {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-5);
+}
+
+.ui2-cabeca__ladrilho {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  background: var(--text);
+  color: var(--surface);
+}
+
+.ui2-cabeca__nome {
+  min-width: 0;
+}
+
+.ui2-cabeca__titulo {
+  margin: 0;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Fornecedor: o nome do fundo é o próprio título, editável. */
+.ui2-cabeca__titulo-editavel {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0 0 2px;
+  border: 0;
+  border-bottom: var(--border-w) solid transparent;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  transition: border-color var(--mov-rapido) var(--mov-curva);
+}
+.ui2-cabeca__titulo-editavel::placeholder {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.ui2-cabeca__titulo-editavel:hover {
+  border-bottom-color: var(--border-strong);
+}
+.ui2-cabeca__titulo-editavel:focus,
+.ui2-cabeca__titulo-editavel:focus-visible {
+  outline: none;
+  border-bottom: 2px solid var(--focus-ring);
+  padding-bottom: 1px;
+}
+
+.ui2-cabeca__contexto {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui2-cabeca__status {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Botão de fechar do Dialogo, ao lado do cabeçalho. */
+.ui2-dialogo .lc-dialog__head > .lc-btn {
+  margin-top: 8px;
+}
+
+/* --- faixa de números-chave ------------------------------------------------ */
+
+.ui2-faixa {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-9);
+  margin: var(--space-5) calc(-1 * var(--ui2-pad)) 0;
+  padding: var(--space-4) var(--ui2-pad);
+  background: var(--surface-sunken);
+  border-top: var(--border-w) solid var(--border);
+}
+
+.ui2-faixa__item {
+  min-width: 0;
+  max-width: 260px;
+}
+
+.ui2-faixa__rotulo {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-muted);
+}
+
+.ui2-faixa__valor {
+  margin: 2px 0 0;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui2-faixa__valor--vazio {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.ui2-faixa__contadores {
+  display: flex;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.ui2-faixa__contador {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 var(--space-4);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- corpo ----------------------------------------------------------------- */
+
+.ui2-dialogo .lc-dialog__body {
+  padding: 0 var(--ui2-pad) var(--space-8);
+  scroll-padding-top: 64px;
+}
+
+/* --- índice de seções (Operação) ------------------------------------------- */
+
+.ui2-indice {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0 calc(-1 * var(--ui2-pad));
+  padding: var(--space-4) var(--ui2-pad);
+  background: var(--surface);
+  border-bottom: var(--border-w) solid var(--border);
+}
+
+.ui2-indice__pilulas {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ui2-indice__item {
+  flex: none;
+  height: 28px;
+  padding: 0 var(--space-5);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva);
+}
+
+.ui2-indice__item:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.ui2-indice__item--ativo,
+.ui2-indice__item--ativo:hover {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+
+.ui2-indice__compacto {
+  display: none;
+}
+
+/* --- seções ---------------------------------------------------------------- */
+
+.ui2-secao {
+  margin-top: var(--space-7);
+  padding-top: var(--space-7);
+  border-top: var(--border-w) solid var(--border);
+  animation: ui2-secao-entra 200ms var(--mov-curva) backwards;
+  animation-delay: calc(var(--ui2-ordem, 0) * 30ms);
+}
+
+.ui2-forma > .ui2-secao:first-of-type {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: var(--space-6);
+}
+
+.ui2-secao__cabeca {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.ui2-secao__ladrilho {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  transition:
+    background-color var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva);
+}
+
+.ui2-secao:focus-within .ui2-secao__ladrilho {
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.ui2-secao__titulo {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+@keyframes ui2-secao-entra {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* --- grade de 12 colunas --------------------------------------------------- */
+
+.ui2-grade {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.ui2-grade > * {
+  min-width: 0;
+}
+
+.ui2-c3 { grid-column: span 3; }
+.ui2-c4 { grid-column: span 4; }
+.ui2-c5 { grid-column: span 5; }
+.ui2-c6 { grid-column: span 6; }
+.ui2-c7 { grid-column: span 7; }
+.ui2-c8 { grid-column: span 8; }
+.ui2-c12 { grid-column: 1 / -1; }
+
+/* --- campo "valor primeiro" ------------------------------------------------ */
+
+.ui2-dialogo .lc-dialog__body .lc-field__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 16px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.ui2-campo__icone {
+  display: inline-flex;
+  color: var(--text-muted);
+}
+
+/* Em repouso: valor em destaque sobre um fio. Hover: caixa. Foco: caixa + anel. */
+.ui2-dialogo .lc-dialog__body input.lc-field__input,
+.ui2-dialogo .lc-dialog__body .gatilho {
+  height: var(--control-h-md);
+  padding: 0 var(--space-3);
+  border: var(--border-w) solid transparent;
+  border-bottom-color: var(--border);
+  border-radius: 0;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  transition:
+    border-color var(--mov-rapido) var(--mov-curva),
+    border-radius var(--mov-rapido) var(--mov-curva),
+    box-shadow var(--mov-rapido) var(--mov-curva),
+    background-color var(--mov-rapido) var(--mov-curva);
+}
+
+.ui2-dialogo .lc-dialog__body .gatilho {
+  min-height: var(--control-h-md);
+  height: auto;
+}
+
+.ui2-dialogo .lc-dialog__body input.lc-field__input::placeholder,
+.ui2-dialogo .lc-dialog__body .gatilho__vazio {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.ui2-dialogo .lc-dialog__body input.lc-field__input:hover:not(:read-only),
+.ui2-dialogo .lc-dialog__body .gatilho:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.ui2-dialogo .lc-dialog__body input.lc-field__input:focus:not(:read-only),
+.ui2-dialogo .lc-dialog__body .gatilho:focus-visible,
+.ui2-dialogo .lc-dialog__body .gatilho--aberto {
+  outline: none;
+  border-color: var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+/* Texto longo (pareceres): caixa sempre visível, peso de leitura. */
+.ui2-dialogo .lc-dialog__body textarea.lc-field__input {
+  padding: var(--space-4);
+  border-color: var(--border);
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 1.55;
+  transition:
+    border-color var(--mov-rapido) var(--mov-curva),
+    box-shadow var(--mov-rapido) var(--mov-curva);
+}
+.ui2-dialogo .lc-dialog__body textarea.lc-field__input:hover {
+  border-color: var(--border-strong);
+}
+.ui2-dialogo .lc-dialog__body textarea.lc-field__input:focus {
+  outline: none;
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+.ui2-campo-texto textarea.lc-field__input {
+  min-height: 180px;
+  max-height: 60vh;
+  resize: vertical;
+}
+
+/* Somente leitura (cliente da operação em edição). */
+.ui2-dialogo .lc-dialog__body .ui2-campo--leitura input.lc-field__input {
+  border-color: transparent;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  cursor: default;
+}
+.ui2-dialogo .lc-dialog__body .ui2-campo--leitura input.lc-field__input:focus-visible {
+  outline: var(--border-w-focus, 2px) solid var(--focus-ring);
+}
+
+.ui2-campo__nota {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text-muted);
+}
+
+/* Valor preenchido sozinho (faturamento do cliente): um pulso, uma vez. */
+.ui2-campo--pulso input.lc-field__input {
+  animation: ui2-pulso 600ms var(--mov-curva);
+}
+.ui2-campo--pulso-b input.lc-field__input {
+  animation: ui2-pulso-b 600ms var(--mov-curva);
+}
+
+@keyframes ui2-pulso {
+  from {
+    background-color: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+}
+@keyframes ui2-pulso-b {
+  from {
+    background-color: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+}
+
+/* Campo + botão ao lado (Link de Indicação). */
+.ui2-com-acao {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--space-2);
+}
+.ui2-com-acao__botao {
+  width: var(--control-h-md);
+  padding: 0;
+  justify-content: center;
+}
+
+/* "Não atendidas": ícone antes do rótulo, fichas em vermelho (seletor). */
+.ui2-nao-atendidas {
+  position: relative;
+}
+.ui2-nao-atendidas__icone {
+  position: absolute;
+  top: 1px;
+  left: 0;
+  color: var(--danger-ink);
+}
+.ui2-nao-atendidas .lc-field__label {
+  padding-left: 20px;
+}
+
+/* --- e-mails do cliente como fichas ---------------------------------------- */
+
+.ui2-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ui2-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  max-width: 100%;
+  padding: 0 3px 0 var(--space-4);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ui2-chip__texto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui2-chip__remover {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.ui2-chip__remover:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+/* --- pílula-interruptor (Contratos) ---------------------------------------- */
+
+.ui2-interruptores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.ui2-interruptor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-h-md);
+  padding: 0 var(--space-5) 0 var(--space-3);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 120ms var(--mov-curva),
+    border-color 120ms var(--mov-curva),
+    color 120ms var(--mov-curva);
+}
+
+.ui2-interruptor:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.ui2-interruptor__caixa {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ui2-interruptor__check {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  transition: border-color 120ms var(--mov-curva);
+}
+
+.ui2-interruptor__check svg {
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 120ms var(--mov-curva),
+    transform 120ms var(--mov-curva);
+}
+
+.ui2-interruptor:has(.ui2-interruptor__caixa:checked) {
+  background: var(--success-bg);
+  border-color: var(--success-bg);
+  color: var(--success-ink);
+}
+
+.ui2-interruptor:has(.ui2-interruptor__caixa:checked) .ui2-interruptor__check {
+  border-color: var(--success-ink);
+  color: var(--success-ink);
+}
+
+.ui2-interruptor:has(.ui2-interruptor__caixa:checked) .ui2-interruptor__check svg {
+  opacity: 1;
+  transform: none;
+}
+
+.ui2-interruptor:has(.ui2-interruptor__caixa:focus-visible) {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+/* --- status em pílulas segmentadas (cliente) ------------------------------- */
+
+.ui2-segmentado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ui2-segmentado__opcao {
+  min-height: 34px;
+  padding: 0 var(--space-5);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--mov-rapido) var(--mov-curva),
+    color var(--mov-rapido) var(--mov-curva),
+    border-color var(--mov-rapido) var(--mov-curva);
+}
+
+.ui2-segmentado__opcao:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.ui2-segmentado__opcao--marcada,
+.ui2-segmentado__opcao--marcada:hover {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+
+/* --- "Puxar do funil" (cliente novo) --------------------------------------- */
+
+.ui2-puxar {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+  margin-top: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+}
+
+.ui2-puxar__icone {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+
+.ui2-puxar .apoio {
+  margin: var(--space-2) 0 0;
+  font-size: 12px;
+}
+
+.ui2-dialogo .lc-dialog__body .ui2-puxar .gatilho {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  border-color: var(--border);
+}
+
+/* --- tabela de etapas: rola dentro do próprio contêiner -------------------- */
+
+.ui2-etapas {
+  overflow-x: auto;
+}
+
+.ui2-etapas .secao-etapas > .lc-field__label:first-child {
+  display: none;
+}
+
+/* --- rodapé fixo ----------------------------------------------------------- */
+
+.ui2-dialogo .lc-dialog__foot {
+  padding: 0 var(--ui2-pad);
+}
+
+.ui2-rodape__estado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-right: auto;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ui2-rodape__ponto {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--border-strong);
+  transition: background-color var(--mov-rapido) var(--mov-curva);
+}
+
+.ui2-rodape__estado--sujo {
+  color: var(--text-secondary);
+}
+
+.ui2-rodape__estado--sujo .ui2-rodape__ponto {
+  background: var(--warning);
+}
+
+.ui2-dialogo .lc-dialog__foot .rodape-toggle {
+  margin-right: 0;
+}
+
+/* --- preferência nas Configurações ----------------------------------------- */
+
+.configuracoes__abas {
+  margin: calc(-1 * var(--space-4)) 0 var(--space-6);
+}
+
+.ui2-preferencia__titulo {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ui2-preferencia .apoio {
+  margin: 0;
+  font-size: 13px;
+}
+
+.ui2-preferencia__opcoes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.ui2-preferencia__opcao {
+  position: relative;
+  display: block;
+  padding: var(--space-4);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  cursor: pointer;
+  transition:
+    border-color var(--mov-rapido) var(--mov-curva),
+    box-shadow var(--mov-rapido) var(--mov-curva);
+}
+
+.ui2-preferencia__opcao:hover {
+  border-color: var(--border-strong);
+}
+
+.ui2-preferencia__opcao input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+
+.ui2-preferencia__opcao:has(input:checked) {
+  border-color: var(--text);
+  box-shadow: 0 0 0 1px var(--text);
+}
+
+.ui2-preferencia__opcao:has(input:focus-visible) {
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.ui2-preferencia__rotulo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Marca de escolhida: bolinha preenchida, não só a borda. */
+.ui2-preferencia__rotulo::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  flex: none;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+}
+.ui2-preferencia__opcao:has(input:checked) .ui2-preferencia__rotulo::before {
+  border: 4px solid var(--text);
+}
+
+.ui2-preferencia__texto {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--text-secondary);
+}
+
+/* Miniaturas: blocos desenhados com tokens. */
+.ui2-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 104px;
+  margin-bottom: var(--space-4);
+  padding: 10px 12px;
+  box-sizing: border-box;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.ui2-mini > span,
+.ui2-mini span span {
+  display: block;
+}
+
+.ui2-mini__titulo {
+  height: 8px;
+  width: 46%;
+  border-radius: 2px;
+  background: var(--text);
+}
+
+.ui2-mini__linha {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+.ui2-mini__rotulo {
+  width: 26%;
+  height: 5px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+
+.ui2-mini__caixa {
+  flex: 1;
+  height: 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+.ui2-mini__botao {
+  width: 28%;
+  height: 9px;
+  margin-top: auto;
+  margin-left: auto;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.ui2-mini__cabeca {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+.ui2-mini__cabeca .ui2-mini__titulo {
+  width: 40%;
+}
+
+.ui2-mini__ladrilho {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--text);
+}
+
+.ui2-mini__faixa {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 4px;
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+.ui2-mini__faixa > span {
+  height: 8px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+
+.ui2-mini__grade {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px 8px;
+  margin-top: 2px;
+}
+
+.ui2-mini__grade > span {
+  height: 7px;
+  border-bottom: 2px solid var(--border-strong);
+}
+
+/* --- médio: spans de 3 viram 6 (duas por linha); pares continuam pares ----- */
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .ui2-c3 {
+    grid-column: span 6;
+  }
+}
+
+/* --- celular: folha de tela cheia, uma coluna, mesma ordem ----------------- */
+
+@media (max-width: 760px) {
+  .ui2-dialogo {
+    --ui2-pad: var(--space-5);
+  }
+
+  .lc-overlay:has(> .ui2-dialogo) {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .lc-dialog.ui2-dialogo {
+    max-width: 100%;
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    animation: ui2-folha 200ms var(--mov-curva);
+  }
+
+  .lc-overlay--saindo .lc-dialog.ui2-dialogo {
+    animation: ui2-folha var(--mov-saida) var(--mov-curva) reverse forwards;
+  }
+
+  .ui2-dialogo .lc-dialog__head,
+  .ui2-dialogo .lc-dialog__body,
+  .ui2-dialogo .lc-dialog__foot {
+    padding-left: var(--ui2-pad);
+    padding-right: var(--ui2-pad);
+  }
+
+  .ui2-dialogo .lc-dialog__head {
+    padding-top: var(--space-5);
+  }
+
+  .ui2-cabeca__topo {
+    grid-template-columns: 36px minmax(0, 1fr);
+    column-gap: var(--space-4);
+    row-gap: var(--space-3);
+  }
+
+  .ui2-cabeca__ladrilho {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ui2-cabeca__titulo {
+    font-size: 18px;
+    line-height: 24px;
+  }
+
+  .ui2-cabeca__status {
+    grid-column: 2;
+    justify-self: start;
+    max-width: 100%;
+  }
+
+  .ui2-faixa {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3) var(--space-5);
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    padding-bottom: var(--space-3);
+  }
+
+  .ui2-faixa__item {
+    max-width: none;
+  }
+
+  .ui2-faixa__valor {
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+  .ui2-faixa__contadores {
+    grid-column: 1 / -1;
+    margin-left: 0;
+  }
+
+  .ui2-grade > * {
+    grid-column: 1 / -1;
+  }
+
+  .ui2-indice__pilulas {
+    display: none;
+  }
+
+  .ui2-indice__compacto {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .ui2-indice__compacto-rotulo {
+    flex: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .ui2-indice__compacto select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Alvos de toque de 44px. */
+  .ui2-dialogo .lc-dialog__body input.lc-field__input,
+  .ui2-dialogo .lc-dialog__body .gatilho,
+  .ui2-segmentado__opcao,
+  .ui2-interruptor {
+    min-height: 44px;
+  }
+
+  .ui2-chip {
+    height: 36px;
+  }
+
+  .ui2-chip__remover {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Rodapé: estado e interruptor em cima, botões embaixo. */
+  .ui2-dialogo .lc-dialog__foot {
+    flex-wrap: wrap;
+    height: auto;
+    row-gap: var(--space-3);
+    padding-top: var(--space-3);
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+  }
+
+  .ui2-dialogo .lc-dialog__foot .ui2-rodape__estado {
+    flex: 1 1 auto;
+  }
+
+  .ui2-dialogo .lc-dialog__foot > .lc-btn {
+    flex: 1 1 40%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .ui2-preferencia__opcoes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@keyframes ui2-folha {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+/* --- quem pediu menos movimento não recebe nenhum -------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .ui2-secao,
+  .ui2-campo--pulso input.lc-field__input,
+  .ui2-campo--pulso-b input.lc-field__input,
+  .lc-dialog.ui2-dialogo,
+  .lc-overlay--saindo .lc-dialog.ui2-dialogo {
+    animation: none;
+  }
+
+  .ui2-dialogo *,
+  .ui2-preferencia * {
+    transition: none !important;
+  }
+}

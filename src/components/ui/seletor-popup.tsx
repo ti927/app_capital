@@ -377,6 +377,8 @@ export interface SeletorMultiploProps {
   /** Pinta as fichas escolhidas em vermelho — "tipos não atendidos". */
   negativo?: boolean;
   aoMudar?: (valores: string[]) => void;
+  /** Id da <form> quando o seletor fica fora dela: os valores viajam no envio pelo `form=`. */
+  form?: string;
 }
 
 /** Escolha de vários valores, no mesmo menu — que não fecha a cada clique. */
@@ -390,6 +392,7 @@ export function SeletorMultiploPopup({
   className,
   negativo,
   aoMudar,
+  form,
 }: SeletorMultiploProps) {
   const [escolhidos, setEscolhidos] = useState<string[]>(inicial);
   const [aberto, setAberto] = useState(false);
@@ -409,7 +412,7 @@ export function SeletorMultiploPopup({
     <div className={['lc-field', className].filter(Boolean).join(' ')}>
       {rotulo ? <span className="lc-field__label">{rotulo}</span> : null}
       {escolhidos.map((v) => (
-        <input key={v} type="hidden" name={nome} value={v} />
+        <input key={v} type="hidden" name={nome} value={v} form={form} />
       ))}
 
       <button

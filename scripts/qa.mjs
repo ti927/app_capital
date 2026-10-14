@@ -627,7 +627,7 @@ await passo(pagina, 'operacao-dialogo-campos', async () => {
 });
 
 await passo(pagina, 'operacao-dialogo-ordem', async () => {
-  // Ordem pedida em 05/10: Observações → Declínios → Limites → Lista de Fornecedores.
+  // Ordem: Observações → Limites → Lista de Fornecedores → Declínios (o último, 14/10).
   if (!(await pagina.locator('text=Lista de Fornecedores').count())) return;
   const topo = async (texto) =>
     (await pagina.locator(`.lc-dialog >> text="${texto}"`).first().boundingBox())?.y ?? -1;
@@ -638,7 +638,7 @@ await passo(pagina, 'operacao-dialogo-ordem', async () => {
     await topo('Limites/fundos assinados'),
     await topo('Lista de Fornecedores'),
   ];
-  if (!(obs < dec && dec < lim && lim < lista)) {
+  if (!(obs < lim && lim < lista && lista < dec)) {
     throw new Error(`ordem errada: obs ${obs}, declínios ${dec}, limites ${lim}, lista ${lista}`);
   }
 });
@@ -833,6 +833,70 @@ await passo(pagina, 'operacao-interruptor-do-rodape-conta-como-mudanca', async (
     pagina.off('request', contar);
     try {
       if (viradas) await virar(); // desliga de volta
+    } finally {
+      fs.rmSync(TRAVA, { recursive: true, force: true });
+    }
+  }
+});
+
+await passo(pagina, 'operacao-declinio-salva-abaixo-da-tabela', async () => {
+  // Declínios é o último campo, abaixo das tabelas e fora da <form> (14/10/2026):
+  // os valores viajam no salvar pelo `form=`. Escolhe um fundo, salva, reabre e
+  // confere que ficou; depois desfaz. Mexe numa operação real: sob a mesma trava
+  // do interruptor, uma corrida por vez.
+  const TRAVA = path.join('qa', '.trava-interruptor');
+  tiraTravaVencida(TRAVA);
+  for (let i = 0; ; i++) {
+    try {
+      fs.mkdirSync(TRAVA);
+      break;
+    } catch {
+      if (i > 240) throw new Error('trava do interruptor não liberou em 2 minutos');
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  const abrir = async () => {
+    await pagina.waitForSelector('.lc-aviso', { state: 'detached', timeout: 6000 }).catch(() => {});
+    if (!(await pagina.locator('.lc-overlay:not(.lc-overlay--saindo)').count())) {
+      await pagina.locator('.lista__abrir').first().click();
+    }
+    await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+    await pagina.waitForTimeout(400);
+  };
+  const campo = () => pagina.locator('.lc-dialog .lc-field:has(.lc-field__label:text-is("Declínios"))').first();
+  const quantos = () => pagina.locator('.lc-dialog input[type="hidden"][name="declinios"]').count();
+  const salvarEFechar = async () => {
+    await pagina.locator('.lc-dialog__foot button[type="submit"]').click();
+    await pagina.waitForSelector('.lc-overlay:not(.lc-overlay--saindo)', { state: 'detached', timeout: 5000 });
+    // A gravação segue em segundo plano (salvar otimista): dá tempo de chegar.
+    await pagina.waitForTimeout(2500);
+  };
+  let escolhido = null;
+  try {
+    await abrir();
+    const antes = await quantos();
+    await campo().locator('.gatilho').scrollIntoViewIfNeeded();
+    await campo().locator('.gatilho').click();
+    const opcao = pagina.locator('.lc-popover li[role="option"][aria-selected="false"]').first();
+    escolhido = (await opcao.innerText()).trim();
+    await opcao.click();
+    await pagina.keyboard.press('Escape'); // fecha só o menu
+    await pagina.waitForTimeout(200);
+    await salvarEFechar();
+    await abrir();
+    const depois = await quantos();
+    if (depois !== antes + 1) throw new Error(`o declínio não foi gravado: eram ${antes}, ficaram ${depois}`);
+  } finally {
+    try {
+      if (escolhido) {
+        await abrir();
+        await campo().locator('.gatilho').scrollIntoViewIfNeeded();
+        await campo().locator('.gatilho').click();
+        await pagina.locator('.lc-popover li[role="option"][aria-selected="true"]', { hasText: escolhido }).first().click();
+        await pagina.keyboard.press('Escape');
+        await pagina.waitForTimeout(200);
+        await salvarEFechar();
+      }
     } finally {
       fs.rmSync(TRAVA, { recursive: true, force: true });
     }

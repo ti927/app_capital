@@ -13,8 +13,9 @@ Decidido em 14/10/2026.
   - Demanda | Prazo
   - Garantias sugeridas | Carência
   - Destino do recurso (linha inteira)
-  - depois, como antes: pareceres, interruptores, observações, declínios,
-    limites/fundos assinados, tabela de fundos, rodapé.
+  - depois: pareceres, interruptores, observações, limites/fundos assinados,
+    tabela de fundos e, por último, **Declínios** (abaixo das tabelas, pedido de
+    14/10/2026; fica fora da <form> e viaja no salvar pelo `form=`).
 - **Faturamento anual vem do cliente**: ao escolher o cliente numa operação nova
   e ao abrir uma operação com o faturamento vazio.
 - **PMTS, Comissão e Demanda final saem da tela**, não do banco. A action da

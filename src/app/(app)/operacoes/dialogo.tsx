@@ -253,11 +253,11 @@ export function DialogoOperacao({
         </div>
 
         {/*
-          Ordem pedida em 05/10/2026: Observações → Declínios → Limites/fundos
-          assinados → Lista de Fornecedores. Por isso as observações moram
+          Ordem: Observações → Limites/fundos assinados → Lista de Fornecedores
+          → Declínios (o último, pedido de 14/10/2026). As observações moram
           dentro do <form> (os botões delas são type="button" e o campo de nova
-          observação não tem `name`: não interferem no salvar), e Declínios e
-          Limites logo depois, antes da tabela que fica fora do form.
+          observação não tem `name`: não interferem no salvar). Declínios fica
+          depois da tabela, fora do form, e viaja no salvar pelo `form=`.
         */}
         {temCliente && operacao ? (
           <div className="grade__inteiro">
@@ -266,7 +266,6 @@ export function DialogoOperacao({
           </div>
         ) : null}
 
-        <Declinios fornecedores={fundosOrdenados} escolhidos={declinios} />
         <Campo className="grade__inteiro" rotulo="Limites/fundos assinados" nome="limites_fundos_assinados" valorInicial={operacao?.limites_fundos_assinados ?? ''} placeholder="Digite aqui" />
 
       </form>
@@ -284,6 +283,12 @@ export function DialogoOperacao({
           />
         </>
       ) : null}
+
+      {/* O último campo, abaixo das tabelas (14/10/2026). */}
+      <div className="grade">
+        <hr className="grade__regua" />
+        <Declinios fornecedores={fundosOrdenados} escolhidos={declinios} form="forma-operacao" />
+      </div>
     </Dialogo>
 
     {/* Fora do diálogo da operação, como o de tarefa sobre o cartão: abre por
@@ -343,10 +348,22 @@ export function Interruptor({
 /* -------------------------------------------------------------- declínios -- */
 
 /** Quais fornecedores recusaram a operação. Desabilitado para indicante. */
-export function Declinios({ fornecedores, escolhidos }: { fornecedores: Fundo[]; escolhidos: string[] }) {
+export function Declinios({
+  fornecedores,
+  escolhidos,
+  form,
+  className = 'grade__inteiro',
+}: {
+  fornecedores: Fundo[];
+  escolhidos: string[];
+  /** Declínios fica abaixo da tabela, fora da <form>: o `form=` leva os valores no salvar. */
+  form?: string;
+  className?: string;
+}) {
   return (
     <SeletorMultiploPopup
-      className="grade__inteiro"
+      className={className}
+      form={form}
       rotulo="Declínios"
       nome="declinios"
       inicial={escolhidos}

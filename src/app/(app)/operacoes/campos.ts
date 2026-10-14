@@ -23,8 +23,9 @@ export const CAMPOS_OPERACAO = [
   'nda_assinado',
   'mandato_assinado',
   'mandato_assinado_fornecedor',
-  'declinios',
   'limites_fundos_assinados',
+  // O último, abaixo da tabela de fundos (14/10/2026).
+  'declinios',
 ] as const;
 
 /** Saíram da tela em 14/10/2026; a coluna e o dado ficam. */

@@ -13,6 +13,7 @@ import {
   IconeMoeda,
   IconeNota,
   IconeOperacao,
+  IconeProibido,
   IconeRelogio,
 } from '@/components/ui/icones';
 import { Dialogo } from '@/components/ui/dialogo';
@@ -137,6 +138,7 @@ export function DialogoOperacaoModerno({
     { id: 'ui2-op-contratos', titulo: 'Contratos' },
     { id: 'ui2-op-acompanhamento', titulo: 'Acompanhamento' },
     ...(operacao ? [{ id: 'ui2-op-fundos', titulo: 'Fundos' }] : []),
+    { id: 'ui2-op-declinios', titulo: 'Declínios' },
   ];
 
   return (
@@ -295,7 +297,6 @@ export function DialogoOperacaoModerno({
                 <BlocoObservacoes operacaoId={operacao.id} observacoes={observacoes} />
               </div>
             ) : null}
-            <Declinios fornecedores={fundosOrdenados} escolhidos={declinios} />
             <Campo className="ui2-c12" rotulo="Limites/fundos assinados" nome="limites_fundos_assinados" valorInicial={operacao?.limites_fundos_assinados ?? ''} placeholder="Digite aqui" />
           </Secao>
         </form>
@@ -320,6 +321,11 @@ export function DialogoOperacaoModerno({
             }
           />
         ) : null}
+
+        {/* O último campo, abaixo das tabelas (14/10/2026): fora da <form>, viaja pelo `form=`. */}
+        <Secao id="ui2-op-declinios" ordem={6} icone={<IconeProibido tamanho={16} />} titulo="Declínios">
+          <Declinios fornecedores={fundosOrdenados} escolhidos={declinios} form={FORMA} className="ui2-c12" />
+        </Secao>
       </Dialogo>
 
       {emailAberto && operacao ? (

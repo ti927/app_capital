@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { itensPara } from './casca';
 import { Indicador } from './indicador';
 import type { NivelAcesso } from '@/lib/dominio';
+import type { Pagina } from '@/lib/acesso-pagina';
 
 const cx = (...v: unknown[]) => v.filter((x): x is string => typeof x === 'string' && x !== '').join(' ');
 
@@ -21,9 +22,9 @@ const cx = (...v: unknown[]) => v.filter((x): x is string => typeof x === 'strin
  * O rótulo "Esteira de Estruturação" quebra em duas linhas: por isso o item tem
  * altura mínima, não altura fixa. Não encolher a fonte para forçar uma linha.
  */
-export function NavLateral({ nivel }: { nivel: NivelAcesso }) {
+export function NavLateral({ nivel, liberadas }: { nivel: NivelAcesso; liberadas?: Pagina[] }) {
   const caminho = usePathname();
-  const itens = itensPara(nivel);
+  const itens = itensPara(nivel, liberadas);
 
   return (
     <nav className="lc-sidenav lc-sidenav--deslizante" aria-label="Navegação principal">

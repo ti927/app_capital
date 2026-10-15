@@ -119,3 +119,80 @@ sobram no Fundo e faltam no "Na mão de".
 Commits sugeridos: `fix: esteira lista so operacao em estruturacao` ·
 `feat: campos que faltavam no dialogo de operacao` ·
 `feat: tabela de etapas declinadas` · `fix: na mao de mostra o texto inteiro`.
+
+---
+
+# Achado · 21/09/2026 — por que a esteira parece vazia
+
+Relato: *"dentro da esteira nenhum dado está sendo puxado, sendo que no Bubble
+tem linhas e linhas de informações concluídas, e tem dois Garcia Agronegócios"*.
+São **três coisas diferentes**, e só a primeira era defeito de código.
+
+## 1. O rótulo da lista estava errado — corrigido
+
+A linha mostrava a lista de tipos das etapas (`CPR / FGI / Capital de Giro`).
+O Bubble mostra o **identificador da operação** (árvore de elementos,
+`documentacao-completa.md:1650`):
+
+```
+txt.qual cliente copy = operação's identificador   (cond is_empty -> invisível)
+txt.qual cliente      = " - " + qual cliente's nome/razão
+```
+
+Por isso os "dois Garcias": as duas linhas são operações **diferentes do mesmo
+cliente** — e é assim mesmo, o segundo filtro da esteira é por cliente
+(ver acima). Só que o rótulo antigo escondia o que as separa, e ainda fazia uma
+delas (`CRA`) sair idêntica ao identificador da outra. Agora lê
+`Giro com Barter - Garcia Agronegócios` e `CRA - Garcia Agronegócios`.
+
+## 2. O diálogo abria na etapa errada — corrigido
+
+A EXPR-ETAPA do Bubble (`documentacao-completa.md:1594`) pendura o pop-up na
+etapa **do fundo com status "contrato assinado"**. O código abria em
+`etapas[0]`, que numa operação de nove fundos quase nunca é essa. Idem
+"Instituição Líder": o comentário dizia "o fundo da etapa com contrato
+assinado" e o código pegava a primeira etapa com fundo, assinada ou não.
+
+Divergência assumida: quando **nenhuma** etapa assinou, o Bubble não mostra
+etapa nenhuma (a busca aninhada resolve para vazio). Aqui cai na primeira,
+porque esta tela tem seletor de etapas e o Bubble não tem.
+
+## 3. Os campos vazios NÃO são defeito — é o dado que não existe
+
+Conferido no banco e no retrato do Bubble, nas 383 etapas:
+
+| | preenchidas |
+|---|---|
+| volume, dt_inicio, gestor, administrador, assessoria legal | **1** etapa |
+| DTVM, securitizadora, agente fiduciário, custodiante, emissor, estruturador, demais | **0** |
+| TsAssinado, Opdepe, FeeRecebido | **0** |
+| itens de checklist | 7 (da mesma etapa) |
+| instrumento | 1 (da mesma etapa) |
+
+A única etapa com esteira preenchida é **Hospcom · FIDC · Vert Capital**
+(volume 20.000.000,00, gestor Vert, administrador Vert, assessoria Verano,
+instrumento FIDC Proprietário, 7 itens de checklist). Essa operação está
+`arquivado = true` **no próprio Bubble** — então nem lá ela aparece na esteira.
+As duas do Garcia, que aparecem, não têm um campo de esteira preenchido na
+origem.
+
+Ou seja: a carga não perdeu nada. Não há o que puxar.
+
+## O que ainda pode estar faltando, e como resolver
+
+O retrato veio do **version-test**, cuja modificação mais recente é
+**15/09/2026**. `cliente`, `operação` e `etapas_operação` **nunca foram
+publicados na Data API do live** — conferido de novo em 21/09/2026: os três
+dão **HTTP 404** no live e **200** no version-test. Se alguém preencheu a
+esteira no app de verdade depois de 15/09, esse dado não tem como ter chegado
+aqui.
+
+Para tirar a dúvida — e é a única forma:
+
+1. No Bubble: **Settings › API**, marcar os três data types em **live**.
+2. `node scripts/extrair-bubble.mjs --live`
+3. `npm run carregar` — a recarga **preenche e nunca apaga** (`coalesce` com o
+   valor daqui na frente), então o que já foi digitado na nossa tela sobrevive.
+
+Enquanto isso não for feito, "campo vazio" continua ambíguo: pode ser que nunca
+tenha existido, pode ser que tenha sido digitado no live depois da cópia.

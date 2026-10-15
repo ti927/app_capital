@@ -18,6 +18,8 @@
   --mov-rapido: 120ms;
   --mov-padrao: 160ms;
   --mov-saida: 140ms;
+  /* Fechar pop-up: rápido e sutil. Bate com MS_SAIDA de ui/dialogo.tsx. */
+  --mov-saida-dialogo: 110ms;
   /* Sai rápido e freia no fim — o contrário de `ease-in-out`, que arrasta. */
   --mov-curva: cubic-bezier(0.2, 0, 0, 1);
   --brilho-esqueleto: rgba(255, 255, 255, 0.6);
@@ -86,12 +88,18 @@
   animation: lc-caixa var(--mov-padrao) var(--mov-curva);
 }
 
+/*
+  A saída tem keyframes PRÓPRIOS. Reusar os da entrada com `reverse` não roda:
+  com o mesmo `animation-name` o navegador não reinicia a animação (que já
+  terminou), só troca a direção — e a caixa pulava direto para o fim, sumindo
+  no talho. Nome novo = animação nova.
+*/
 .lc-overlay--saindo {
-  animation: lc-vela var(--mov-saida) var(--mov-curva) reverse forwards;
+  animation: lc-vela-sai var(--mov-saida-dialogo) ease-in forwards;
 }
 
 .lc-overlay--saindo .lc-dialog {
-  animation: lc-caixa var(--mov-saida) var(--mov-curva) reverse forwards;
+  animation: lc-caixa-sai var(--mov-saida-dialogo) ease-in forwards;
 }
 
 @keyframes lc-vela {
@@ -104,6 +112,20 @@
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes lc-vela-sai {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Saída rápida e sutil (pedido de 15/10/2026): menos deslocamento que a entrada. */
+@keyframes lc-caixa-sai {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.99);
   }
 }
 

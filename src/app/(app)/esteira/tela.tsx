@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Botao, Vazio } from '@/components/ui/base';
 import { TopoDaTela } from '@/components/ui/casca';
 import { Busca, ItemDaLista } from '@/components/listas';
@@ -14,6 +14,7 @@ type OperacaoResumo = Pick<Operacao, 'id' | 'identificador' | 'cliente_id'>;
 
 export function TelaEsteira({
   operacoes,
+  statusContratoId,
   clientes,
   fornecedores,
   tipos,
@@ -22,6 +23,7 @@ export function TelaEsteira({
   instrumentos,
 }: {
   operacoes: OperacaoResumo[];
+  statusContratoId: number | null;
   clientes: Array<{ id: string; nome_razao: string }>;
   fornecedores: Array<{ id: string; nome_fundo: string }>;
   tipos: TabelaApoio[];
@@ -33,35 +35,32 @@ export function TelaEsteira({
   const [aberta, setAberta] = useState<OperacaoResumo | null>(null);
 
   const nomeCliente = useMemo(() => new Map(clientes.map((c) => [c.id, c.nome_razao])), [clientes]);
-  const rotuloTipo = useMemo(() => new Map(tipos.map((t) => [t.id, t.rotulo])), [tipos]);
 
   /**
-   * Cada linha traz **tipo de operação + " - " + nome do cliente** — o tipo
-   * primeiro, em tom de apoio; o cliente depois, em negrito. O tipo vem das
-   * etapas: o campo da operação está vazio em toda a base.
+   * Cada linha traz **identificador da operação + " - " + nome do cliente** —
+   * o identificador em tom de apoio, o cliente em negrito. É o que o Bubble
+   * mostra (documentacao-completa.md:1650): `txt.qual cliente copy` é o
+   * identificador, invisível quando vazio, e `txt.qual cliente` é o " - " mais
+   * o nome do cliente.
+   *
+   * Antes saía daqui a lista de tipos das etapas ("CPR / FGI / Capital de
+   * Giro"). Não é o Bubble, e apagava justamente o que distingue duas
+   * operações do mesmo cliente: as duas do Garcia Agronegócios viravam dois
+   * rótulos quase iguais, uma delas idêntica ao identificador da outra.
    */
-  const tipoDe = useCallback(
-    (op: OperacaoResumo) => {
-      const rotulos = etapas
-        .filter((e) => e.operacao_id === op.id && e.tipo_operacao_id)
-        .map((e) => rotuloTipo.get(e.tipo_operacao_id as number))
-        .filter((r): r is string => Boolean(r));
-      return [...new Set(rotulos)].join(' / ');
-    },
-    [etapas, rotuloTipo],
-  );
+  const identificadorDe = (op: OperacaoResumo) => op.identificador?.trim() || '';
 
   const clienteDe = (op: OperacaoResumo) =>
-    (op.cliente_id && nomeCliente.get(op.cliente_id)) || op.identificador || '—';
+    (op.cliente_id && nomeCliente.get(op.cliente_id)) || '—';
 
   const visiveis = useMemo(() => {
     const alvo = busca.trim().toUpperCase();
     if (!alvo) return operacoes;
     return operacoes.filter(
-      (op) => clienteDe(op).toUpperCase().includes(alvo) || tipoDe(op).toUpperCase().includes(alvo),
+      (op) => clienteDe(op).toUpperCase().includes(alvo) || identificadorDe(op).toUpperCase().includes(alvo),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [operacoes, busca, tipoDe]);
+  }, [operacoes, busca]);
 
   /** A lista entra em lotes conforme rola — ver `ui/rolagem.tsx`. */
   const lista = useListaIncremental(visiveis);
@@ -102,7 +101,9 @@ export function TelaEsteira({
                   </Botao>
                 }
               >
-                {tipoDe(op) ? <span className="lista__apoio">{tipoDe(op)} - </span> : null}
+                {identificadorDe(op) ? (
+                  <span className="lista__apoio">{identificadorDe(op)} - </span>
+                ) : null}
                 <span className="lista__nome">{clienteDe(op)}</span>
               </ItemDaLista>
             ))}
@@ -119,7 +120,8 @@ export function TelaEsteira({
         <DialogoEsteira
           aberto
           operacao={aberta}
-          rotuloOperacao={`${tipoDe(aberta)}${tipoDe(aberta) ? ' - ' : ''}${clienteDe(aberta)}`}
+          rotuloOperacao={`${identificadorDe(aberta)}${identificadorDe(aberta) ? ' - ' : ''}${clienteDe(aberta)}`}
+          statusContratoId={statusContratoId}
           fornecedores={fornecedores}
           tipos={tipos}
           etapas={etapas.filter((e) => e.operacao_id === aberta.id)}

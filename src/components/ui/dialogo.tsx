@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 const cx = (...v: unknown[]) => v.filter((x): x is string => typeof x === 'string' && x !== '').join(' ');
 
@@ -40,8 +40,45 @@ export function useSessaoDoDialogo(aberto: boolean) {
   return sessao;
 }
 
-/** Tem que bater com `--mov-saida` de `animacoes.css`. */
-const MS_SAIDA = 140;
+/** Tem que bater com `--mov-saida-dialogo` de `animacoes.css`. */
+const MS_SAIDA = 110;
+
+/**
+ * Para pop-up montado só enquanto está aberto (`cond ? <X aberto /> : null`):
+ * o fechamento pelos botões dele próprio (Cancelar, Fechar, depois de salvar)
+ * passa por `fechar`, que baixa `aberto` — o `Dialogo` roda a saída — e só
+ * depois avisa quem desmonta. Sem isto o pop-up sumia no talho.
+ *
+ * Uso: `<Dialogo aberto={saida.aberto} aoFechar={aoFechar}>` e
+ * `onClick={saida.fechar}` nos botões. ✕, Esc e clique fora já animam sozinhos.
+ *
+ * `chave`: para o componente que fica montado e troca de assunto (ex.: o
+ * cartão do "virar cliente") — chave nova reabre.
+ */
+export function useSaidaDoDialogo(aoFechar: () => void, chave?: unknown) {
+  const [aberto, setAberto] = useState(true);
+  const [chaveAntes, setChaveAntes] = useState(chave);
+  if (chave !== chaveAntes) {
+    setChaveAntes(chave);
+    setAberto(true);
+  }
+  const relogio = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fechar = useCallback(() => {
+    if (relogio.current) return;
+    setAberto(false);
+    relogio.current = setTimeout(() => {
+      relogio.current = null;
+      aoFechar();
+    }, MS_SAIDA);
+  }, [aoFechar]);
+  useEffect(
+    () => () => {
+      if (relogio.current) clearTimeout(relogio.current);
+    },
+    [],
+  );
+  return { aberto, fechar };
+}
 
 /**
  * Diálogo do design system. Fecha por Esc e por clique no overlay, prende o
@@ -90,6 +127,33 @@ export function Dialogo({
     return () => clearTimeout(relogio);
   }, [aberto, montado]);
 
+  /**
+   * Fechar por ✕, Esc ou clique fora: a saída roda AQUI e só no fim avisa o
+   * consumidor. Vários pop-ups são montados com `cond ? <Dialogo aberto> :
+   * null` — para eles `aoFechar` desmonta na hora e o caminho de cima nunca
+   * roda. Pedindo a saída antes, todos animam, sem mexer em cada tela.
+   *
+   * Depois do aviso o diálogo já está desmontado; se o consumidor recusar o
+   * fechamento (`aberto` continua verdadeiro), o efeito acima o monta de novo.
+   */
+  const relogioSaida = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pedirFechar = useCallback(() => {
+    if (relogioSaida.current) return;
+    setSaindo(true);
+    relogioSaida.current = setTimeout(() => {
+      relogioSaida.current = null;
+      setMontado(false);
+      setSaindo(false);
+      aoFechar();
+    }, MS_SAIDA);
+  }, [aoFechar]);
+  useEffect(
+    () => () => {
+      if (relogioSaida.current) clearTimeout(relogioSaida.current);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!aberto) return;
 
@@ -107,7 +171,7 @@ export function Dialogo({
     function aoTeclar(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        aoFechar();
+        pedirFechar();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -135,14 +199,14 @@ export function Dialogo({
       document.body.style.overflow = overflow;
       focoAnterior.current?.focus();
     };
-  }, [aberto, aoFechar]);
+  }, [aberto, pedirFechar]);
 
   if (!montado) return null;
 
   return (
     <div
       className={cx('lc-overlay', saindo && 'lc-overlay--saindo')}
-      onMouseDown={(e) => e.target === e.currentTarget && aoFechar()}
+      onMouseDown={(e) => e.target === e.currentTarget && pedirFechar()}
     >
       <div
         ref={caixa}
@@ -158,7 +222,7 @@ export function Dialogo({
               {titulo ? <p className="lc-dialog__title">{titulo}</p> : null}
             </div>
           )}
-          <button type="button" className="lc-btn lc-btn--tertiary lc-btn--row" onClick={aoFechar} aria-label="Fechar">
+          <button type="button" className="lc-btn lc-btn--tertiary lc-btn--row" onClick={pedirFechar} aria-label="Fechar">
             ✕
           </button>
         </div>

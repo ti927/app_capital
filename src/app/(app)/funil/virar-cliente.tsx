@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Botao } from '@/components/ui/base';
 import { useAvisos } from '@/components/ui/aviso';
-import { Dialogo } from '@/components/ui/dialogo';
+import { Dialogo, useSaidaDoDialogo } from '@/components/ui/dialogo';
 import { criarClienteDoCartao, vincularCartaoACliente } from './acoes';
 import type { CartaoDoFunil } from './page';
 
@@ -45,6 +45,8 @@ export function DialogoVirarCliente({
   const [erro, setErro] = useState<string | null>(null);
   const [emCurso, transicao] = useTransition();
   const { avisar } = useAvisos();
+  // Fechar pelos botões (e depois de criar/ligar) passa pela saída animada.
+  const saida = useSaidaDoDialogo(aoFechar, cartao?.id);
 
   // Cada abertura começa limpa: o aviso do cartão anterior não segue para o próximo.
   useEffect(() => {
@@ -59,7 +61,7 @@ export function DialogoVirarCliente({
     : null;
 
   const irParaClientes = () => {
-    aoFechar();
+    saida.fechar();
     router.push('/clientes');
   };
 
@@ -73,7 +75,7 @@ export function DialogoVirarCliente({
       return;
     }
     avisar('Cliente cadastrado');
-    aoFechar();
+    saida.fechar();
   };
 
   const criar = (forcar: boolean) =>
@@ -86,7 +88,7 @@ export function DialogoVirarCliente({
     transicao(async () => {
       await vincularCartaoACliente(cartao.id, clienteId);
       avisar('Cartão ligado ao cliente');
-      aoFechar();
+      saida.fechar();
     });
 
   /* ------------------------------------------- o cartão já virou cliente -- */
@@ -94,14 +96,14 @@ export function DialogoVirarCliente({
   if (cartao.cliente_id) {
     return (
       <Dialogo
-        aberto
+        aberto={saida.aberto}
         aoFechar={aoFechar}
         titulo="Este cartão já é cliente"
         contexto={cartao.empresa || 'Cartão em branco'}
         largura="sm"
         rodape={
           <>
-            <Botao variante="secondary" onClick={aoFechar}>
+            <Botao variante="secondary" onClick={saida.fechar}>
               Fechar
             </Botao>
             <Botao variante="primary" onClick={irParaClientes}>
@@ -122,7 +124,7 @@ export function DialogoVirarCliente({
 
   return (
     <Dialogo
-      aberto
+      aberto={saida.aberto}
       aoFechar={aoFechar}
       titulo="Cadastrar como cliente"
       contexto={cartao.empresa || 'Cartão em branco'}
@@ -130,7 +132,7 @@ export function DialogoVirarCliente({
       rodape={
         duplicado ? (
           <>
-            <Botao variante="secondary" onClick={aoFechar} disabled={emCurso}>
+            <Botao variante="secondary" onClick={saida.fechar} disabled={emCurso}>
               Cancelar
             </Botao>
             <Botao variante="secondary" onClick={() => criar(true)} disabled={emCurso}>
@@ -142,7 +144,7 @@ export function DialogoVirarCliente({
           </>
         ) : (
           <>
-            <Botao variante="secondary" onClick={aoFechar} disabled={emCurso}>
+            <Botao variante="secondary" onClick={saida.fechar} disabled={emCurso}>
               Cancelar
             </Botao>
             <Botao

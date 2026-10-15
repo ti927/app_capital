@@ -14,9 +14,10 @@ export const CAMPOS_OPERACAO = [
   'status_operacao_id',
   'demanda_inicial',
   'prazo',
+  // Destino antes de Garantias | Carência (15/10/2026).
+  'destino_recurso',
   'garantias_sugeridas',
   'carencia',
-  'destino_recurso',
   'parecer_cliente',
   'parecer',
   'tem_fee',

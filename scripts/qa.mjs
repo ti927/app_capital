@@ -597,21 +597,20 @@ await passo(pagina, 'operacao-dialogo', async () => {
 await passo(pagina, 'operacao-dialogo-campos', async () => {
   // Pedido de 14/10: PMTS, Comissão e Demanda final saem da tela; os campos
   // vêm aos pares (Cliente | Identificador, Faturamento | Status, Demanda |
-  // Prazo, Garantias | Carência) e o rótulo fica ao lado do campo — no
-  // celular, em cima.
+  // Prazo, Destino do recurso sozinho, Garantias | Carência — Destino antes
+  // de Garantias desde 15/10) e o rótulo fica ao lado do campo — no celular,
+  // em cima.
   for (const nome of ['pmts', 'comissao', 'demanda_final']) {
     if (await pagina.locator(`.lc-dialog [name="${nome}"]`).count()) throw new Error(`o campo ${nome} ainda aparece`);
   }
   const caixa = async (nome) => pagina.locator(`.lc-dialog [name="${nome}"]`).first().boundingBox();
   // A coluna da esquerda, de cima para baixo.
   let anterior = -1;
-  for (const a of ['identificador', 'faturamento_anual', 'demanda_inicial', 'garantias_sugeridas']) {
+  for (const a of ['identificador', 'faturamento_anual', 'demanda_inicial', 'destino_recurso', 'garantias_sugeridas']) {
     const y = (await caixa(a))?.y ?? -1;
     if (!(y > anterior)) throw new Error(`ordem dos campos: ${a} fora do lugar`);
     anterior = y;
   }
-  const destino = (await caixa('destino_recurso'))?.y ?? -1;
-  if (!(destino > anterior)) throw new Error('Destino do recurso fora do lugar');
   if (!CELULAR) {
     const fat = await caixa('faturamento_anual');
     const prazo = await caixa('prazo');
@@ -897,6 +896,64 @@ await passo(pagina, 'operacao-declinio-salva-abaixo-da-tabela', async () => {
         await pagina.waitForTimeout(200);
         await salvarEFechar();
       }
+    } finally {
+      fs.rmSync(TRAVA, { recursive: true, force: true });
+    }
+  }
+});
+
+await passo(pagina, 'operacao-observacao-editada', async () => {
+  // Observação se edita no lugar (15/10/2026). Cria uma de teste, edita, reabre a
+  // operação para ver que ficou, e apaga. Mexe numa operação real: sob a trava.
+  const TRAVA = path.join('qa', '.trava-interruptor');
+  tiraTravaVencida(TRAVA);
+  for (let i = 0; ; i++) {
+    try {
+      fs.mkdirSync(TRAVA);
+      break;
+    } catch {
+      if (i > 240) throw new Error('trava do interruptor não liberou em 2 minutos');
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  const MARCA = `QA obs ${path.basename(SAIDA)}`;
+  const abrir = async () => {
+    await pagina.waitForSelector('.lc-aviso', { state: 'detached', timeout: 6000 }).catch(() => {});
+    if (!(await pagina.locator('.lc-overlay:not(.lc-overlay--saindo)').count())) {
+      await pagina.locator('.lista__abrir').first().click();
+    }
+    await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
+    await pagina.waitForTimeout(400);
+  };
+  const item = (texto) => pagina.locator('.lc-dialog li.lista__item', { hasText: texto }).first();
+  try {
+    await abrir();
+    const campoNovo = pagina.locator('.lc-dialog textarea[placeholder="Escreva a observação"]').first();
+    await campoNovo.scrollIntoViewIfNeeded();
+    await campoNovo.fill(MARCA);
+    await pagina.locator('.lc-dialog button:has-text("Adicionar")').first().click();
+    await item(MARCA).waitFor({ timeout: 8000 });
+    await item(MARCA).locator('button[aria-label="Editar observação"]').click();
+    await pagina.locator('.lc-dialog .observacao-edicao textarea').fill(`${MARCA} editada`);
+    await pagina.locator('.lc-dialog .observacao-edicao button:has-text("Salvar")').click();
+    await item(`${MARCA} editada`).waitFor({ timeout: 3000 });
+    // Reabre: o texto novo tem de ter sido gravado, não só mostrado.
+    await pagina.waitForTimeout(2000);
+    await pagina.keyboard.press('Escape');
+    await pagina.waitForSelector('.lc-overlay:not(.lc-overlay--saindo)', { state: 'detached', timeout: 5000 });
+    await pagina.reload({ waitUntil: 'networkidle' });
+    await pagina.waitForSelector(ITEM_REAL, { timeout: 20000 });
+    await abrir();
+    await item(`${MARCA} editada`).waitFor({ timeout: 8000 });
+  } finally {
+    try {
+      await abrir();
+      for (let i = 0; i < 3 && (await item(MARCA).count()); i++) {
+        await item(MARCA).locator('button[aria-label="Excluir observação"]').click();
+        await pagina.waitForTimeout(1500);
+      }
+      await pagina.keyboard.press('Escape');
+      await pagina.waitForSelector('.lc-overlay:not(.lc-overlay--saindo)', { state: 'detached', timeout: 5000 }).catch(() => {});
     } finally {
       fs.rmSync(TRAVA, { recursive: true, force: true });
     }

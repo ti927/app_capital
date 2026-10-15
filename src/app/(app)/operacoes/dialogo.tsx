@@ -26,6 +26,7 @@ import {
   atualizarEtapa,
   criarEtapa,
   excluirEtapa,
+  editarObservacao,
   excluirObservacao,
   gravarOperacao,
   type DadosEtapa,
@@ -207,10 +208,9 @@ export function DialogoOperacao({
         <Campo rotulo="Demanda" nome="demanda_inicial" valorInicial={operacao?.demanda_inicial ?? ''} placeholder="Digite aqui" />
         <Campo rotulo="Prazo" nome="prazo" valorInicial={operacao?.prazo ?? ''} placeholder="Digite aqui" />
 
+        <Campo className="grade__inteiro" rotulo="Destino do recurso" nome="destino_recurso" valorInicial={operacao?.destino_recurso ?? ''} placeholder="Digite aqui" />
         <Campo rotulo="Garantias sugeridas" nome="garantias_sugeridas" valorInicial={operacao?.garantias_sugeridas ?? ''} placeholder="Digite aqui" />
         <Campo rotulo="Carência" nome="carencia" valorInicial={operacao?.carencia ?? ''} placeholder="Digite aqui" />
-
-        <Campo className="grade__inteiro" rotulo="Destino do recurso" nome="destino_recurso" valorInicial={operacao?.destino_recurso ?? ''} placeholder="Digite aqui" />
 
         {/*
           Os dois pareceres lado a lado. O do cliente (ipt.parecercliente no
@@ -377,6 +377,33 @@ export function Declinios({
 export function BlocoObservacoes({ operacaoId, observacoes }: { operacaoId: string; observacoes: Observacao[] }) {
   const [nova, setNova] = useState('');
   const [, transicao] = useTransition();
+  const { avisar } = useAvisos();
+  // Edição no lugar: uma observação por vez. `editadas` mostra o texto novo na
+  // hora, antes de a tela recarregar do servidor (mesmo espírito do salvar otimista).
+  const [editando, setEditando] = useState<number | null>(null);
+  const [rascunho, setRascunho] = useState('');
+  const [editadas, setEditadas] = useState<Record<number, string>>({});
+
+  const salvarEdicao = (o: Observacao) => {
+    const texto = rascunho.trim();
+    setEditando(null);
+    if (!texto || texto === (editadas[o.id] ?? o.texto)) return;
+    const anterior = editadas[o.id];
+    setEditadas((m) => ({ ...m, [o.id]: texto }));
+    avisar('Observação salva');
+    transicao(async () => {
+      const r = await editarObservacao(o.id, texto).catch(() => ({ erro: 'Sem resposta do servidor.' }));
+      if (r && 'erro' in r && r.erro) {
+        setEditadas((m) => {
+          const resto = { ...m };
+          if (anterior === undefined) delete resto[o.id];
+          else resto[o.id] = anterior;
+          return resto;
+        });
+        avisar(r.erro, { tipo: 'erro' });
+      }
+    });
+  };
 
   return (
     <section>
@@ -401,19 +428,48 @@ export function BlocoObservacoes({ operacaoId, observacoes }: { operacaoId: stri
         <ul className="lista" style={{ marginTop: 'var(--space-3)' }}>
           {observacoes.map((o) => (
             <li key={o.id} className="lista__item" style={{ alignItems: 'flex-start' }}>
-              <span className="lista__texto">
-                <span className="lista__meta">Modificado em: {dataCurta(o.criado_em)}</span>
-                {o.texto}
-              </span>
-              <Botao
-                variante="tertiary"
-                tamanho="row"
-                title="Excluir observação"
-                aria-label="Excluir observação"
-                onClick={() => transicao(() => void excluirObservacao(o.id))}
-              >
-                <IconeDeletar tamanho={14} />
-              </Botao>
+              {editando === o.id ? (
+                <div className="observacao-edicao" style={{ flex: 1, minWidth: 0 }}>
+                  {/* Sem `nome`: não entra no salvar da operação. */}
+                  <Campo multilinha linhas={3} valor={rascunho} aoMudar={setRascunho} placeholder="Escreva a observação" />
+                  <div className="linha" style={{ justifyContent: 'flex-end', marginTop: 'var(--space-2)' }}>
+                    <Botao variante="secondary" tamanho="sm" onClick={() => setEditando(null)}>
+                      Cancelar
+                    </Botao>
+                    <Botao variante="primary" tamanho="sm" disabled={!rascunho.trim()} onClick={() => salvarEdicao(o)}>
+                      Salvar
+                    </Botao>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <span className="lista__texto">
+                    <span className="lista__meta">Modificado em: {dataCurta(o.criado_em)}</span>
+                    {editadas[o.id] ?? o.texto}
+                  </span>
+                  <Botao
+                    variante="tertiary"
+                    tamanho="row"
+                    title="Editar observação"
+                    aria-label="Editar observação"
+                    onClick={() => {
+                      setRascunho(editadas[o.id] ?? o.texto);
+                      setEditando(o.id);
+                    }}
+                  >
+                    <IconeEditar tamanho={14} />
+                  </Botao>
+                  <Botao
+                    variante="tertiary"
+                    tamanho="row"
+                    title="Excluir observação"
+                    aria-label="Excluir observação"
+                    onClick={() => transicao(() => void excluirObservacao(o.id))}
+                  >
+                    <IconeDeletar tamanho={14} />
+                  </Botao>
+                </>
+              )}
             </li>
           ))}
         </ul>

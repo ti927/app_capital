@@ -11,8 +11,8 @@ Decidido em 14/10/2026.
   - Cliente | Identificador
   - Faturamento anual | Status atual da operação
   - Demanda | Prazo
+  - Destino do recurso (linha inteira; antes de Garantias desde 15/10/2026)
   - Garantias sugeridas | Carência
-  - Destino do recurso (linha inteira)
   - depois: pareceres, interruptores, observações, limites/fundos assinados,
     tabela de fundos e, por último, **Declínios** (abaixo das tabelas, pedido de
     14/10/2026; fica fora da <form> e viaja no salvar pelo `form=`).

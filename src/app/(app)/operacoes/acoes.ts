@@ -165,6 +165,23 @@ export async function adicionarObservacao(operacaoId: string, texto: string) {
   revalidatePath('/operacoes');
 }
 
+/**
+ * Edita o texto de uma observação. A data mostrada é "Modificado em": passa a
+ * ser a da edição. O texto antigo fica no log de `evento`.
+ */
+export async function editarObservacao(id: number, texto: string) {
+  const limpo = texto.trim();
+  if (!limpo) return { erro: 'A observação não pode ficar vazia.' };
+  const supabase = await clienteServidor();
+  const { error } = await supabase
+    .from('operacao_observacao')
+    .update({ texto: limpo, criado_em: new Date().toISOString() })
+    .eq('id', id);
+  if (error) return { erro: 'Não consegui salvar a observação.' };
+  revalidatePath('/operacoes');
+  return { ok: true };
+}
+
 export async function excluirObservacao(id: number) {
   const supabase = await clienteServidor();
   await supabase.from('operacao_observacao').delete().eq('id', id);

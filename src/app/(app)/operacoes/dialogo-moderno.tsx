@@ -250,9 +250,9 @@ export function DialogoOperacaoModerno({
           <Secao id="ui2-op-credito" ordem={1} icone={<IconeMoeda tamanho={16} />} titulo="Crédito">
             <Campo className="ui2-c6" rotulo={<Rotulo icone={<IconeMoeda tamanho={14} />}>Demanda</Rotulo>} nome="demanda_inicial" valorInicial={operacao?.demanda_inicial ?? ''} placeholder="Digite aqui" />
             <Campo className="ui2-c6" rotulo={<Rotulo icone={<IconeRelogio tamanho={14} />}>Prazo</Rotulo>} nome="prazo" valorInicial={operacao?.prazo ?? ''} placeholder="Digite aqui" />
+            <Campo className="ui2-c12" rotulo={<Rotulo icone={<IconeAlvo tamanho={14} />}>Destino do recurso</Rotulo>} nome="destino_recurso" valorInicial={operacao?.destino_recurso ?? ''} placeholder="Digite aqui" />
             <Campo className="ui2-c6" rotulo={<Rotulo icone={<IconeEscudo tamanho={14} />}>Garantias sugeridas</Rotulo>} nome="garantias_sugeridas" valorInicial={operacao?.garantias_sugeridas ?? ''} placeholder="Digite aqui" />
             <Campo className="ui2-c6" rotulo={<Rotulo icone={<IconeRelogio tamanho={14} />}>Carência</Rotulo>} nome="carencia" valorInicial={operacao?.carencia ?? ''} placeholder="Digite aqui" />
-            <Campo className="ui2-c12" rotulo={<Rotulo icone={<IconeAlvo tamanho={14} />}>Destino do recurso</Rotulo>} nome="destino_recurso" valorInicial={operacao?.destino_recurso ?? ''} placeholder="Digite aqui" />
           </Secao>
 
           <Secao id="ui2-op-pareceres" ordem={2} icone={<IconeNota tamanho={16} />} titulo="Pareceres">

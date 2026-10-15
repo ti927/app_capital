@@ -1,7 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Botao } from './ui/base';
+import { useAvisos } from './ui/aviso';
+import { liberarPagina } from '@/lib/acesso-pagina-acoes';
+import type { Pagina } from '@/lib/acesso-pagina';
 import { Dialogo } from './ui/dialogo';
 import { IconeConfiguracoes } from './ui/icones';
 import { Indicador } from './ui/indicador';
@@ -17,6 +20,13 @@ export interface PaginaDoAcesso {
   rotulo: string;
   /** Níveis que enxergam a página, de `niveisQueVeem`. */
   niveis: NivelAcesso[];
+  /** Presente quando a página pode ser liberada a um indicante (`acesso_pagina`). */
+  pagina?: Pagina;
+}
+
+export interface Liberacao {
+  perfil_id: string;
+  pagina: Pagina;
 }
 
 export interface UsuarioDoAcesso {
@@ -30,19 +40,20 @@ export interface UsuarioDoAcesso {
  *   - "Preferências" (todos): pop-ups de cadastro clássicos ou modernos.
  *   - "Acesso às páginas" (só master): quem consegue ver cada página.
  *
- * "Acesso às páginas" é só de leitura, de propósito: no Bubble o painel tem
- * seletores por página, mas o que eles gravam (`tbl.config`) nunca é lido — o
- * menu esconde item só pelo nível da conta (documentacao-completa.md, 3.7 e
- * 3.8). Reproduzir os seletores aqui seria oferecer um controle que não
- * controla nada. Para o indicante a aba não existe e a consulta não sai.
+ * "Acesso às páginas" (15/10/2026) liga e desliga uma página de master para
+ * um indicante, gravando em `acesso_pagina` — a mesma tabela que o menu e o
+ * porteiro da página leem (specs/16). Só as páginas com `pagina` aceitam;
+ * as outras seguem só de master. Para o indicante a aba não existe.
  */
 export function BotaoConfiguracoes({
   paginas,
   usuarios,
+  liberacoes = [],
   master,
 }: {
   paginas: PaginaDoAcesso[];
   usuarios: UsuarioDoAcesso[];
+  liberacoes?: Liberacao[];
   master: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
@@ -99,7 +110,7 @@ export function BotaoConfiguracoes({
         ) : null}
 
         {master && aba === 'acesso' ? (
-          <AcessoAsPaginas paginas={paginas} usuarios={usuarios} />
+          <AcessoAsPaginas paginas={paginas} usuarios={usuarios} liberacoes={liberacoes} />
         ) : (
           <Preferencias />
         )}
@@ -180,22 +191,58 @@ function Miniatura({ tipo }: { tipo: PreferenciaPopups }) {
   );
 }
 
-function AcessoAsPaginas({ paginas, usuarios }: { paginas: PaginaDoAcesso[]; usuarios: UsuarioDoAcesso[] }) {
+function AcessoAsPaginas({
+  paginas,
+  usuarios,
+  liberacoes,
+}: {
+  paginas: PaginaDoAcesso[];
+  usuarios: UsuarioDoAcesso[];
+  liberacoes: Liberacao[];
+}) {
   const contagem = NIVEIS.map(
     ({ chave, rotulo }) =>
     `${usuarios.filter((u) => u.nivel_acesso === chave).length} ${rotulo.toLowerCase()}`,
   ).join(' · ');
 
+  // Estado local otimista: marca na hora, grava em segundo plano, desfaz se falhar.
+  const [ligadas, setLigadas] = useState(() => new Set(liberacoes.map((l) => `${l.perfil_id}|${l.pagina}`)));
+  const [, transicao] = useTransition();
+  const { avisar } = useAvisos();
+  const indicantes = usuarios.filter((u) => u.nivel_acesso === 'indicante');
+
+  const alternar = (perfilId: string, pagina: Pagina, liberar: boolean) => {
+    const chave = `${perfilId}|${pagina}`;
+    const aplicar = (sim: boolean) =>
+      setLigadas((s) => {
+        const n = new Set(s);
+        if (sim) n.add(chave);
+        else n.delete(chave);
+        return n;
+      });
+    aplicar(liberar);
+    transicao(async () => {
+      const r = await liberarPagina(perfilId, pagina, liberar);
+      if (r.erro) {
+        aplicar(!liberar);
+        avisar(r.erro, { tipo: 'erro' });
+      }
+    });
+  };
+
   return (
     <>
       <p className="apoio configuracoes__nota">
-        Quem vê o quê vem do nível da conta, não de uma permissão por pessoa e por página. Para
-        mudar o que alguém enxerga, muda-se o nível dessa pessoa.
+        Master vê tudo. Para páginas de master, marque abaixo quais indicantes também entram —
+        cada um vê só o que é dele (clientes em que está em &ldquo;quem visualiza&rdquo;).
       </p>
 
       <ul className="acessos">
         {paginas.map((pagina) => {
-          const quemVe = usuarios.filter((u) => pagina.niveis.includes(u.nivel_acesso));
+          const liberados = pagina.pagina
+            ? indicantes.filter((u) => ligadas.has(`${u.id}|${pagina.pagina}`))
+            : [];
+          const quemVe = usuarios.filter((u) => pagina.niveis.includes(u.nivel_acesso) || liberados.includes(u));
           return (
             <li key={pagina.rotulo} className="acessos__item">
               <div className="acessos__pagina">
@@ -223,6 +270,24 @@ function AcessoAsPaginas({ paginas, usuarios }: { paginas: PaginaDoAcesso[]; usu
                   );
                 })}
               </div>
+              {/* Liberação por pessoa: só nas páginas que sabem receber indicante. */}
+              {pagina.pagina && indicantes.length ? (
+                <div className="acessos__pessoas">
+                  {indicantes.map((u) => {
+                    const ligada = ligadas.has(`${u.id}|${pagina.pagina}`);
+                    return (
+                      <label key={u.id} className="interruptor">
+                        <input
+                          type="checkbox"
+                          checked={ligada}
+                          onChange={() => alternar(u.id, pagina.pagina as Pagina, !ligada)}
+                        />
+                        <span>{u.nome}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : null}
             </li>
           );
         })}

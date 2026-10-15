@@ -62,6 +62,7 @@ export default async function PaginaEsteira() {
     supabase.from('cliente').select('id, nome_razao'),
     supabase.from('fornecedor').select('id, nome_fundo'),
     supabase.from('tipo_operacao').select('id, chave, rotulo, ordem').order('ordem'),
+    supabase.from('status_etapa').select('id, chave, rotulo, ordem').order('ordem'),
     supabase.from('etapa_operacao').select(CAMPOS_ETAPA),
     supabase.from('etapa_checklist_item').select('id, etapa_id, chave, rotulo, descricao, valor, ordem'),
     supabase.from('etapa_instrumento').select('etapa_id, tipo_operacao_id'),
@@ -124,7 +125,7 @@ export default async function PaginaEsteira() {
         .in('cliente_id', clientesComContrato)
     : { data: [] as OperacaoResumo[] };
 
-  const [clientes, fornecedores, tipos, etapas, checklist, instrumentos] = await apoio;
+  const [clientes, fornecedores, tipos, status, etapas, checklist, instrumentos] = await apoio;
 
   const listaClientes = (clientes.data ?? []) as unknown as Array<{ id: string; nome_razao: string }>;
   const nomeCliente = new Map(listaClientes.map((c) => [c.id, c.nome_razao]));
@@ -142,9 +143,18 @@ export default async function PaginaEsteira() {
       return na.localeCompare(nb, 'pt-BR');
     });
 
+  /**
+   * O id de "contrato assinado". É por ele que o diálogo escolhe qual etapa
+   * abrir — a EXPR-ETAPA do Bubble (documentacao-completa.md:1594) mostra a
+   * etapa do fundo que assinou, não a primeira da lista.
+   */
+  const statusContratoId =
+    ((status.data ?? []) as unknown as TabelaApoio[]).find((s) => s.chave === 'contrato_assinado')?.id ?? null;
+
   return (
     <TelaEsteira
       operacoes={emEstruturacao}
+      statusContratoId={statusContratoId}
       clientes={listaClientes}
       fornecedores={(fornecedores.data ?? []) as unknown as Array<{ id: string; nome_fundo: string }>}
       tipos={(tipos.data ?? []) as unknown as TabelaApoio[]}

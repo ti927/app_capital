@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useState, useTransition } from 'react';
 import { Aviso, Botao, Campo } from '@/components/ui/base';
-import { Dialogo } from '@/components/ui/dialogo';
+import { Dialogo, useSaidaDoDialogo } from '@/components/ui/dialogo';
 import type { Operacao, TabelaApoio } from '@/lib/dominio';
 import { acrescentarEtapa, gravarEtapaDaEsteira } from './acoes';
 import { ITENS_CHECKLIST } from './checklist';
@@ -61,6 +61,7 @@ export function DialogoEsteira({
   aberto,
   operacao,
   rotuloOperacao,
+  statusContratoId,
   fornecedores,
   tipos,
   etapas,
@@ -71,6 +72,7 @@ export function DialogoEsteira({
   aberto: boolean;
   operacao: OperacaoResumo;
   rotuloOperacao: string;
+  statusContratoId: number | null;
   fornecedores: Array<{ id: string; nome_fundo: string }>;
   tipos: TabelaApoio[];
   etapas: EtapaEsteira[];
@@ -79,7 +81,19 @@ export function DialogoEsteira({
   aoFechar: () => void;
 }) {
   const [estado, agir, gravando] = useActionState(gravarEtapaDaEsteira, null as { erro?: string; ok?: boolean } | null);
-  const [etapaId, setEtapaId] = useState(etapas[0]?.id ?? '');
+  /**
+   * Qual etapa o diálogo abre. O Bubble pendura a esteira inteira na EXPR-ETAPA
+   * (documentacao-completa.md:1594), que resolve para **a etapa do fundo com
+   * status "contrato assinado"** — não para a primeira da lista. Era a primeira
+   * que abria aqui, e numa operação de nove fundos isso quase nunca é a que tem
+   * a estruturação preenchida.
+   *
+   * Quando nenhuma etapa assinou, o Bubble não mostra etapa nenhuma. Aqui cai
+   * na primeira, porque esta tela tem o seletor de etapas que o Bubble não tem
+   * — melhor abrir em alguma e deixar trocar do que abrir num formulário morto.
+   */
+  const etapaAssinada = etapas.find((e) => statusContratoId !== null && e.status_id === statusContratoId);
+  const [etapaId, setEtapaId] = useState(etapaAssinada?.id ?? etapas[0]?.id ?? '');
   const [, transicao] = useTransition();
 
   const etapa = etapas.find((e) => e.id === etapaId) ?? null;
@@ -106,20 +120,29 @@ export function DialogoEsteira({
     [checklist, etapaId],
   );
 
-  /** "Instituição Líder" é calculada: o fundo da etapa com contrato assinado. */
+  /**
+   * "Instituição Líder" é calculada: o fundo da etapa com contrato assinado —
+   * é o Text F do Bubble (documentacao-completa.md:1625). O código dizia isso
+   * no comentário e fazia outra coisa: pegava a primeira etapa que tivesse
+   * fundo, assinada ou não.
+   */
   const instituicaoLider = useMemo(() => {
     const nome = new Map(fornecedores.map((f) => [f.id, f.nome_fundo]));
-    const comFundo = etapas.find((e) => e.fornecedor_id);
-    return comFundo?.fornecedor_id ? (nome.get(comFundo.fornecedor_id) ?? '') : '';
-  }, [etapas, fornecedores]);
+    const lider = etapaAssinada?.fornecedor_id;
+    return lider ? (nome.get(lider) ?? '') : '';
+  }, [etapaAssinada, fornecedores]);
 
+  // Montado só enquanto aberto (esteira/tela.tsx): depois de gravar, fecha
+  // pela saída animada.
+  const saida = useSaidaDoDialogo(aoFechar);
+  const fecharAnimado = saida.fechar;
   useEffect(() => {
-    if (estado?.ok) aoFechar();
-  }, [estado, aoFechar]);
+    if (estado?.ok) fecharAnimado();
+  }, [estado, fecharAnimado]);
 
   return (
     <Dialogo
-      aberto={aberto}
+      aberto={aberto && saida.aberto}
       aoFechar={aoFechar}
       titulo={null}
       largura="lg"

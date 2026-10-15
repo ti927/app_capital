@@ -374,6 +374,8 @@ export interface SeletorMultiploProps {
   placeholder?: string;
   desabilitado?: boolean;
   className?: string;
+  /** Mostra todas as fichas, quebrando linha, em vez de 3 e "+N" (pop-up de fornecedor). */
+  todas?: boolean;
   /** Pinta as fichas escolhidas em vermelho — "tipos não atendidos". */
   negativo?: boolean;
   aoMudar?: (valores: string[]) => void;
@@ -391,6 +393,7 @@ export function SeletorMultiploPopup({
   desabilitado,
   className,
   negativo,
+  todas,
   aoMudar,
   form,
 }: SeletorMultiploProps) {
@@ -427,8 +430,8 @@ export function SeletorMultiploPopup({
         {escolhidos.length === 0 ? (
           <span className="gatilho__vazio">{placeholder}</span>
         ) : (
-          <span className="gatilho__fichas">
-            {escolhidos.slice(0, 3).map((v) => (
+          <span className={todas ? "gatilho__fichas gatilho__fichas--todas" : "gatilho__fichas"}>
+            {(todas ? escolhidos : escolhidos.slice(0, 3)).map((v) => (
               <span
                 key={v}
                 className={['ficha', negativo && 'ficha--negativa'].filter(Boolean).join(' ')}
@@ -436,7 +439,7 @@ export function SeletorMultiploPopup({
                 {porValor.get(v)?.rotulo ?? v}
               </span>
             ))}
-            {escolhidos.length > 3 ? <span className="apoio">+{escolhidos.length - 3}</span> : null}
+            {!todas && escolhidos.length > 3 ? <span className="apoio">+{escolhidos.length - 3}</span> : null}
           </span>
         )}
         <IconeChevronBaixo tamanho={14} />

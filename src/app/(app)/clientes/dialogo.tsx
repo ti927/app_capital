@@ -82,7 +82,7 @@ function CorpoDialogoCliente({
         aberto={aberto}
         aoFechar={aoFechar}
         titulo={editando ? cliente?.nome_razao : 'Novo cliente'}
-        largura="md"
+        largura="tela"
         rodape={
           <Botao variante="primary" type="submit" form="forma-cliente">
             {editando ? 'Salvar' : 'Cadastrar'}

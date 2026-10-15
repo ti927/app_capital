@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
+import { paginasLiberadas, podeAbrir } from '@/lib/acesso-pagina';
 import type { EtapaOperacao, Fornecedor, Operacao, TabelaApoio } from '@/lib/dominio';
 import { TelaOperacoes } from './tela';
 
@@ -68,7 +69,13 @@ export default async function PaginaOperacoes() {
   pedidos.catch(() => {});
 
   const perfil = await perfilAtual();
-  if (perfil.nivel_acesso !== 'master') redirect('/clientes');
+  const master = perfil.nivel_acesso === 'master';
+  // Indicante entra só com a página liberada em `acesso_pagina` (specs/16). O
+  // recorte das linhas é da RLS: só as operações dos clientes em que ele está
+  // em "quem visualiza".
+  if (!podeAbrir(perfil.nivel_acesso, await paginasLiberadas(perfil.id, perfil.nivel_acesso), 'operacao')) {
+    redirect('/clientes');
+  }
 
   const [
     ativas,
@@ -88,7 +95,8 @@ export default async function PaginaOperacoes() {
   return (
     <TelaOperacoes
       operacoes={(ativas.data ?? []) as unknown as Operacao[]}
-      arquivadas={(arquivadas.data ?? []) as unknown as Operacao[]}
+      // No Bubble o grupo "Arquivados" some para o indicante.
+      arquivadas={master ? ((arquivadas.data ?? []) as unknown as Operacao[]) : []}
       clientes={(clientes.data ?? []) as unknown as ClienteResumo[]}
       fornecedores={(fornecedores.data ?? []) as unknown as Array<Pick<Fornecedor, 'id' | 'nome_fundo'>>}
       tipos={(tipos.data ?? []) as unknown as TabelaApoio[]}
@@ -99,6 +107,7 @@ export default async function PaginaOperacoes() {
       declinios={(declinios.data ?? []) as unknown as Declinio[]}
       perfis={(perfis.data ?? []) as unknown as Array<{ id: string; nome: string }>}
       visualizadores={(visualizadores.data ?? []) as unknown as Visualizador[]}
+      master={master}
     />
   );
 }

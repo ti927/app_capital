@@ -8,6 +8,7 @@ import {
   IconeOperacao,
 } from './icones';
 import type { NivelAcesso } from '@/lib/dominio';
+import type { Pagina } from '@/lib/acesso-pagina';
 
 /* ---------------------------------------------------------------------------
    Itens da navegação lateral.
@@ -23,18 +24,22 @@ export interface ItemNav {
   Icone: (p: { tamanho?: number }) => ReactNode;
   /** Quando ausente, o item vale para os dois níveis. */
   somenteMaster?: boolean;
+  /** A página em `acesso_pagina` que libera o item para um indicante (specs/16). */
+  pagina?: Pagina;
 }
 
 export const ITENS_NAV: ItemNav[] = [
   { rotulo: 'Funil de Clientes', href: '/funil', Icone: IconeFunil },
   { rotulo: 'Cliente', href: '/clientes', Icone: IconeCliente },
   { rotulo: 'Fornecedor', href: '/fornecedores', Icone: IconeFornecedor, somenteMaster: true },
-  { rotulo: 'Operação', href: '/operacoes', Icone: IconeOperacao, somenteMaster: true },
+  { rotulo: 'Operação', href: '/operacoes', Icone: IconeOperacao, somenteMaster: true, pagina: 'operacao' },
   { rotulo: 'Esteira de Estruturação', href: '/esteira', Icone: IconeEsteira, somenteMaster: true },
 ];
 
-export function itensPara(nivel: NivelAcesso): ItemNav[] {
-  return nivel === 'master' ? ITENS_NAV : ITENS_NAV.filter((i) => !i.somenteMaster);
+/** `liberadas`: páginas de master abertas para este indicante em `acesso_pagina`. */
+export function itensPara(nivel: NivelAcesso, liberadas: readonly Pagina[] = []): ItemNav[] {
+  if (nivel === 'master') return ITENS_NAV;
+  return ITENS_NAV.filter((i) => !i.somenteMaster || (i.pagina !== undefined && liberadas.includes(i.pagina)));
 }
 
 /**

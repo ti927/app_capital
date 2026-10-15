@@ -25,9 +25,20 @@ const numero = (dados: FormData, chave: string) => {
   return v === '' ? null : Number(v);
 };
 
+/**
+ * O que é só de master nesta tela (specs/16). O indicante com a página
+ * liberada edita os campos e as observações das operações dele; o resto a
+ * tela esconde e a ação recusa de novo aqui. Qual operação ele alcança é a
+ * RLS que decide.
+ */
+async function souMaster() {
+  return (await perfilAtual()).nivel_acesso === 'master';
+}
+
 export async function gravarOperacao(_anterior: unknown, dados: FormData) {
-  const supabase = await clienteServidor();
+  const [supabase, master] = await Promise.all([clienteServidor(), souMaster()]);
   const id = String(dados.get('id') ?? '');
+  if (!master && !id) return { erro: 'Só master cadastra operação.' };
 
   /*
     Coluna de texto/número só entra na gravação quando o campo veio no
@@ -63,6 +74,8 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
   }
   if (dados.has('status_operacao_id')) campos.status_operacao_id = numero(dados, 'status_operacao_id');
   const clienteId = texto(dados, 'cliente_id');
+  // Indicante não troca a operação de cliente: o campo é só leitura na tela.
+  if (!master) delete campos.cliente_id;
 
   /*
     "Parecer do cliente": no Bubble o ipt.parecercliente do diálogo de operação
@@ -112,8 +125,11 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
     clienteMudou = true;
   }
 
-  // Declínios: só a diferença; sem mudança, nenhuma ida ao banco.
-  if (atuais === null) {
+  // Declínios: só a diferença; sem mudança, nenhuma ida ao banco. Indicante
+  // não mexe (o campo é desabilitado para ele, como no Bubble).
+  if (!master) {
+    // indicante: declínios ficam como estão
+  } else if (atuais === null) {
     await supabase.from('operacao_declinio').delete().eq('operacao_id', alvo);
     if (declinios.length) {
       await supabase
@@ -141,12 +157,14 @@ export async function gravarOperacao(_anterior: unknown, dados: FormData) {
 }
 
 export async function arquivarOperacao(id: string, arquivado: boolean) {
+  if (!(await souMaster())) return;
   const supabase = await clienteServidor();
   await supabase.from('operacao').update({ arquivado }).eq('id', id);
   revalidatePath('/operacoes');
 }
 
 export async function excluirOperacao(id: string) {
+  if (!(await souMaster())) return;
   const supabase = await clienteServidor();
   await supabase.from('operacao').delete().eq('id', id);
   revalidatePath('/operacoes');
@@ -198,6 +216,7 @@ export interface DadosEtapa {
 }
 
 export async function criarEtapa(operacaoId: string, dados: DadosEtapa) {
+  if (!(await souMaster())) return;
   const supabase = await clienteServidor();
   const { data: operacao } = await supabase
     .from('operacao')
@@ -214,12 +233,14 @@ export async function criarEtapa(operacaoId: string, dados: DadosEtapa) {
 }
 
 export async function atualizarEtapa(id: string, dados: DadosEtapa) {
+  if (!(await souMaster())) return;
   const supabase = await clienteServidor();
   await supabase.from('etapa_operacao').update(dados).eq('id', id);
   revalidatePath('/operacoes');
 }
 
 export async function excluirEtapa(id: string) {
+  if (!(await souMaster())) return;
   const supabase = await clienteServidor();
   await supabase.from('etapa_operacao').delete().eq('id', id);
   revalidatePath('/operacoes');

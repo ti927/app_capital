@@ -35,8 +35,14 @@ export function TelaOperacoes(props: {
   declinios: Declinio[];
   perfis: Array<{ id: string; nome: string }>;
   visualizadores: Visualizador[];
+  /**
+   * `false` para o indicante com a página liberada (specs/16). Como no Bubble:
+   * somem as abas Fornecedor e Status, Nova Operação, arquivar, excluir e a
+   * linha de "quem visualiza"; o diálogo abre para editar os campos.
+   */
+  master: boolean;
 }) {
-  const { operacoes, arquivadas, clientes, tipos, statusEtapa, statusOperacao, etapas } = props;
+  const { operacoes, arquivadas, clientes, tipos, statusEtapa, statusOperacao, etapas, master } = props;
 
   const [aba, setAba] = useState<Aba>('cliente');
   /**
@@ -73,7 +79,9 @@ export function TelaOperacoes(props: {
   const destaque = useDestaque();
   // Pop-up clássico ou moderno: preferência da pessoa (Configurações), lida do
   // perfil no layout — nenhuma consulta a mais aqui.
-  const DialogoDaTela = usePreferencias().popups === 'moderna' ? DialogoOperacaoModerno : DialogoOperacao;
+  // O moderno não tem o modo indicante; o indicante já fica sempre no clássico.
+  const moderno = usePreferencias().popups === 'moderna' && master;
+  const DialogoDaTela = moderno ? DialogoOperacaoModerno : DialogoOperacao;
 
   const nomeCliente = useMemo(
     () => new Map(clientes.map((c) => [c.id, c.nome_razao])),
@@ -167,15 +175,15 @@ export function TelaOperacoes(props: {
       acoes={
         <AcoesLinha
           rotuloArquivar={arquivado ? 'Desarquivar' : 'Arquivar'}
-          aoArquivar={() => transicao(() => void arquivarOperacao(op.id, !arquivado))}
-          aoExcluir={() => setAExcluir(op)}
+          aoArquivar={master ? () => transicao(() => void arquivarOperacao(op.id, !arquivado)) : undefined}
+          aoExcluir={master ? () => setAExcluir(op) : undefined}
           aoEditar={() => abrirOperacao(op)}
         />
       }
     >
       <span className="lista__nome">{op.cliente_id ? nomeCliente.get(op.cliente_id) : op.identificador}</span>
       {tipoDaOperacao(op) ? <span className="lista__apoio"> - {tipoDaOperacao(op)}</span> : null}
-      {quemVisualiza(op) ? <span className="lista__meta">{quemVisualiza(op)}</span> : null}
+      {master && quemVisualiza(op) ? <span className="lista__meta">{quemVisualiza(op)}</span> : null}
     </ItemDaLista>
   );
 
@@ -193,17 +201,21 @@ export function TelaOperacoes(props: {
         <button type="button" role="tab" className="abas__item" aria-selected={aba === 'cliente'} onClick={() => setAba('cliente')}>
           Cliente
         </button>
-        <button type="button" role="tab" className="abas__item" aria-selected={aba === 'fornecedor'} onClick={() => setAba('fornecedor')}>
-          Fornecedor
-        </button>
-        <button type="button" role="tab" className="abas__item" aria-selected={aba === 'status'} onClick={() => setAba('status')}>
-          Status
-        </button>
-        <div className="abas__acoes">
-          <Botao variante="primary" onClick={() => abrirOperacao(null)}>
-            <IconeMais tamanho={15} /> Nova Operação
-          </Botao>
-        </div>
+        {master ? (
+          <>
+            <button type="button" role="tab" className="abas__item" aria-selected={aba === 'fornecedor'} onClick={() => setAba('fornecedor')}>
+              Fornecedor
+            </button>
+            <button type="button" role="tab" className="abas__item" aria-selected={aba === 'status'} onClick={() => setAba('status')}>
+              Status
+            </button>
+            <div className="abas__acoes">
+              <Botao variante="primary" onClick={() => abrirOperacao(null)}>
+                <IconeMais tamanho={15} /> Nova Operação
+              </Botao>
+            </div>
+          </>
+        ) : null}
       </div>
 
       {/* `key` na aba: trocar de aba remonta o painel e a entrada roda de novo,
@@ -278,6 +290,7 @@ export function TelaOperacoes(props: {
           (emEdicao?.cliente_id && clientes.find((c) => c.id === emEdicao.cliente_id)?.parecer) || null
         }
         aoFechar={fecharDialogo}
+        master={master}
       />
 
       <ConfirmarExclusao

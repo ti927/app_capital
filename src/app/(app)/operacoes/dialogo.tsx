@@ -56,6 +56,7 @@ export function DialogoOperacao({
   declinios,
   parecerCliente,
   aoFechar,
+  master = true,
 }: {
   aberto: boolean;
   operacao: Operacao | null;
@@ -69,6 +70,12 @@ export function DialogoOperacao({
   declinios: string[];
   parecerCliente: string | null;
   aoFechar: () => void;
+  /**
+   * `false` para o indicante (specs/16), como no Bubble: sem "Enviar Email",
+   * etapas sem inclusão nem edição, Declínios desabilitado. Os campos da
+   * operação, os pareceres e as observações continuam editáveis.
+   */
+  master?: boolean;
 }) {
   /*
     Fecha e avisa no clique; grava em segundo plano (salvar-otimista.ts).
@@ -137,8 +144,8 @@ export function DialogoOperacao({
             form="forma-operacao"
             className="rodape-toggle"
           />
-          {/* Button E do Bubble (:1993); a tela de operações já é só de master. */}
-          {operacao && temCliente ? (
+          {/* Button E do Bubble (:1993): oculto para o indicante. */}
+          {master && operacao && temCliente ? (
             <Botao variante="secondary" onClick={() => setEmailAberto(true)}>
               Enviar Email
             </Botao>
@@ -280,6 +287,7 @@ export function DialogoOperacao({
             fornecedores={fundosOrdenados}
             tipos={tiposOrdenados}
             statusEtapa={statusEtapa}
+            somenteLeitura={!master}
           />
         </>
       ) : null}
@@ -287,7 +295,12 @@ export function DialogoOperacao({
       {/* O último campo, abaixo das tabelas (14/10/2026). */}
       <div className="grade">
         <hr className="grade__regua" />
-        <Declinios fornecedores={fundosOrdenados} escolhidos={declinios} form="forma-operacao" />
+        <Declinios
+          fornecedores={fundosOrdenados}
+          escolhidos={declinios}
+          form="forma-operacao"
+          somenteLeitura={!master}
+        />
       </div>
     </Dialogo>
 
@@ -353,17 +366,21 @@ export function Declinios({
   escolhidos,
   form,
   className = 'grade__inteiro',
+  somenteLeitura = false,
 }: {
   fornecedores: Fundo[];
   escolhidos: string[];
   /** Declínios fica abaixo da tabela, fora da <form>: o `form=` leva os valores no salvar. */
   form?: string;
   className?: string;
+  /** Indicante: desabilitado, como no Bubble; `gravarOperacao` ignora o campo dele. */
+  somenteLeitura?: boolean;
 }) {
   return (
     <SeletorMultiploPopup
       className={className}
       form={form}
+      desabilitado={somenteLeitura}
       rotulo="Declínios"
       nome="declinios"
       inicial={escolhidos}
@@ -527,12 +544,15 @@ export function TabelaDeEtapas({
   fornecedores,
   tipos,
   statusEtapa,
+  somenteLeitura = false,
 }: {
   operacaoId: string;
   etapas: EtapaOperacao[];
   fornecedores: Fundo[];
   tipos: TabelaApoio[];
   statusEtapa: TabelaApoio[];
+  /** Indicante: sem a linha de inclusão nem salvar/editar/deletar (Bubble :1981, :1984). */
+  somenteLeitura?: boolean;
 }) {
   const [editando, setEditando] = useState<string | null>(null);
   const [rascunho, setRascunho] = useState<DadosEtapa | null>(null);
@@ -589,6 +609,7 @@ export function TabelaDeEtapas({
     cancelar,
     salvar,
     excluir,
+    somenteLeitura,
   };
 
   return (
@@ -596,6 +617,7 @@ export function TabelaDeEtapas({
       <span className="lc-field__label">Lista de Fornecedores</span>
 
       {/* Linha de inclusão — acima das duas tabelas, só master. */}
+      {somenteLeitura ? null : (
       <div className="criar-etapa">
         <SeletorPopup
           key={`novo-fundo-${nova.fornecedor_id ?? 'vazio'}`}
@@ -652,6 +674,7 @@ export function TabelaDeEtapas({
           <IconeMais tamanho={15} />
         </Botao>
       </div>
+      )}
 
       {/* A tabela some quando não há nenhuma etapa — a grade devolve null. */}
       <GradeDeEtapas linhas={principais} {...ferramentas} />
@@ -796,6 +819,7 @@ export function GradeDeEtapas({
   cancelar,
   salvar,
   excluir,
+  somenteLeitura = false,
 }: {
   /** A principal vem sem: o título "Lista de Fornecedores" fica acima da inclusão. */
   titulo?: string;
@@ -810,6 +834,8 @@ export function GradeDeEtapas({
   cancelar: () => void;
   salvar: () => void;
   excluir: (id: string) => void;
+  /** Indicante: a coluna de ações fica vazia. */
+  somenteLeitura?: boolean;
 }) {
   if (!linhas.length) return null;
 
@@ -916,6 +942,7 @@ export function GradeDeEtapas({
                 </td>
 
                 <td>
+                  {somenteLeitura ? null : (
                   <span className="lc-table__actions">
                     {emEdicao ? (
                       <Botao variante="tertiary" tamanho="row" onClick={salvar} title="Salvar" aria-label="Salvar">
@@ -941,6 +968,7 @@ export function GradeDeEtapas({
                       <IconeDeletar />
                     </Botao>
                   </span>
+                  )}
                 </td>
 
                 <td className="mono apoio">{dataCurta(e.atualizado_em)}</td>

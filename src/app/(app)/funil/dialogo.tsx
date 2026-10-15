@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useSalvarOtimista } from '@/components/ui/salvar-otimista';
 import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
-import { Dialogo } from '@/components/ui/dialogo';
+import { Dialogo, useSaidaDoDialogo } from '@/components/ui/dialogo';
 import { IconeDeletar, IconeMais } from '@/components/ui/icones';
 import { data } from '@/lib/dominio';
 import { arquivarCartao, excluirCartao, excluirTarefa, gravarCartao } from './acoes';
@@ -53,13 +53,17 @@ export function DialogoCartao({
 
   useEffect(() => setEscolhidas(tagsDoCartao), [tagsDoCartao.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Montado só enquanto aberto (funil/tela.tsx): Fechar, Arquivar e Excluir
+  // passam pela saída animada. A chave `aberto` reabre na próxima vez.
+  const saida = useSaidaDoDialogo(aoFechar, aberto);
+
   // Fecha e avisa no clique; grava em segundo plano (salvar-otimista.ts).
   const salvar = useSalvarOtimista(gravarCartao, {
     existente: Boolean(cartao?.id),
     id: cartao?.id,
     mensagem: 'Cartão salvo',
     oQue: 'o cartão',
-    aoFechar,
+    aoFechar: saida.fechar,
   });
 
   const novo = !cartao;
@@ -68,7 +72,7 @@ export function DialogoCartao({
   return (
     <>
       <Dialogo
-        aberto={aberto}
+        aberto={aberto && saida.aberto}
         aoFechar={aoFechar}
         titulo={novo ? 'Cartão criado' : 'Editar cartão'}
         largura="ampla"
@@ -83,7 +87,7 @@ export function DialogoCartao({
                   tamanho="sm"
                   onClick={() => {
                     transicao(() => void excluirCartao(cartao.id));
-                    aoFechar();
+                    saida.fechar();
                   }}
                 >
                   Excluir cartão
@@ -105,7 +109,7 @@ export function DialogoCartao({
                   variante="secondary"
                   onClick={() => {
                     transicao(() => void arquivarCartao(cartao.id, true));
-                    aoFechar();
+                    saida.fechar();
                   }}
                 >
                   Arquivar

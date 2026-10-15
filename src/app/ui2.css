@@ -936,7 +936,8 @@
   }
 
   .lc-overlay--saindo .lc-dialog.ui2-dialogo {
-    animation: ui2-folha var(--mov-saida) var(--mov-curva) reverse forwards;
+    /* Keyframes próprios: `reverse` no mesmo nome não reinicia (animacoes.css). */
+    animation: ui2-folha-sai var(--mov-saida-dialogo) ease-in forwards;
   }
 
   .ui2-dialogo .lc-dialog__head,
@@ -1066,6 +1067,13 @@
   from {
     opacity: 0;
     transform: translateY(24px);
+  }
+}
+
+@keyframes ui2-folha-sai {
+  to {
+    opacity: 0;
+    transform: translateY(12px);
   }
 }
 

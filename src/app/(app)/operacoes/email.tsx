@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
-import { Dialogo } from '@/components/ui/dialogo';
+import { Dialogo, useSaidaDoDialogo } from '@/components/ui/dialogo';
 import { useAvisos } from '@/components/ui/aviso';
 import { ALVOS, capturar, type Alvo } from '@/lib/email/capturar';
 import { textoPadrao } from '@/lib/email/status-operacao';
@@ -57,6 +57,8 @@ export function DialogoEmail({
   const [resultado, setResultado] = useState<{ ok?: true; erro?: string } | null>(null);
   const [enviando, transicao] = useTransition();
   const { avisar } = useAvisos();
+  // Montado só enquanto aberto: Fechar/Cancelar passam pela saída animada.
+  const saida = useSaidaDoDialogo(aoFechar);
 
   useEffect(() => {
     void emailsDaOperacao(operacaoId).then((r) => {
@@ -106,19 +108,19 @@ export function DialogoEmail({
 
   return (
     <Dialogo
-      aberto
+      aberto={saida.aberto}
       aoFechar={aoFechar}
       titulo="Envio de Email"
       contexto={contexto}
       largura="md"
       rodape={
         enviado ? (
-          <Botao variante="primary" onClick={aoFechar}>
+          <Botao variante="primary" onClick={saida.fechar}>
             Fechar
           </Botao>
         ) : (
           <>
-            <Botao variante="secondary" onClick={aoFechar}>
+            <Botao variante="secondary" onClick={saida.fechar}>
               Cancelar
             </Botao>
             <Botao

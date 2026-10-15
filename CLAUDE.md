@@ -25,16 +25,20 @@ quem usa hoje; banco e lógica são refeitos.
    servidor, não existe service role em componente client.
 3. **Trigger de log em `evento`**, com `UPDATE` e `DELETE` revogados na tabela.
 4. **`npm run verify` (typecheck + lint + teste) passa antes de todo commit.**
-5. **`npm run qa` roda antes de entregar tela, e as capturas se olham.**
-   Use `npm run qa:tudo` — as três formas em paralelo, ~40s em vez de ~4min.
+5. **QA proporcional à mudança, e as capturas se olham.** (decidido em 15/10/2026:
+   o QA completo atrasava cada entrega em 5–7 min.)
+   - **Mudança pequena** (campo, ordem, texto, um botão, correção pontual):
+     `npm run verify` + `npm run qa` só no claro (~1,5 min), e abrir as capturas
+     da tela mexida.
+   - **Mudança grande de tela** (layout novo, tela nova, tema, celular):
+     `npm run qa:tudo` — as três formas (claro, `--escuro`, `--celular`).
+   - Teste novo no QA só para o que a captura não mostra, e sem gravar dado real
+     quando der para evitar.
    Espere pelo conteúdo, nunca pela classe crua: o esqueleto de carregamento
    usa as mesmas classes de propósito, e um passo já deu "ok" fotografando tela
-   em branco (`docs/aprendizados.md`, seção 1).
-   `scripts/qa.mjs` percorre as telas exercitando as funcoes e grava uma
-   captura por passo em `qa/` (fora do git). Rode nas tres formas: padrao,
-   `-- --escuro` e `-- --celular`. Passar nao basta — **abra as imagens**: os
-   bugs que importam (dialogo fora da janela, botao coberto, acao desabilitada
-   sem explicacao) passam em teste e aparecem na captura.
+   em branco (`docs/aprendizados.md`, seção 1). Passar não basta — **abra as
+   imagens**: os bugs que importam (diálogo fora da janela, botão coberto, ação
+   desabilitada sem explicação) passam em teste e aparecem na captura.
 6. **Vertical slice**: migration → RLS → API → tela → teste. Nunca todas as
    migrations primeiro e as telas depois.
 7. **Segredo não entra no repositório nem no chat.** Vai para `.env` e se cita pelo

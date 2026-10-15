@@ -5,9 +5,9 @@ export const metadata = { title: 'Entrar · Lure Capital' };
 export default async function PaginaEntrar({
   searchParams,
 }: {
-  searchParams: Promise<{ de?: string; erro?: string }>;
+  searchParams: Promise<{ de?: string; erro?: string; trocar?: string }>;
 }) {
-  const { de, erro } = await searchParams;
+  const { de, erro, trocar } = await searchParams;
   return (
     <main className="entrada">
       <section className="entrada__marca" aria-hidden="true">
@@ -31,6 +31,7 @@ export default async function PaginaEntrar({
           de={de ?? '/clientes'}
           comSenha={process.env.ENTRADA_COM_SENHA === '1'}
           erroOauth={erro === 'oauth'}
+          trocar={trocar === '1'}
         />
       </section>
     </main>

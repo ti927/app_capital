@@ -35,8 +35,9 @@ export const perfilAtual = cache(async function perfilAtual(): Promise<Perfil> {
     .eq('id', id)
     .single();
 
-  if (!perfil) {
-    // Conta existe no auth mas não tem perfil: acesso não liberado.
+  if (!perfil || !perfil.ativo) {
+    // Conta existe no auth mas não tem perfil (em geral, outra conta Google), ou
+    // o perfil foi desativado: acesso não liberado (src/app/sem-acesso).
     redirect('/sem-acesso');
   }
 

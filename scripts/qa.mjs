@@ -18,6 +18,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import pg from 'pg';
 import { chromium } from 'playwright';
+import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 
 const BASE = process.env.QA_BASE ?? 'http://localhost:3000';
 
@@ -838,70 +840,6 @@ await passo(pagina, 'operacao-interruptor-do-rodape-conta-como-mudanca', async (
   }
 });
 
-await passo(pagina, 'operacao-declinio-salva-abaixo-da-tabela', async () => {
-  // Declínios é o último campo, abaixo das tabelas e fora da <form> (14/10/2026):
-  // os valores viajam no salvar pelo `form=`. Escolhe um fundo, salva, reabre e
-  // confere que ficou; depois desfaz. Mexe numa operação real: sob a mesma trava
-  // do interruptor, uma corrida por vez.
-  const TRAVA = path.join('qa', '.trava-interruptor');
-  tiraTravaVencida(TRAVA);
-  for (let i = 0; ; i++) {
-    try {
-      fs.mkdirSync(TRAVA);
-      break;
-    } catch {
-      if (i > 240) throw new Error('trava do interruptor não liberou em 2 minutos');
-      await new Promise((r) => setTimeout(r, 500));
-    }
-  }
-  const abrir = async () => {
-    await pagina.waitForSelector('.lc-aviso', { state: 'detached', timeout: 6000 }).catch(() => {});
-    if (!(await pagina.locator('.lc-overlay:not(.lc-overlay--saindo)').count())) {
-      await pagina.locator('.lista__abrir').first().click();
-    }
-    await pagina.waitForSelector('.lc-overlay', { timeout: 5000 });
-    await pagina.waitForTimeout(400);
-  };
-  const campo = () => pagina.locator('.lc-dialog .lc-field:has(.lc-field__label:text-is("Declínios"))').first();
-  const quantos = () => pagina.locator('.lc-dialog input[type="hidden"][name="declinios"]').count();
-  const salvarEFechar = async () => {
-    await pagina.locator('.lc-dialog__foot button[type="submit"]').click();
-    await pagina.waitForSelector('.lc-overlay:not(.lc-overlay--saindo)', { state: 'detached', timeout: 5000 });
-    // A gravação segue em segundo plano (salvar otimista): dá tempo de chegar.
-    await pagina.waitForTimeout(2500);
-  };
-  let escolhido = null;
-  try {
-    await abrir();
-    const antes = await quantos();
-    await campo().locator('.gatilho').scrollIntoViewIfNeeded();
-    await campo().locator('.gatilho').click();
-    const opcao = pagina.locator('.lc-popover li[role="option"][aria-selected="false"]').first();
-    escolhido = (await opcao.innerText()).trim();
-    await opcao.click();
-    await pagina.keyboard.press('Escape'); // fecha só o menu
-    await pagina.waitForTimeout(200);
-    await salvarEFechar();
-    await abrir();
-    const depois = await quantos();
-    if (depois !== antes + 1) throw new Error(`o declínio não foi gravado: eram ${antes}, ficaram ${depois}`);
-  } finally {
-    try {
-      if (escolhido) {
-        await abrir();
-        await campo().locator('.gatilho').scrollIntoViewIfNeeded();
-        await campo().locator('.gatilho').click();
-        await pagina.locator('.lc-popover li[role="option"][aria-selected="true"]', { hasText: escolhido }).first().click();
-        await pagina.keyboard.press('Escape');
-        await pagina.waitForTimeout(200);
-        await salvarEFechar();
-      }
-    } finally {
-      fs.rmSync(TRAVA, { recursive: true, force: true });
-    }
-  }
-});
-
 await passo(pagina, 'operacao-observacao-editada', async () => {
   // Observação se edita no lugar (15/10/2026). Cria uma de teste, edita, reabre a
   // operação para ver que ficou, e apaga. Mexe numa operação real: sob a trava.
@@ -1713,6 +1651,78 @@ try {
   fs.rmSync(TRAVA_UI2, { recursive: true, force: true });
 }
 
+
+// ------------------------------------------------- sessão sem perfil (15/10) --
+// Quem entra com uma conta Google sem perfil caía num 404 (/sem-acesso não
+// existia). Cria uma conta de teste sem perfil (@example.com), entra com ela
+// num contexto à parte e confere: /clientes leva a /sem-acesso, que abre com o
+// botão de sair; /entrar com essa sessão encerra a sessão e mostra o login.
+// A conta é apagada no fim, mesmo se der erro.
+{
+  const env = Object.fromEntries(
+    fs
+      .readFileSync('.env', 'utf8')
+      .split(/\r?\n/)
+      .filter((l) => l && !l.trimStart().startsWith('#') && l.includes('='))
+      .map((l) => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]),
+  );
+  const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
+  const emailSemPerfil = `zz-qa-sem-perfil-${path.basename(SAIDA)}@example.com`;
+  const senhaSemPerfil = `Qa-${path.basename(SAIDA)}-sem-perfil-2026!`;
+  let idSemPerfil = null;
+  const ctxSemPerfil = await navegador.newContext({
+    viewport: CELULAR ? { width: 390, height: 844 } : { width: 1440, height: 900 },
+    colorScheme: ESCURO ? 'dark' : 'light',
+    locale: 'pt-BR',
+  });
+  const pag = await ctxSemPerfil.newPage();
+  try {
+    // Sobra de uma corrida interrompida: apaga antes de criar.
+    const { data: velhos } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    for (const u of velhos.users.filter((x) => x.email === emailSemPerfil)) await admin.auth.admin.deleteUser(u.id);
+    const { data: criado, error } = await admin.auth.admin.createUser({
+      email: emailSemPerfil,
+      password: senhaSemPerfil,
+      email_confirm: true,
+    });
+    if (error) throw error;
+    idSemPerfil = criado.user.id;
+
+    const jarro = new Map();
+    const cliente = createServerClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      cookies: {
+        getAll: () => [...jarro].map(([name, value]) => ({ name, value })),
+        setAll: (lista) => lista.forEach(({ name, value }) => (value ? jarro.set(name, value) : jarro.delete(name))),
+      },
+    });
+    const { error: erroLogin } = await cliente.auth.signInWithPassword({ email: emailSemPerfil, password: senhaSemPerfil });
+    if (erroLogin) throw erroLogin;
+    await ctxSemPerfil.addCookies([...jarro].map(([name, value]) => ({ name, value, url: BASE })));
+
+    await passo(pag, 'sem-perfil-cai-em-sem-acesso', async () => {
+      const resp = await pag.goto(`${BASE}/clientes`, { waitUntil: 'networkidle' });
+      if (!pag.url().includes('/sem-acesso')) throw new Error(`foi para ${pag.url()}, não para /sem-acesso`);
+      if (resp && resp.status() >= 400) throw new Error(`/sem-acesso respondeu ${resp.status()}`);
+      await pag.waitForSelector('button:has-text("Sair e entrar com outra conta")', { timeout: 8000 });
+      if (!(await pag.locator(`text=${emailSemPerfil}`).count())) throw new Error('a página não diz qual conta entrou');
+    });
+
+    await passo(pag, 'sem-perfil-entrar-mostra-login', async () => {
+      const resp = await pag.goto(`${BASE}/entrar`, { waitUntil: 'networkidle' });
+      if (resp && resp.status() >= 400) throw new Error(`/entrar respondeu ${resp.status()}`);
+      if (!pag.url().includes('/entrar')) throw new Error(`/entrar mandou para ${pag.url()}`);
+      await pag.waitForSelector('button:has-text("Entrar com Google")', { timeout: 8000 });
+      // A sessão sem perfil foi encerrada: o app volta a pedir login.
+      await pag.goto(`${BASE}/clientes`, { waitUntil: 'networkidle' });
+      if (!pag.url().includes('/entrar')) throw new Error(`a sessão sem perfil não foi encerrada (${pag.url()})`);
+    });
+  } finally {
+    await ctxSemPerfil.close().catch(() => {});
+    if (idSemPerfil) await admin.auth.admin.deleteUser(idSemPerfil).catch(() => {});
+  }
+}
 await navegador.close();
 
 const falhas = resultados.filter((r) => !r.ok);

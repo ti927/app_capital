@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import { Botao, Campo } from '@/components/ui/base';
 import { clienteNavegador } from '@/lib/supabase/navegador';
 import { entrarComSenha } from './actions';
@@ -17,10 +17,13 @@ export function FormularioDeEntrada({
   de,
   comSenha,
   erroOauth,
+  trocar = false,
 }: {
   de: string;
   comSenha: boolean;
   erroOauth: boolean;
+  /** Veio de "Sair e entrar com outra conta" (/sem-acesso): já abre o seletor de contas do Google. */
+  trocar?: boolean;
 }) {
   const [indo, setIndo] = useState(false);
   const [erroAoIr, setErroAoIr] = useState(false);
@@ -31,7 +34,12 @@ export function FormularioDeEntrada({
     const supabase = clienteNavegador();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/retorno?de=${encodeURIComponent(de)}` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/retorno?de=${encodeURIComponent(de)}`,
+        // Sempre o seletor de contas: sem ele o Google entra direto na última
+        // conta usada, e quem tem mais de uma (pessoal e da Lure) não escolhe.
+        queryParams: { prompt: 'select_account' },
+      },
     });
     // Sem erro o navegador já está indo para o Google; com erro, fica aqui.
     if (error) {
@@ -39,6 +47,16 @@ export function FormularioDeEntrada({
       setErroAoIr(true);
     }
   }
+
+  // Uma vez só: com `?trocar=1` o seletor do Google abre sozinho.
+  const jaFoi = useRef(false);
+  useEffect(() => {
+    if (trocar && !jaFoi.current) {
+      jaFoi.current = true;
+      void entrarComGoogle();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trocar]);
 
   return (
     <div className="entrada__caixa">

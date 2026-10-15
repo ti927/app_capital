@@ -69,10 +69,18 @@ export async function renovarSessao(requisicao: NextRequest) {
   }
 
   if (usuario && caminho === '/entrar') {
-    const url = requisicao.nextUrl.clone();
-    url.pathname = '/clientes';
-    url.search = '';
-    return NextResponse.redirect(url);
+    // Só manda para o app quem tem perfil ativo. Sessão sem perfil (outra conta
+    // Google) ou com perfil desativado é encerrada aqui e a tela de login
+    // aparece normal — antes ia para /clientes, que mandava para /sem-acesso.
+    const { data: perfil } = await supabase.from('perfil').select('ativo').eq('id', usuario.id).maybeSingle();
+    if (perfil?.ativo) {
+      const url = requisicao.nextUrl.clone();
+      url.pathname = '/clientes';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+    await supabase.auth.signOut();
+    return resposta;
   }
 
   return resposta;

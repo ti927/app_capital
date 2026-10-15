@@ -95,8 +95,8 @@ export default async function PaginaOperacoes() {
   return (
     <TelaOperacoes
       operacoes={(ativas.data ?? []) as unknown as Operacao[]}
-      // No Bubble o grupo "Arquivados" some para o indicante.
-      arquivadas={master ? ((arquivadas.data ?? []) as unknown as Operacao[]) : []}
+      // Indicante também vê as arquivadas dele (pedido de 15/10/2026); a RLS recorta.
+      arquivadas={(arquivadas.data ?? []) as unknown as Operacao[]}
       clientes={(clientes.data ?? []) as unknown as ClienteResumo[]}
       fornecedores={(fornecedores.data ?? []) as unknown as Array<Pick<Fornecedor, 'id' | 'nome_fundo'>>}
       tipos={(tipos.data ?? []) as unknown as TabelaApoio[]}

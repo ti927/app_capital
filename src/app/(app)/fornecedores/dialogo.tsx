@@ -68,7 +68,7 @@ function CorpoDialogoFornecedor({
       aberto={aberto}
       aoFechar={aoFechar}
       titulo={editando ? 'Editar fundo' : 'Novo fundo'}
-      largura="md"
+      largura="lg"
       rodape={
         <Botao variante="primary" type="submit" form="forma-fornecedor">
           {editando ? 'Salvar' : 'Cadastrar'}

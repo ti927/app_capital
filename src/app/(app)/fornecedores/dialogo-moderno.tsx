@@ -99,7 +99,7 @@ function CorpoDialogoFornecedorModerno({ aberto, fornecedor, tipos, vinculos, ao
       aberto={aberto}
       aoFechar={aoFechar}
       titulo={editando ? 'Editar fundo' : 'Novo fundo'}
-      largura="md"
+      largura="lg"
       className="ui2-dialogo"
       cabecalho={
         <CabecaDaFicha

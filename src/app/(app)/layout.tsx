@@ -4,7 +4,7 @@ import { NavLateral } from '@/components/ui/navlateral';
 import { BotaoDeTema } from '@/components/ui/tema';
 import { Transicao } from '@/components/ui/transicao';
 import { AvisosProvider } from '@/components/ui/aviso';
-import { BotaoConfiguracoes, type UsuarioDoAcesso } from '@/components/configuracoes';
+import { BotaoConfiguracoes, type Liberacao, type UsuarioDoAcesso } from '@/components/configuracoes';
 import { PreferenciasProvider } from '@/components/preferencias';
 import { IconeAgenda, IconeSair, IconeSenha } from '@/components/ui/icones';
 import { clienteServidor } from '@/lib/supabase/servidor';
@@ -30,6 +30,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
 
   // "Acesso às páginas" é painel de master; para o indicante nem a consulta sai.
   let usuarios: UsuarioDoAcesso[] = [];
+  let liberacoes: Liberacao[] = [];
   if (perfil.nivel_acesso === 'master') {
     const supabase = await clienteServidor();
     const { data } = await supabase
@@ -38,6 +39,9 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       .eq('ativo', true)
       .order('nome');
     usuarios = (data ?? []) as UsuarioDoAcesso[];
+    // Quem tem página de master liberada — o painel "Acesso às páginas" marca.
+    const { data: acessos } = await supabase.from('acesso_pagina').select('perfil_id, pagina');
+    liberacoes = (acessos ?? []) as Liberacao[];
   }
 
   // "Executar como" (specs/15): o seletor só para a conta de EXECUTAR_COMO_EMAIL;
@@ -101,8 +105,10 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
                 paginas={ITENS_NAV.map((item) => ({
                   rotulo: item.rotulo,
                   niveis: niveisQueVeem(item),
+                  pagina: item.pagina,
                 }))}
                 usuarios={usuarios}
+                liberacoes={liberacoes}
                 master
               />
             ) : null}

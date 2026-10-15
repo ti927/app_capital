@@ -1021,3 +1021,24 @@ textarea {
     align-items: flex-start;
   }
 }
+
+/* "Executar como" (specs/15): o seletor ao lado do nome e a faixa de volta. */
+.lc-appbar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.executar-como__faixa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: var(--border-w) solid var(--accent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  font-size: 12px;
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .executar-como__faixa span { display: none; }
+}

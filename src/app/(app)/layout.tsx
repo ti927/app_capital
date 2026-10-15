@@ -10,6 +10,9 @@ import { IconeAgenda, IconeSair, IconeSenha } from '@/components/ui/icones';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
 import { podeSincronizar } from '@/lib/bubble/permissao';
+import { podeExecutarComo } from '@/lib/executar-como/regras';
+import { seloAtual } from '@/lib/executar-como/servidor';
+import { ExecutarComo, FaixaExecutandoComo } from '@/components/executar-como';
 import { BotaoSincronizarBubble } from '@/components/sincronizacao-bubble';
 import { BotaoNotasDeVersao } from '@/components/notas-de-versao';
 import { veNotasDeVersao } from '@/lib/notas-de-versao-acesso';
@@ -36,6 +39,13 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     usuarios = (data ?? []) as UsuarioDoAcesso[];
   }
 
+  // "Executar como" (specs/15): o seletor só para a conta de EXECUTAR_COMO_EMAIL;
+  // a faixa de volta para quem está numa sessão trocada (selo válido).
+  const seletorExecutarComo = podeExecutarComo(perfil, process.env.EXECUTAR_COMO_EMAIL)
+    ? usuarios.filter((u) => u.id !== perfil.id).map((u) => ({ id: u.id, nome: u.nome, nivel: u.nivel_acesso }))
+    : null;
+  const executandoComo = await seloAtual(perfil.id);
+
   // Sino de notas de versão: só quem está em NOTAS_DE_VERSAO_EMAILS. A bolinha
   // vale enquanto a rodada mais recente não for a que a pessoa já viu.
   let notas: { haNovidade: boolean } | null = null;
@@ -53,7 +63,13 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     <PreferenciasProvider popups={perfil.nivel_acesso === 'master' ? perfil.ui_popups : 'classica'}>
     <div className="casca">
       <BarraApp
-        perfil={<PerfilNaBarra nome={perfil.nome} nivel={perfil.nivel_acesso} />}
+        perfil={
+          <>
+            <PerfilNaBarra nome={perfil.nome} nivel={perfil.nivel_acesso} />
+            {seletorExecutarComo ? <ExecutarComo pessoas={seletorExecutarComo} /> : null}
+            {executandoComo ? <FaixaExecutandoComo nome={perfil.nome} /> : null}
+          </>
+        }
         acoes={
           <>
             <form action={sair}>

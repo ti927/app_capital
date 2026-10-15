@@ -1652,6 +1652,37 @@ try {
 }
 
 
+// -------------------------------------------------- executar como (15/10) --
+// Só roda com EXECUTAR_COMO_EMAIL apontando para a conta de QA no servidor de
+// teste. Entra como outra pessoa pelo seletor ao lado do nome, confere a faixa
+// "Testando como" e o nome na barra, e volta para a conta de QA.
+if (!CELULAR && !ESCURO) {
+  const temSeletor = await pagina.locator('.executar-como__gatilho').count();
+  if (temSeletor) {
+    const meuNome = (await pagina.locator('.lc-perfil__nome').first().innerText()).trim();
+    await passo(pagina, 'executar-como-lista', async () => {
+      await pagina.goto(`${BASE}/clientes`, { waitUntil: 'networkidle' });
+      await pagina.locator('.executar-como__gatilho').click();
+      await pagina.waitForSelector('.lc-popover li[role="option"]', { timeout: 5000 });
+    });
+    await passo(pagina, 'executar-como-entrou', async () => {
+      const opcao = pagina.locator('.lc-popover li[role="option"]', { hasText: 'Indicante' }).first();
+      const alvo = (await opcao.innerText()).split('·')[0].trim();
+      await opcao.click();
+      await pagina.waitForSelector('.executar-como__faixa', { timeout: 15000 });
+      const nome = (await pagina.locator('.lc-perfil__nome').first().innerText()).trim();
+      if (nome !== alvo) throw new Error(`a barra mostra "${nome}", esperado "${alvo}"`);
+    });
+    await passo(pagina, 'executar-como-voltou', async () => {
+      await pagina.locator('.executar-como__faixa button[type="submit"]').click();
+      await pagina.waitForSelector('.executar-como__gatilho', { timeout: 15000 });
+      const nome = (await pagina.locator('.lc-perfil__nome').first().innerText()).trim();
+      if (nome !== meuNome) throw new Error(`voltou como "${nome}", esperado "${meuNome}"`);
+      if (await pagina.locator('.executar-como__faixa').count()) throw new Error('a faixa ficou depois de voltar');
+    });
+  }
+}
+
 // ------------------------------------------------- sessão sem perfil (15/10) --
 // Quem entra com uma conta Google sem perfil caía num 404 (/sem-acesso não
 // existia). Cria uma conta de teste sem perfil (@example.com), entra com ela

@@ -92,7 +92,7 @@ function usePosicao(gatilho: React.RefObject<HTMLButtonElement | null>, aberto: 
   return posicao;
 }
 
-function Menu({
+export function Menu({
   aberto,
   gatilho,
   rotulo,

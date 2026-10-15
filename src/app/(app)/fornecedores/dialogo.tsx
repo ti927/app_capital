@@ -68,7 +68,7 @@ function CorpoDialogoFornecedor({
       aberto={aberto}
       aoFechar={aoFechar}
       titulo={editando ? 'Editar fundo' : 'Novo fundo'}
-      largura="lg"
+      largura="tela"
       rodape={
         <Botao variante="primary" type="submit" form="forma-fornecedor">
           {editando ? 'Salvar' : 'Cadastrar'}
@@ -125,6 +125,7 @@ function CorpoDialogoFornecedor({
 
         {/* 8 */}
         <SeletorMultiploPopup
+          todas
           className="grade__inteiro"
           rotulo="Tipos de operações"
           nome="tipos_operacoes"
@@ -134,12 +135,14 @@ function CorpoDialogoFornecedor({
 
         {/* 9 — só o que não está em "não atendidas" */}
         <SeletorMultiploPopup
+          todas
           rotulo="1º Linha"
           nome="linha_1"
           inicial={inicial('linha_1')}
           opcoes={disponiveis.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
         />
         <SeletorMultiploPopup
+          todas
           rotulo="2º Linha"
           nome="linha_2"
           inicial={inicial('linha_2')}
@@ -149,6 +152,7 @@ function CorpoDialogoFornecedor({
         {/* 10 — tags em vermelho, como no original */}
         {/* Fichas em vermelho, como no original. */}
         <SeletorMultiploPopup
+          todas
           className="grade__inteiro"
           negativo
           rotulo="Tipos de operações não atendidas"

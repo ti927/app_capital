@@ -106,7 +106,7 @@ function CorpoDialogoClienteModerno({
         aberto={aberto}
         aoFechar={aoFechar}
         titulo={editando ? cliente?.nome_razao : 'Novo cliente'}
-        largura="md"
+        largura="tela"
         className="ui2-dialogo"
         cabecalho={
           <CabecaDaFicha

@@ -99,7 +99,7 @@ function CorpoDialogoFornecedorModerno({ aberto, fornecedor, tipos, vinculos, ao
       aberto={aberto}
       aoFechar={aoFechar}
       titulo={editando ? 'Editar fundo' : 'Novo fundo'}
-      largura="lg"
+      largura="tela"
       className="ui2-dialogo"
       cabecalho={
         <CabecaDaFicha
@@ -174,6 +174,7 @@ function CorpoDialogoFornecedorModerno({ aberto, fornecedor, tipos, vinculos, ao
 
         <Secao id="ui2-fornecedor-tipos" ordem={2} icone={<IconeTag tamanho={16} />} titulo="Tipos de operação">
           <SeletorMultiploPopup
+            todas
             className="ui2-c12"
             rotulo="Tipos de operações"
             nome="tipos_operacoes"
@@ -181,6 +182,7 @@ function CorpoDialogoFornecedorModerno({ aberto, fornecedor, tipos, vinculos, ao
             opcoes={tipos.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
           />
           <SeletorMultiploPopup
+            todas
             className="ui2-c6"
             rotulo="1º Linha"
             nome="linha_1"
@@ -188,6 +190,7 @@ function CorpoDialogoFornecedorModerno({ aberto, fornecedor, tipos, vinculos, ao
             opcoes={disponiveis.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
           />
           <SeletorMultiploPopup
+            todas
             className="ui2-c6"
             rotulo="2º Linha"
             nome="linha_2"
@@ -199,6 +202,7 @@ function CorpoDialogoFornecedorModerno({ aberto, fornecedor, tipos, vinculos, ao
               <IconeProibido tamanho={14} />
             </span>
             <SeletorMultiploPopup
+              todas
               negativo
               rotulo="Tipos de operações não atendidas"
               nome="nao_atendidas"

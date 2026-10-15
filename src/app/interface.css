@@ -960,3 +960,14 @@ textarea.lc-field__input {
 .funil__cartoes .carregar-mais__conta {
   display: none;
 }
+
+/* Seletor múltiplo com todas as fichas (pop-up de fornecedor): quebra linha. */
+.gatilho__fichas--todas {
+  flex-wrap: wrap;
+}
+
+/* Cliente e fornecedor (pedido de 15/10/2026): sobra só 10% da tela na horizontal. */
+.lc-dialog--tela {
+  max-width: none;
+  width: 90vw;
+}

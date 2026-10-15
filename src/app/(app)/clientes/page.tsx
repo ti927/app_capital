@@ -68,7 +68,8 @@ export default async function PaginaClientes() {
     const { criado_por, ...cliente } = linha;
     if (!ehMaster && criado_por !== perfil.id && !meus.has(linha.id)) continue;
     if (!linha.arquivado) ativos.push(cliente);
-    else if (ehMaster) arquivados.push(cliente);
+    // Indicante também vê os arquivados dele (pedido de 15/10/2026).
+    else arquivados.push(cliente);
   }
 
   /**

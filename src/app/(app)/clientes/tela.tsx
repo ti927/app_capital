@@ -133,7 +133,8 @@ export function TelaClientes({
         </>
       )}
 
-      {nivel === 'master' ? (
+      {/* Arquivados para todos; o indicante só recebe os dele (page.tsx). */}
+      {arquivados.length ? (
         <BlocoArquivados quantidade={arquivadosVisiveis.length}>
           <ul className="lista">
             {listaArquivados.visiveis.map((c) => (

@@ -29,7 +29,7 @@ import { DialogoColunas, DialogoTags } from './gestao';
 import { PainelTarefas } from './tarefas';
 import { DialogoVirarCliente } from './virar-cliente';
 import { classeDestaque, useAvisos, useDestaque } from '@/components/ui/aviso';
-import type { CartaoDoFunil, EtapaFunil, TagFunil, Tarefa } from './page';
+import type { CartaoDoFunil, ClienteDoFunil, EtapaFunil, PerfilDoFunil, TagFunil, Tarefa } from './page';
 import './funil.css';
 
 type Aba = 'quadro' | 'tarefas';
@@ -55,7 +55,7 @@ export function TelaFunil({
   cartaoUsuarios: Array<{ cartao_id: string; perfil_id: string }>;
   perfis: Array<{ id: string; nome: string }>;
   tarefas: Tarefa[];
-  clientes: Array<{ id: string; nome_razao: string }>;
+  clientes: ClienteDoFunil[];
   perfilId: string;
   ehMaster: boolean;
 }) {
@@ -204,6 +204,9 @@ export function TelaFunil({
     if (cartoes.some((c) => c.id === cartaoId)) setAbertoId(cartaoId);
   };
 
+  // O "agenda" vem marcado em cada perfil (page.tsx): o meu diz se o ícone
+  // do Google Agenda nas tarefas manda direto ou abre o Google preenchido.
+  const minhaAgenda = Boolean((perfis as PerfilDoFunil[]).find((p) => p.id === perfilId)?.agenda);
   const emAberto = tarefas.filter((t) => !t.concluida).length;
 
   return (
@@ -462,6 +465,7 @@ export function TelaFunil({
             perfis={perfis}
             perfilId={perfilId}
             ehMaster={ehMaster}
+            minhaAgenda={minhaAgenda}
             quadroId={quadro?.id ?? null}
             aoAbrirCartao={abrirCartaoPorId}
           />
@@ -472,6 +476,10 @@ export function TelaFunil({
         <DialogoCartao
           aberto
           cartao={aberto}
+          recemCriado={recemCriado?.id === aberto.id}
+          clientes={clientes}
+          ehMaster={ehMaster}
+          minhaAgenda={minhaAgenda}
           quadroId={quadro.id}
           etapaInicial={null}
           etapas={colunas}

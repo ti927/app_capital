@@ -1,6 +1,6 @@
 import { clienteAdmin } from '@/lib/supabase/admin';
 import { marcarCaida, perfisConectados, tokenDe } from './conexao';
-import { emailValido, montarEvento, planejar, precisaDeEvento, type TarefaParaAgenda } from './evento';
+import { emailValido, eventoAvulso, montarEvento, planejar, precisaDeEvento, type TarefaParaAgenda } from './evento';
 
 /**
  * A conversa com a API do Google Agenda (specs/11-google-agenda.md). Sem
@@ -128,6 +128,24 @@ export async function sincronizarEventoDaTarefa(tarefaId: string, origem: string
     return {};
   } catch (e) {
     return { aviso: e instanceof ErroAgenda ? e.message : 'erro inesperado ao falar com o Google' };
+  }
+}
+
+/**
+ * O ícone do Google Agenda na linha da tarefa: põe uma cópia avulsa na agenda
+ * de quem clicou (`eventoAvulso`). Não guarda o id — não é o evento que o app
+ * acompanha, é o lembrete da própria pessoa.
+ */
+export async function enviarParaAgendaDe(
+  perfilId: string,
+  tarefa: Parameters<typeof eventoAvulso>[0],
+  contexto: Parameters<typeof eventoAvulso>[1],
+): Promise<{ erro?: string }> {
+  try {
+    await chamar(perfilId, 'POST', '?sendUpdates=none', eventoAvulso(tarefa, contexto));
+    return {};
+  } catch (e) {
+    return { erro: e instanceof ErroAgenda ? e.message : 'erro inesperado ao falar com o Google' };
   }
 }
 

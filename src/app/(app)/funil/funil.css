@@ -482,16 +482,33 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  height: 100%;
-  min-height: 0;
+  min-height: 100%;
 }
 
+/* Cresce para ocupar a caixa, mas nunca encolhe abaixo do conteúdo: numa
+   janela baixa (notebook de 13") as colunas espremiam e os campos passavam
+   por cima das tags. Sem altura que caiba, o corpo do diálogo rola. */
 .funil__cartao-colunas {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-4);
-  flex: 1;
-  min-height: 0;
+  flex: 1 0 auto;
+}
+
+.funil__col > * {
+  flex-shrink: 0;
+}
+
+/* "Puxar de cliente cadastrado": a largura das duas primeiras colunas, acima delas. */
+.funil__puxar-cliente {
+  flex: none;
+  width: calc((100% - var(--space-4) * 3) / 4 * 2 + var(--space-4));
+}
+
+@media (max-width: 1000px) {
+  .funil__puxar-cliente {
+    width: 100%;
+  }
 }
 
 .funil__col {
@@ -714,6 +731,15 @@
     display: none;
   }
 
+  /* A aba de tarefas não tem quadro que role por ela: com a área de conteúdo
+     presa (interface.css), quem rola é a própria aba — sem isto a lista
+     cortava na base da janela e não havia como descer. */
+  .funil__tela > .painel-aba:not(.funil__aba) {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
   .funil__tela .funil__quadro {
     flex: 1;
     min-height: 0;
@@ -863,4 +889,42 @@ body.arrastando-cartao * {
   display: inline-flex;
   align-items: center;
   gap: var(--space-3);
+}
+
+/* Ícone do Google Agenda na linha da tarefa (botao-agenda.tsx). O logo já tem
+   as cores dele: o botão é só a área de clique, discreta até o hover. */
+.botao-agenda {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  background: none;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.botao-agenda:hover,
+.botao-agenda:focus-visible {
+  opacity: 1;
+  border-color: var(--border);
+}
+.botao-agenda:active {
+  transform: scale(0.94);
+}
+.botao-agenda:disabled {
+  cursor: progress;
+  opacity: 0.5;
+}
+.botao-agenda--enviada {
+  opacity: 1;
+  border-color: var(--success, #34a853);
+}
+.botao-agenda--apagado {
+  cursor: not-allowed;
+  opacity: 0.3;
+  filter: grayscale(1);
 }

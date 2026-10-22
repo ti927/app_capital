@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   emailValido,
+  eventoAvulso,
+  linkModeloGoogle,
   montarEvento,
   planejar,
   precisaDeEvento,
@@ -99,4 +101,29 @@ test('emailValido confere formato', () => {
   assert.equal(emailValido('a@b'), false);
   assert.equal(emailValido(''), false);
   assert.equal(emailValido(null), false);
+});
+
+test('cópia avulsa: com hora, uma hora no fuso; sem hora, dia inteiro', () => {
+  const ctx = { empresa: 'ACME', linkFunil: 'https://app/funil' };
+  const t = { titulo: 'Ligar', descricao: null, prazo: '2026-10-31T00:00:00', hora: '23:30:00' };
+  const comHora = eventoAvulso(t, ctx);
+  assert.deepEqual(comHora.start, { dateTime: '2026-10-31T23:30:00', timeZone: 'America/Sao_Paulo' });
+  assert.deepEqual(comHora.end, { dateTime: '2026-11-01T00:30:00', timeZone: 'America/Sao_Paulo' });
+  assert.equal('attendees' in comHora, false);
+
+  const diaInteiro = eventoAvulso({ ...t, hora: null }, ctx);
+  assert.deepEqual(diaInteiro.start, { date: '2026-10-31' });
+  assert.deepEqual(diaInteiro.end, { date: '2026-11-01' });
+});
+
+test('link de modelo do Google Agenda traz título, datas e fuso', () => {
+  const ctx = { empresa: null, linkFunil: 'x' };
+  const url = new URL(linkModeloGoogle({ titulo: 'Reunião', descricao: null, prazo: '2026-10-22', hora: '16:00' }, ctx));
+  assert.equal(url.searchParams.get('action'), 'TEMPLATE');
+  assert.equal(url.searchParams.get('text'), 'Reunião');
+  assert.equal(url.searchParams.get('dates'), '20261022T160000/20261022T170000');
+  assert.equal(url.searchParams.get('ctz'), 'America/Sao_Paulo');
+
+  const dia = new URL(linkModeloGoogle({ titulo: 'x', descricao: null, prazo: '2026-10-22', hora: null }, ctx));
+  assert.equal(dia.searchParams.get('dates'), '20261022/20261023');
 });

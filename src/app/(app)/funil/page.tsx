@@ -27,9 +27,26 @@ export interface TagFunil {
  */
 export type CartaoDoFunil = FunilCartao & {
   cliente_id: string | null;
+  /** Quem criou — o indicante vê também os cartões que criou (db/009_rls.sql). */
+  criado_por?: string | null;
   /** E-mail do cliente que o cartão virou — preenche o convite da reunião (specs/11). */
   email_cliente?: string | null;
 };
+
+/**
+ * Cliente cadastrado como o funil usa: o nome para "Virar cliente" e os campos
+ * que um cartão novo pode puxar dele — o de-para de "Virar cliente", ao contrário.
+ */
+export interface ClienteDoFunil {
+  id: string;
+  nome_razao: string;
+  diretor_gerente: string | null;
+  atividade_cia: string | null;
+  faturamento_anual: string | null;
+  parecer: string | null;
+  quem_indicou: string | null;
+  arquivado: boolean;
+}
 
 /** Perfil com a marca de quem conectou o Google Agenda (specs/11). */
 export interface PerfilDoFunil {
@@ -80,7 +97,7 @@ export default async function PaginaFunil() {
         .from('funil_cartao')
         .select(
           'id, quadro_id, etapa_id, empresa, contato, segmento, faturamento, indicante, parecer, ' +
-            'historico, ordem, data_kb, data_call, arquivado, atualizado_em, cliente_id',
+            'historico, ordem, data_kb, data_call, arquivado, atualizado_em, cliente_id, criado_por',
         )
         .order('ordem'),
       supabase.from('funil_cartao_tag').select('cartao_id, tag_id'),
@@ -93,7 +110,10 @@ export default async function PaginaFunil() {
             'data_conclusao, responsavel_id, convidar_contato, email_convidado, google_evento_id, meet_link',
         )
         .order('prazo'),
-      supabase.from('cliente').select('id, nome_razao, email').order('nome_razao'),
+      supabase
+        .from('cliente')
+        .select('id, nome_razao, email, diretor_gerente, atividade_cia, faturamento_anual, parecer, quem_indicou, arquivado')
+        .order('nome_razao'),
     ]);
   pedidos.catch(() => {});
   // Quem conectou a agenda. Se a leitura falhar (ex.: sem service_role no
@@ -104,7 +124,9 @@ export default async function PaginaFunil() {
   const [quadros, etapas, tags, cartoes, cartaoTags, cartaoUsuarios, perfis, tarefas, clientes] =
     await pedidos;
 
-  // O indicante só vê os cartões em que está.
+  // O indicante só vê os cartões em que está OU que criou — o mesmo recorte da
+  // RLS (db/009_rls.sql). Sem o "que criou", o cartão novo dele sumia do quadro
+  // ao fechar, porque a aplicação não o põe em funil_cartao_usuario.
   const meus = new Set(
     (cartaoUsuarios.data ?? [])
       .filter((v) => v.perfil_id === perfil.id)
@@ -119,7 +141,7 @@ export default async function PaginaFunil() {
   }));
   const conectados = await conectadosP;
   const ehMaster = perfil.nivel_acesso === 'master';
-  const visiveis = ehMaster ? todos : todos.filter((c) => meus.has(c.id));
+  const visiveis = ehMaster ? todos : todos.filter((c) => meus.has(c.id) || c.criado_por === perfil.id);
 
   /**
    * Tarefa segue o recorte do cartão: quem enxerga o cartão enxerga as tarefas
@@ -146,7 +168,7 @@ export default async function PaginaFunil() {
         (p): PerfilDoFunil => ({ ...p, agenda: conectados.has(p.id) }),
       )}
       tarefas={tarefasVisiveis}
-      clientes={(clientes.data ?? []) as unknown as Array<{ id: string; nome_razao: string }>}
+      clientes={(clientes.data ?? []) as unknown as ClienteDoFunil[]}
       perfilId={perfil.id}
       ehMaster={ehMaster}
     />

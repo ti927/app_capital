@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useSalvarOtimista } from '@/components/ui/salvar-otimista';
 import { Botao, Campo } from '@/components/ui/base';
 import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
@@ -8,9 +8,23 @@ import { Dialogo, useSaidaDoDialogo } from '@/components/ui/dialogo';
 import { IconeDeletar, IconeMais } from '@/components/ui/icones';
 import { data } from '@/lib/dominio';
 import { arquivarCartao, excluirCartao, excluirTarefa, gravarCartao } from './acoes';
+import { BotaoAgenda } from './botao-agenda';
 import { CaixaConcluir, DialogoTarefa } from './tarefas';
 import { prazoCurto, rotuloDoTipo } from './tarefas-apoio';
-import type { CartaoDoFunil, EtapaFunil, TagFunil, Tarefa } from './page';
+import type { CartaoDoFunil, ClienteDoFunil, EtapaFunil, TagFunil, Tarefa } from './page';
+
+/**
+ * Cartão novo puxando de um cliente já cadastrado: o de-para de "Virar
+ * cliente" (virar-cliente.tsx), ao contrário. Campo do cartão ← campo do cliente.
+ */
+const DO_CLIENTE: Array<[string, keyof ClienteDoFunil]> = [
+  ['empresa', 'nome_razao'],
+  ['contato', 'diretor_gerente'],
+  ['segmento', 'atividade_cia'],
+  ['faturamento', 'faturamento_anual'],
+  ['indicante', 'quem_indicou'],
+  ['parecer', 'parecer'],
+];
 
 /**
  * Diálogo do cartão do funil. Difere de todos os outros: **não tem botão de
@@ -20,6 +34,10 @@ import type { CartaoDoFunil, EtapaFunil, TagFunil, Tarefa } from './page';
 export function DialogoCartao({
   aberto,
   cartao,
+  recemCriado = false,
+  clientes = [],
+  ehMaster = false,
+  minhaAgenda = false,
   quadroId,
   etapaInicial,
   etapas,
@@ -34,6 +52,14 @@ export function DialogoCartao({
 }: {
   aberto: boolean;
   cartao: CartaoDoFunil | null;
+  /** Aberto pelo "+" agora há pouco: o botão final diz "Criar", não "Fechar". */
+  recemCriado?: boolean;
+  /** Clientes de onde o cartão recém-criado pode puxar os dados. */
+  clientes?: ClienteDoFunil[];
+  /** Master (Maicon e devs) vê e edita "Quem visualiza". */
+  ehMaster?: boolean;
+  /** Quem está vendo conectou o Google Agenda (ícone nas tarefas). */
+  minhaAgenda?: boolean;
   quadroId: string;
   etapaInicial: string | null;
   etapas: EtapaFunil[];
@@ -61,13 +87,36 @@ export function DialogoCartao({
   const salvar = useSalvarOtimista(gravarCartao, {
     existente: Boolean(cartao?.id),
     id: cartao?.id,
-    mensagem: 'Cartão salvo',
+    mensagem: recemCriado ? 'Cartão criado' : 'Cartão salvo',
     oQue: 'o cartão',
     aoFechar: saida.fechar,
   });
 
   const novo = !cartao;
   const emBranco = novo || (!cartao?.empresa && !cartao?.contato);
+
+  // Só o cartão que acabou de nascer e ainda não é de cliente nenhum oferece
+  // puxar de um cadastrado — depois disso, o caminho é "Virar cliente".
+  const podePuxar = (recemCriado || novo) && !cartao?.cliente_id;
+  const clientesParaPuxar = useMemo(
+    () =>
+      clientes
+        .filter((c) => !c.arquivado)
+        .sort((a, b) => a.nome_razao.localeCompare(b.nome_razao, 'pt-BR'))
+        .map((c) => ({ valor: c.id, rotulo: c.nome_razao })),
+    [clientes],
+  );
+
+  /** Preenche os campos com os do cliente; o resto do que foi digitado fica. */
+  const puxarDoCliente = (id: string) => {
+    const cliente = clientes.find((c) => c.id === id);
+    const forma = document.getElementById('forma-cartao') as HTMLFormElement | null;
+    if (!cliente || !forma) return;
+    for (const [campo, doCliente] of DO_CLIENTE) {
+      const el = forma.elements.namedItem(campo) as HTMLInputElement | HTMLTextAreaElement | null;
+      if (el) el.value = String(cliente[doCliente] ?? '');
+    }
+  };
 
   return (
     <>
@@ -116,7 +165,7 @@ export function DialogoCartao({
                 </Botao>
               ) : null}
               <Botao variante="primary" type="submit" form="forma-cartao">
-                Fechar
+                {recemCriado || novo ? 'Criar' : 'Fechar'}
               </Botao>
             </div>
           </div>
@@ -139,6 +188,17 @@ export function DialogoCartao({
           {escolhidas.map((t) => (
             <input key={t} type="hidden" name="tags" value={t} />
           ))}
+
+          {podePuxar && clientesParaPuxar.length > 0 ? (
+            <SeletorPopup
+              className="funil__puxar-cliente"
+              rotulo="Puxar de cliente cadastrado"
+              nome="cliente_id"
+              placeholder="Escolha um cliente (opcional)"
+              opcoes={clientesParaPuxar}
+              aoEscolher={puxarDoCliente}
+            />
+          ) : null}
 
           <div className="funil__cartao-colunas">
             {/* 1 — quem é o cliente */}
@@ -163,12 +223,19 @@ export function DialogoCartao({
                 valorInicial={cartao?.etapa_id ?? etapaInicial ?? ''}
                 opcoes={etapas.map((e) => ({ valor: e.id, rotulo: e.nome }))}
               />
-              <SeletorMultiploPopup
-                rotulo="Usuário"
-                nome="usuarios"
-                inicial={usuariosDoCartao}
-                opcoes={perfis.map((p) => ({ valor: p.id, rotulo: p.nome }))}
-              />
+              {/* Quem enxerga o cartão além de quem o criou (que sempre vê).
+                  Só o master vê e edita — a RLS também só deixa ele gravar. */}
+              {ehMaster ? (
+                <>
+                  <input type="hidden" name="usuarios_na_ficha" value="1" />
+                  <SeletorMultiploPopup
+                    rotulo="Quem visualiza"
+                    nome="usuarios"
+                    inicial={usuariosDoCartao}
+                    opcoes={perfis.map((p) => ({ valor: p.id, rotulo: p.nome }))}
+                  />
+                </>
+              ) : null}
               <Campo rotulo="Data do call realizado" nome="data_call" tipo="date" valorInicial={cartao?.data_call ?? ''} />
               <Campo rotulo="Data do envio do KB" nome="data_kb" tipo="date" valorInicial={cartao?.data_kb ?? ''} />
               <Campo rotulo="Data inicial" calculado valorInicial={data(cartao?.atualizado_em)} />
@@ -212,6 +279,8 @@ export function DialogoCartao({
               tarefas={tarefas}
               perfis={perfis}
               temCartao={Boolean(cartao)}
+              empresa={cartao?.empresa || null}
+              minhaAgenda={minhaAgenda}
               aoAdicionar={() => setTarefaNova(true)}
               aoEditar={setTarefaEmEdicao}
             />
@@ -265,12 +334,16 @@ function BlocoTarefas({
   tarefas,
   perfis,
   temCartao,
+  empresa,
+  minhaAgenda,
   aoAdicionar,
   aoEditar,
 }: {
   tarefas: Tarefa[];
   perfis: Array<{ id: string; nome: string }>;
   temCartao: boolean;
+  empresa: string | null;
+  minhaAgenda: boolean;
   aoAdicionar: () => void;
   aoEditar: (t: Tarefa) => void;
 }) {
@@ -317,6 +390,7 @@ function BlocoTarefas({
                 <span className="tarefas__responsavel apoio">{nomePerfil.get(t.responsavel_id) ?? ''}</span>
               ) : null}
               {t.prazo ? <span className="tarefas__prazo apoio">{prazoCurto(t.prazo, t.hora)}</span> : null}
+              <BotaoAgenda tarefa={t} empresa={empresa} conectado={minhaAgenda} />
               <Botao
                 variante="tertiary"
                 tamanho="row"

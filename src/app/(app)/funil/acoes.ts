@@ -5,7 +5,7 @@ import { headers } from 'next/headers';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { perfilAtual } from '@/lib/perfil';
 import { diferenca } from '@/lib/diferenca';
-import { apagarEventoDaTarefa, sincronizarEventoDaTarefa } from '@/lib/google/agenda';
+import { apagarEventoDaTarefa, enviarParaAgendaDe, sincronizarEventoDaTarefa } from '@/lib/google/agenda';
 import { criarClienteDoCartaoCom } from '@/lib/funil/cliente-do-cartao';
 
 /** O endereço do app nesta requisição — vai no link de volta do evento. */
@@ -28,7 +28,12 @@ export async function gravarCartao(_anterior: unknown, dados: FormData) {
   const supabase = await clienteServidor();
   const id = String(dados.get('id') ?? '');
 
+  // Cartão novo que puxou de um cliente cadastrado nasce ligado a ele. Só
+  // grava quando veio: o cartão que já virou cliente não perde o vínculo.
+  const clienteId = texto(dados, 'cliente_id');
+
   const campos = {
+    ...(clienteId ? { cliente_id: clienteId } : {}),
     empresa: texto(dados, 'empresa') ?? '',
     contato: texto(dados, 'contato'),
     segmento: texto(dados, 'segmento'),
@@ -78,6 +83,27 @@ export async function gravarCartao(_anterior: unknown, dados: FormData) {
         ? supabase.from('funil_cartao_tag').insert(incluir.map((tag_id) => ({ cartao_id: alvo, tag_id })))
         : null,
     ]);
+  }
+
+  // "Quem visualiza" (funil_cartao_usuario): o campo só existe na tela do
+  // master, e a RLS só deixa master gravar. A marca diz que o campo estava na
+  // ficha — sem ela, "nenhum escolhido" seria lido como "tirar todo mundo".
+  if (dados.has('usuarios_na_ficha')) {
+    const quem = [...new Set(dados.getAll('usuarios').map(String).filter(Boolean))];
+    const { data: vinculos } = await supabase
+      .from('funil_cartao_usuario')
+      .select('perfil_id')
+      .eq('cartao_id', alvo);
+    const { remover, incluir } = diferenca((vinculos ?? []).map((v) => v.perfil_id as string), quem);
+    const [tirados, postos] = await Promise.all([
+      remover.length
+        ? supabase.from('funil_cartao_usuario').delete().eq('cartao_id', alvo).in('perfil_id', remover)
+        : null,
+      incluir.length
+        ? supabase.from('funil_cartao_usuario').insert(incluir.map((perfil_id) => ({ cartao_id: alvo, perfil_id })))
+        : null,
+    ]);
+    if (tirados?.error || postos?.error) return { erro: 'Salvei o cartão, mas não quem visualiza. Tente de novo.' };
   }
 
   revalidatePath('/funil');
@@ -283,6 +309,28 @@ export async function gravarTarefa(_anterior: unknown, dados: FormData): Promise
 
   revalidatePath('/funil');
   return { ok: true, aviso };
+}
+
+/**
+ * Ícone do Google Agenda na tarefa: cópia na agenda de quem clicou. A tarefa
+ * é lida com o cliente da pessoa — com a RLS, só manda o que ela enxerga.
+ */
+export async function enviarTarefaParaMinhaAgenda(id: string): Promise<{ ok?: true; erro?: string }> {
+  const supabase = await clienteServidor();
+  const [perfil, { data: tarefa }] = await Promise.all([
+    perfilAtual(),
+    supabase.from('funil_tarefa').select('titulo, descricao, prazo, hora, cartao_id').eq('id', id).maybeSingle(),
+  ]);
+  if (!tarefa) return { erro: 'Não achei a tarefa.' };
+  if (!tarefa.prazo) return { erro: 'A tarefa precisa de prazo para ir para a agenda.' };
+
+  const { data: cartao } = await supabase.from('funil_cartao').select('empresa').eq('id', tarefa.cartao_id).maybeSingle();
+  const { erro } = await enviarParaAgendaDe(
+    perfil.id,
+    { titulo: tarefa.titulo, descricao: tarefa.descricao, prazo: tarefa.prazo, hora: tarefa.hora },
+    { empresa: (cartao?.empresa as string | null) || null, linkFunil: `${await origem()}/funil?aba=tarefas` },
+  );
+  return erro ? { erro: `Não foi para a agenda: ${erro}.` } : { ok: true };
 }
 
 /** Concluir e reabrir. `data_conclusao` anda junto com `concluida`. */

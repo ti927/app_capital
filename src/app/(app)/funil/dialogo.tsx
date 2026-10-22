@@ -238,8 +238,12 @@ export function DialogoCartao({
               ) : null}
               <Campo rotulo="Data do call realizado" nome="data_call" tipo="date" valorInicial={cartao?.data_call ?? ''} />
               <Campo rotulo="Data do envio do KB" nome="data_kb" tipo="date" valorInicial={cartao?.data_kb ?? ''} />
-              <Campo rotulo="Data inicial" calculado valorInicial={data(cartao?.atualizado_em)} />
-              <Campo rotulo="Última atualização" calculado valorInicial={data(cartao?.atualizado_em)} />
+              {/* As duas calculadas lado a lado: empilhadas, a coluna passava
+                  da altura da caixa e o cartão deixava de caber sem rolar. */}
+              <div className="funil__par">
+                <Campo rotulo="Data inicial" calculado valorInicial={data(cartao?.atualizado_em)} />
+                <Campo rotulo="Atualizado" calculado valorInicial={data(cartao?.atualizado_em)} />
+              </div>
             </div>
 
             {/* 3 e 4 — os dois textos longos, um em cada coluna */}

@@ -1396,13 +1396,14 @@ await passo(pagina, 'oauth-consent-sem-pedido', async () => {
 });
 
 // ----------------------------------------------------------------- agenda ---
-await passo(pagina, 'conta-agenda', async () => {
+await passo(pagina, 'conta-conexoes', async () => {
+  // O endereço antigo da agenda leva a Conexões (specs/17).
   await pagina.goto(`${BASE}/conta/agenda`, { waitUntil: 'networkidle' });
-  // Conectada ou não, a tela tem que dizer qual dos dois e oferecer a ação.
-  await pagina.waitForSelector(
-    'button:has-text("Conectar Google Agenda"), button:has-text("Reconectar Google Agenda"), button:has-text("Desconectar")',
-    { timeout: 15000 },
-  );
+  await pagina.waitForURL('**/conta/conexoes', { timeout: 15000 });
+  // Conectado ou não, cada card tem que dizer qual dos dois e oferecer a ação.
+  await pagina.waitForSelector('.conexao .conexao__acoes button', { timeout: 15000 });
+  const cards = await pagina.locator('.conexao').count();
+  if (cards !== 2) throw new Error(`a conta master deveria ver 2 cards (Agenda e Drive), viu ${cards}`);
 });
 
 // ------------------------------------------------- pop-ups modernos (UI 2) ---

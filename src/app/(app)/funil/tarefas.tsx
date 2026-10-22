@@ -15,6 +15,7 @@ import {
   IconeSalvar,
 } from '@/components/ui/icones';
 import type { FunilCartao } from '@/lib/dominio';
+import { BotaoAgenda } from './botao-agenda';
 import { Calendario } from './calendario';
 import { alternarTarefa, criarTarefa, excluirTarefa, gravarTarefa } from './acoes';
 import { GRUPOS, TIPOS_TAREFA, grupoDa, prazoCurto, rotuloDoTipo, type ChaveGrupo } from './tarefas-apoio';
@@ -36,6 +37,7 @@ export function PainelTarefas({
   perfis,
   perfilId,
   ehMaster,
+  minhaAgenda = false,
   quadroId,
   aoAbrirCartao,
 }: {
@@ -44,6 +46,8 @@ export function PainelTarefas({
   perfis: Array<{ id: string; nome: string }>;
   perfilId: string;
   ehMaster: boolean;
+  /** Quem está vendo conectou o Google Agenda: o ícone manda direto. */
+  minhaAgenda?: boolean;
   quadroId: string | null;
   aoAbrirCartao: (cartaoId: string) => void;
 }) {
@@ -167,6 +171,7 @@ export function PainelTarefas({
                     tarefas={lista}
                     cartaoPorId={cartaoPorId}
                     nomePerfil={nomePerfil}
+                    minhaAgenda={minhaAgenda}
                     aoAbrirCartao={aoAbrirCartao}
                     aoEditar={setEmEdicao}
                   />
@@ -217,12 +222,14 @@ function ListaDoGrupo({
   tarefas,
   cartaoPorId,
   nomePerfil,
+  minhaAgenda,
   aoAbrirCartao,
   aoEditar,
 }: {
   tarefas: Tarefa[];
   cartaoPorId: Map<string, FunilCartao>;
   nomePerfil: Map<string, string>;
+  minhaAgenda: boolean;
   aoAbrirCartao: (id: string) => void;
   aoEditar: (t: Tarefa) => void;
 }) {
@@ -237,6 +244,7 @@ function ListaDoGrupo({
             tarefa={t}
             cartao={cartaoPorId.get(t.cartao_id) ?? null}
             responsavel={t.responsavel_id ? (nomePerfil.get(t.responsavel_id) ?? '') : ''}
+            minhaAgenda={minhaAgenda}
             aoAbrirCartao={aoAbrirCartao}
             aoEditar={() => aoEditar(t)}
           />
@@ -287,12 +295,14 @@ function LinhaTarefa({
   tarefa,
   cartao,
   responsavel,
+  minhaAgenda,
   aoAbrirCartao,
   aoEditar,
 }: {
   tarefa: Tarefa;
   cartao: FunilCartao | null;
   responsavel: string;
+  minhaAgenda: boolean;
   aoAbrirCartao: (cartaoId: string) => void;
   aoEditar: () => void;
 }) {
@@ -326,6 +336,8 @@ function LinhaTarefa({
       {tarefa.prazo ? (
         <span className="tarefas__prazo apoio">{prazoCurto(tarefa.prazo, tarefa.hora)}</span>
       ) : null}
+
+      <BotaoAgenda tarefa={tarefa} empresa={cartao?.empresa || null} conectado={minhaAgenda} />
 
       <Botao
         variante="tertiary"

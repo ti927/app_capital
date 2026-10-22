@@ -146,3 +146,62 @@ export function montarEvento(
       : {}),
   };
 }
+
+/* ------------------------------------------------- "pôr na minha agenda" -- */
+
+/**
+ * Cópia avulsa da tarefa na agenda de quem clicou o ícone do Google Agenda
+ * (pedido de 22/10/2026). Diferente do evento do responsável, que o app
+ * acompanha: esta cópia não guarda id, não convida ninguém e não abre Meet —
+ * é um lembrete na agenda da própria pessoa. Sem hora, vira evento de dia
+ * inteiro.
+ */
+export interface EventoAvulso {
+  summary: string;
+  description: string;
+  start: { dateTime: string; timeZone: string } | { date: string };
+  end: { dateTime: string; timeZone: string } | { date: string };
+}
+
+type TarefaAvulsa = Pick<TarefaParaAgenda, 'titulo' | 'descricao' | 'prazo' | 'hora'>;
+
+function descricaoDe(t: TarefaAvulsa, contexto: { empresa: string | null; linkFunil: string }) {
+  return [t.descricao?.trim(), contexto.empresa ? `Cartão: ${contexto.empresa}` : null, `No app: ${contexto.linkFunil}`]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+/** O dia seguinte a `yyyy-mm-dd` — o fim exclusivo de um evento de dia inteiro. */
+function diaSeguinte(data: string) {
+  return somarMinutos(data, '00:00', 24 * 60).slice(0, 10);
+}
+
+export function eventoAvulso(t: TarefaAvulsa, contexto: { empresa: string | null; linkFunil: string }): EventoAvulso {
+  const prazo = (t.prazo as string).slice(0, 10);
+  const base = { summary: t.titulo, description: descricaoDe(t, contexto) };
+  if (!t.hora) return { ...base, start: { date: prazo }, end: { date: diaSeguinte(prazo) } };
+  const hora = t.hora.slice(0, 5);
+  return {
+    ...base,
+    start: { dateTime: somarMinutos(prazo, hora, 0), timeZone: FUSO },
+    end: { dateTime: somarMinutos(prazo, hora, DURACAO_MIN), timeZone: FUSO },
+  };
+}
+
+/**
+ * Para quem não conectou a agenda: o link do Google Agenda que abre o evento
+ * já preenchido, na conta logada no navegador — a pessoa só aperta Salvar.
+ */
+export function linkModeloGoogle(t: TarefaAvulsa, contexto: { empresa: string | null; linkFunil: string }) {
+  const ev = eventoAvulso(t, contexto);
+  const compacto = (s: string) => s.replace(/[-:]/g, '');
+  const ponta = (p: EventoAvulso['start']) => ('date' in p ? compacto(p.date) : compacto(p.dateTime));
+  const q = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: ev.summary,
+    dates: `${ponta(ev.start)}/${ponta(ev.end)}`,
+    details: ev.description,
+    ctz: FUSO,
+  });
+  return `https://calendar.google.com/calendar/render?${q}`;
+}

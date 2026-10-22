@@ -499,6 +499,13 @@
   flex-shrink: 0;
 }
 
+/* Dois campos curtos numa linha da coluna (as datas calculadas). */
+.funil__par {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
 /* "Puxar de cliente cadastrado": a largura das duas primeiras colunas, acima delas. */
 .funil__puxar-cliente {
   flex: none;
@@ -536,7 +543,8 @@
 /* Embaixo, o que é lista: tags à esquerda, tarefas à direita. */
 .funil__cartao-abaixo {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  /* Tags com a maior parte: as cinco cabem numa linha só em 1440px. */
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: var(--space-5);
   flex: none;
 }

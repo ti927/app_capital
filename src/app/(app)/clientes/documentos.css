@@ -1,0 +1,245 @@
+/* ---------------------------------------------------------------------------
+   Aba Documentos do cliente (specs/17). Lista no jeito de um gerenciador de
+   arquivos: selo colorido do tipo, nome, tamanho e data; a trilha de pastas
+   no topo. O visualizador ocupa a aba inteira, com voltar à esquerda.
+   --------------------------------------------------------------------------- */
+
+.docs__abas {
+  margin-bottom: var(--space-5);
+}
+
+.docs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 360px;
+}
+
+.docs__topo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.docs__logo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  border: var(--border-w) solid var(--border);
+}
+
+.docs__trilha {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+.docs__trilha-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.docs__sep {
+  color: var(--text-muted);
+}
+.docs__trilha-botao {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+.docs__trilha-botao:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.docs__trilha-atual {
+  padding: 2px 6px;
+  color: var(--text);
+}
+
+.docs__busca {
+  width: min(260px, 100%);
+}
+
+.docs__aviso {
+  margin: 0;
+}
+
+.docs__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.docs__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+.docs__lista > li + li .docs__item {
+  border-top: var(--border-w) solid var(--border);
+}
+.docs__item:hover,
+.docs__item:focus-visible {
+  background: var(--surface-hover);
+}
+.docs__item--esqueleto {
+  min-height: 52px;
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-hover) 50%, var(--surface) 100%);
+  background-size: 200% 100%;
+  animation: docs-brilho 1.2s linear infinite;
+}
+@keyframes docs-brilho {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.docs__nome {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.docs__meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.docs__data {
+  min-width: 64px;
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+/* Selo do tipo: as cores que a pessoa já associa a cada arquivo. */
+.docs__selo {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: #6b7280;
+}
+.docs__selo--pasta {
+  background: none;
+  color: #f4b400;
+}
+.docs__selo--pasta svg {
+  width: 26px;
+  height: 26px;
+}
+.docs__selo--pdf {
+  background: #e5484d;
+}
+.docs__selo--img {
+  background: #8e4ec6;
+}
+.docs__selo--planilha {
+  background: #1e8e3e;
+}
+.docs__selo--documento {
+  background: #1a73e8;
+}
+.docs__selo--apresentacao {
+  background: #f29900;
+}
+
+.docs__estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--space-5);
+  border: var(--border-w) dashed var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+.docs__estado p {
+  margin: 0;
+  max-width: 460px;
+}
+.docs__estado-titulo {
+  font-weight: 700;
+  color: var(--text);
+}
+.docs__estado a {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.docs__estado--erro {
+  border-color: var(--danger);
+}
+
+/* Visualizador */
+.docs__titulo-arquivo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+.docs__acoes {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+.docs__quadro,
+.docs__imagem {
+  width: 100%;
+  height: min(72vh, 900px);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+}
+.docs__imagem {
+  object-fit: contain;
+}
+
+@media (max-width: 640px) {
+  .docs__item {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .docs__data {
+    display: none;
+  }
+  .docs__busca {
+    width: 100%;
+  }
+}

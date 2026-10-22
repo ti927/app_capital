@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAvisos } from '@/components/ui/aviso';
+import { LogoGoogleAgenda } from '@/components/ui/logos-google';
 import { linkModeloGoogle } from '@/lib/google/evento';
 import { enviarTarefaParaMinhaAgenda } from './acoes';
 import type { Tarefa } from './page';
@@ -83,19 +84,3 @@ export function BotaoAgenda({
   );
 }
 
-/** O logo do Google Agenda, simplificado para 16px: o "31" no quadro de quatro cores. */
-export function LogoGoogleAgenda({ tamanho = 16 }: { tamanho?: number }) {
-  return (
-    <svg width={tamanho} height={tamanho} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M18 2H6a4 4 0 0 0-4 4v12a4 4 0 0 0 4 4h12z" fill="#fff" />
-      <path d="M2 6a4 4 0 0 1 4-4h12v4H2z" fill="#1A73E8" />
-      <path d="M18 2a4 4 0 0 1 4 4v12h-4z" fill="#FBBC04" />
-      <path d="M18 18h4a4 4 0 0 1-4 4z" fill="#EA4335" />
-      <path d="M2 18h16v4H6a4 4 0 0 1-4-4z" fill="#34A853" />
-      <path d="M2 6h4v12H2z" fill="#4285F4" />
-      <text x="12" y="15.5" textAnchor="middle" fontSize="8" fontWeight="700" fontFamily="Arial, sans-serif" fill="#1A73E8">
-        31
-      </text>
-    </svg>
-  );
-}

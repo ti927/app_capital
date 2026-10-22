@@ -86,9 +86,9 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
                 <span className="casca__acao-rotulo">Sair</span>
               </button>
             </form>
-            <Link className="lc-btn lc-btn--tertiary lc-btn--sm casca__acao" href="/conta/agenda" title="Google Agenda">
+            <Link className="lc-btn lc-btn--tertiary lc-btn--sm casca__acao" href="/conta/conexoes" title="Conexões com o Google (Agenda e Drive)">
               <IconeAgenda tamanho={16} />
-              <span className="casca__acao-rotulo">Agenda</span>
+              <span className="casca__acao-rotulo">Conexões</span>
             </Link>
             <Link className="lc-btn lc-btn--tertiary lc-btn--sm casca__acao" href="/conta/senha" title="Trocar senha">
               <IconeSenha tamanho={16} />

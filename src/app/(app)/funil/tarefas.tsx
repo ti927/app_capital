@@ -585,7 +585,7 @@ function SituacaoNaAgenda({
         {ehVoce ? (
           <>
             Sua agenda do Google não está conectada — a reunião fica só no app.{' '}
-            <Link href="/conta/agenda">Conectar</Link>
+            <Link href="/conta/conexoes">Conectar</Link>
           </>
         ) : (
           <>{responsavel.nome} ainda não conectou o Google Agenda — a reunião fica só no app.</>

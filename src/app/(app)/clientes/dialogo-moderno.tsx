@@ -30,6 +30,7 @@ import { STATUS_CLIENTE } from '@/lib/dominio';
 import { gravarCliente, removerEmail } from './acoes';
 import { DialogoAdicionarEmail, DialogoCliente, PuxarDoFunil, QuemVisualiza } from './dialogo';
 import type { CartaoDoFunil, EmailCliente } from './tela';
+import { AbasDoCliente } from './documentos';
 
 /**
  * Pop-up de cliente, UI moderna ("ficha" — design/ui2-popups.md, 2.1).
@@ -131,6 +132,7 @@ function CorpoDialogoClienteModerno({
           </>
         }
       >
+        <AbasDoCliente clienteId={cliente?.id ?? null} ehMaster={podeEditarVisualizadores}>
         <form key={cartao?.id ?? 'vazio'} id={FORMA} ref={salvar.ref} onSubmit={salvar.aoEnviar} className="ui2-forma">
           <input type="hidden" name="id" value={cliente?.id ?? ''} />
           {cartao ? <input type="hidden" name="cartao_id" value={cartao.id} /> : null}
@@ -193,6 +195,7 @@ function CorpoDialogoClienteModerno({
             />
           </Secao>
         </form>
+        </AbasDoCliente>
       </Dialogo>
 
       {cliente ? (

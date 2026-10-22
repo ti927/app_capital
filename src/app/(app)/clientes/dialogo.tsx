@@ -9,6 +9,7 @@ import { useSalvarOtimista } from '@/components/ui/salvar-otimista';
 import { STATUS_CLIENTE, type Cliente } from '@/lib/dominio';
 import { adicionarEmail, gravarCliente, removerEmail } from './acoes';
 import type { CartaoDoFunil, EmailCliente } from './tela';
+import { AbasDoCliente } from './documentos';
 
 /**
  * Diálogo de cliente — o mesmo para criar e para editar.
@@ -92,6 +93,7 @@ function CorpoDialogoCliente({
         {/* `key`: escolher um cartão remonta o formulário para os campos
             nascerem com o valor do funil. Só aparece em cliente novo, então
             não há o que perder de digitado. */}
+        <AbasDoCliente clienteId={cliente?.id ?? null} ehMaster={podeEditarVisualizadores}>
         <form
           key={cartao?.id ?? 'vazio'}
           id="forma-cliente"
@@ -172,6 +174,7 @@ function CorpoDialogoCliente({
           />
 
         </form>
+        </AbasDoCliente>
       </Dialogo>
 
       {cliente ? (

@@ -71,6 +71,8 @@ docs: decisão sobre o de-para de status
 | `db/004` … `008` | correções, tarefas do funil, esteira, `cliente.criado_por` — **aplicadas** |
 | `db/009_rls.sql` | policies — **aplicada em 02/10/2026**; substitui a `003`, que não se aplica |
 | `db/010_google_agenda.sql` | tokens do Google Agenda e colunas do evento na tarefa — **aplicada** |
+| `db/016_google_drive.sql` | conexão única com o Drive da Lure (token cifrado, pasta raiz) — **aplicada em 22/10/2026** |
+| `specs/17-google-drive-documentos.md` | aba Documentos do cliente e a página Conexões (Agenda + Drive) |
 | `design/` | marca, tokens e o brief para o Claude Design |
 | `docs/estado-do-projeto.md` | **onde o app está hoje** — leia primeiro |
 | `docs/aprendizados.md` | o que as rodadas ensinaram, e o que mudou por causa disso |

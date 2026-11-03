@@ -33,6 +33,7 @@ import {
 } from './acoes';
 import type { ClienteResumo, Observacao } from './page';
 import { DialogoEmail } from './email';
+import { AbasDoCliente } from '../clientes/documentos';
 
 export type Fundo = Pick<Fornecedor, 'id' | 'nome_fundo'>;
 
@@ -156,6 +157,7 @@ export function DialogoOperacao({
         </>
       }
     >
+      <AbasDoCliente clienteId={operacao?.cliente_id ?? null} ehMaster={master} rotulo="Operação">
       <form
         id="forma-operacao"
         ref={salvar.ref}
@@ -302,6 +304,7 @@ export function DialogoOperacao({
           somenteLeitura={!master}
         />
       </div>
+      </AbasDoCliente>
     </Dialogo>
 
     {/* Fora do diálogo da operação, como o de tarefa sobre o cartão: abre por

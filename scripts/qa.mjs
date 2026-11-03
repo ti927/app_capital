@@ -644,6 +644,22 @@ await passo(pagina, 'operacao-dialogo-ordem', async () => {
   }
 });
 
+await passo(pagina, 'operacao-aba-documentos', async () => {
+  // A mesma aba Documentos do cliente (03/11/2026). Espera sair do esqueleto
+  // (aria-busy) e aparecer um estado ou a lista — nunca só a classe.
+  const aba = pagina.locator('.lc-dialog button[role="tab"]:has-text("Documentos")');
+  if (!(await aba.count())) throw new Error('diálogo da operação sem a aba Documentos');
+  await aba.click();
+  await pagina.waitForSelector('.lc-dialog .docs[aria-busy="false"] :is(.docs__estado-titulo, .docs__nome)', {
+    timeout: 20000,
+  });
+});
+
+await passo(pagina, 'operacao-aba-documentos-volta', async () => {
+  await pagina.click('.lc-dialog button[role="tab"]:has-text("Operação")');
+  await pagina.waitForSelector('.lc-dialog form#forma-operacao:visible', { timeout: 5000 });
+});
+
 await passo(pagina, 'operacao-linha-inclusao-ordem', async () => {
   // Pedido de 08/10: na linha de inclusão, primeiro "Fundo", depois "Tipo de operação".
   if (!(await pagina.locator('.criar-etapa').count())) return;

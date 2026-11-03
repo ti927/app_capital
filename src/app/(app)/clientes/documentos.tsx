@@ -14,14 +14,20 @@ import './documentos.css';
  * "Documentos" (specs/17). O formulário fica montado mesmo escondido — o
  * "Salvar" do rodapé aponta para ele por `form=`, e trocar de aba não pode
  * perder o que foi digitado.
+ *
+ * A operação usa as mesmas abas (pedido de 03/11/2026): a primeira vira
+ * "Operação" e a segunda mostra os documentos do cliente da operação.
  */
 export function AbasDoCliente({
   clienteId,
   ehMaster,
+  rotulo = 'Cadastro',
   children,
 }: {
   clienteId: string | null;
   ehMaster: boolean;
+  /** Nome da primeira aba — a que guarda o formulário. */
+  rotulo?: string;
   children: ReactNode;
 }) {
   const [aba, setAba] = useState<'cadastro' | 'documentos'>('cadastro');
@@ -38,7 +44,7 @@ export function AbasDoCliente({
           aria-selected={aba === 'cadastro'}
           onClick={() => setAba('cadastro')}
         >
-          Cadastro
+          {rotulo}
         </button>
         <button
           type="button"

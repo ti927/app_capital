@@ -42,6 +42,7 @@ import {
   type DialogoOperacao,
 } from './dialogo';
 import { DialogoEmail } from './email';
+import { AbasDoCliente } from '../clientes/documentos';
 
 type Props = ComponentProps<typeof DialogoOperacao>;
 
@@ -193,6 +194,7 @@ export function DialogoOperacaoModerno({
           </>
         }
       >
+        <AbasDoCliente clienteId={operacao?.cliente_id ?? null} ehMaster rotulo="Operação">
         <IndiceDaFicha secoes={secoes} />
 
         <form id={FORMA} ref={salvar.ref} onSubmit={salvar.aoEnviar} className="ui2-forma">
@@ -326,6 +328,7 @@ export function DialogoOperacaoModerno({
         <Secao id="ui2-op-declinios" ordem={6} icone={<IconeProibido tamanho={16} />} titulo="Declínios">
           <Declinios fornecedores={fundosOrdenados} escolhidos={declinios} form={FORMA} className="ui2-c12" />
         </Secao>
+        </AbasDoCliente>
       </Dialogo>
 
       {emailAberto && operacao ? (

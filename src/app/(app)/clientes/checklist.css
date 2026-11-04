@@ -1,0 +1,380 @@
+/* ---------------------------------------------------------------------------
+   Aba Checklist do cliente (specs/18). Item à esquerda, status à direita.
+   Recebido risca o texto com um traço que se desenha da esquerda para a
+   direita; o ícone do status desliza ao trocar.
+   --------------------------------------------------------------------------- */
+
+.ck {
+  --ck-sobre: var(--surface);
+  --ck-deslize: 260ms;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-height: 360px;
+}
+
+/* ---------------------------------------------------------------- topo -- */
+
+.ck__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4) var(--space-8);
+}
+.ck__resumo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 220px;
+  flex: 1;
+  max-width: 360px;
+}
+.ck__contagem {
+  margin: 0;
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+}
+.ck__contagem strong {
+  font-size: var(--text-xl);
+  color: var(--text);
+}
+.ck__parciais {
+  color: var(--warning-ink);
+}
+.ck__barra {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.ck__barra > span {
+  display: block;
+  height: 100%;
+  background: var(--success);
+  transform-origin: left center;
+  transition: transform 420ms var(--mov-curva);
+}
+
+.ck__varredura {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+.ck__varredura a {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ck__revarrer {
+  padding: 2px 8px;
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+.ck__revarrer:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.ck__revarrer:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.ck__erro {
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--danger-bg);
+  color: var(--danger-ink);
+  font-size: var(--text-base);
+}
+
+/* --------------------------------------------------------------- lista -- */
+
+.ck__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.ck__linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 48px;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-6);
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+.ck__linha + .ck__linha {
+  border-top: var(--border-w) solid var(--border);
+}
+.ck__linha:hover {
+  background: var(--surface-hover);
+}
+.ck__linha--esqueleto {
+  min-height: 48px;
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-hover) 50%, var(--surface) 100%);
+  background-size: 200% 100%;
+  animation: docs-brilho 1.2s linear infinite;
+}
+
+.ck__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* O risco: um traço verde que se desenha por cima do texto. Em várias
+   linhas, `box-decoration-break` risca cada uma. */
+.ck__texto {
+  align-self: flex-start;
+  color: var(--text);
+  font-weight: 500;
+  line-height: var(--lh-md);
+  background-image: linear-gradient(var(--success), var(--success));
+  background-repeat: no-repeat;
+  background-position: 0 58%;
+  background-size: 0% 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition:
+    background-size 380ms var(--mov-curva),
+    color 240ms var(--mov-curva);
+}
+.ck__linha--recebido .ck__texto {
+  background-size: 100% 2px;
+  color: var(--text-muted);
+}
+.ck__linha--nao_se_aplica .ck__texto {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.ck__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.ck__fonte {
+  font-weight: 600;
+}
+.ck__linha--recebido .ck__fonte {
+  color: var(--success-ink);
+}
+.ck__arquivo {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 2px;
+}
+.ck__arquivo:hover {
+  color: var(--text);
+}
+.ck__obs {
+  font-style: italic;
+}
+
+/* --------------------------------------------------------------- status -- */
+
+.ck__status,
+.ck__remover,
+.ck__novo-botao {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+}
+.ck__status {
+  width: 40px;
+  height: 40px;
+}
+.ck__status:hover,
+.ck__remover:hover {
+  background: var(--surface-sunken);
+}
+.ck__status:focus-visible,
+.ck__remover:focus-visible,
+.ck__novo-botao:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.ck__trilho {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+}
+.ck__icone {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.ck__icone svg {
+  display: block;
+}
+.ck__icone--entra {
+  animation: ck-entra var(--ck-deslize) var(--mov-curva) both;
+}
+.ck__icone--sai {
+  animation: ck-sai var(--ck-deslize) var(--mov-curva) both;
+}
+@keyframes ck-entra {
+  from {
+    transform: translateX(115%) scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes ck-sai {
+  from {
+    transform: none;
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-115%) scale(0.85);
+    opacity: 0;
+  }
+}
+
+.ck__cor--nao_recebido {
+  color: var(--text-muted);
+}
+.ck__cor--recebido {
+  color: var(--success);
+}
+.ck__cor--parcial {
+  color: var(--warning-ink);
+}
+.ck__cor--nao_se_aplica {
+  color: var(--text-secondary);
+}
+
+.ck__remover {
+  width: 32px;
+  height: 32px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--mov-rapido) var(--mov-curva);
+}
+.ck__linha:hover .ck__remover,
+.ck__remover:focus-visible {
+  opacity: 1;
+}
+.ck__remover:hover {
+  color: var(--danger-ink);
+}
+@media (hover: none) {
+  .ck__remover {
+    opacity: 1;
+  }
+}
+
+/* Dica: sai à esquerda do botão — à direita não há espaço, e acima a
+   primeira linha ficaria cortada pela rolagem do diálogo. */
+.ck [data-dica]::after {
+  content: attr(data-dica);
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 6px);
+  z-index: 5;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  background: var(--text);
+  color: var(--surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: var(--lh-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(4px, -50%);
+  transition:
+    opacity var(--mov-rapido) var(--mov-curva),
+    transform var(--mov-rapido) var(--mov-curva);
+}
+.ck [data-dica]:hover::after,
+.ck [data-dica]:focus-visible::after {
+  opacity: 1;
+  transform: translate(0, -50%);
+  transition-delay: 250ms;
+}
+
+/* ------------------------------------------------------------ novo item -- */
+
+.ck__novo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.ck__novo-campo {
+  flex: 1;
+  min-width: 0;
+}
+.ck__novo-botao {
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  color: var(--accent-on);
+  transition: background var(--mov-rapido) var(--mov-curva);
+}
+.ck__novo-botao:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.ck__novo-botao:disabled {
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ck__icone--entra,
+  .ck__icone--sai {
+    animation: none;
+  }
+  .ck__icone--sai {
+    display: none;
+  }
+  .ck__texto,
+  .ck__barra > span {
+    transition: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ck__linha {
+    padding-left: var(--space-5);
+  }
+  .ck__arquivo {
+    max-width: 180px;
+  }
+}

@@ -6,6 +6,7 @@ import { Botao } from '@/components/ui/base';
 import { Indicador } from '@/components/ui/indicador';
 import { LogoGoogleDrive } from '@/components/ui/logos-google';
 import type { ItemDoDrive } from '@/lib/google/drive';
+import { AbaChecklist } from './checklist';
 import { documentosDoCliente, type RespostaDocumentos } from './documentos-acoes';
 import './documentos.css';
 
@@ -30,7 +31,10 @@ export function AbasDoCliente({
   rotulo?: string;
   children: ReactNode;
 }) {
-  const [aba, setAba] = useState<'cadastro' | 'documentos'>('cadastro');
+  const [aba, setAba] = useState<'cadastro' | 'documentos' | 'checklist'>('cadastro');
+  // A checklist varre o Drive ao abrir; depois de aberta fica montada, para
+  // voltar a ela não varrer tudo de novo (tem o botão "Varrer de novo").
+  const [checklistAberta, setChecklistAberta] = useState(false);
   if (!clienteId) return <>{children}</>;
 
   return (
@@ -55,9 +59,26 @@ export function AbasDoCliente({
         >
           Documentos
         </button>
+        <button
+          type="button"
+          role="tab"
+          className="abas__item"
+          aria-selected={aba === 'checklist'}
+          onClick={() => {
+            setAba('checklist');
+            setChecklistAberta(true);
+          }}
+        >
+          Checklist
+        </button>
       </div>
       <div hidden={aba !== 'cadastro'}>{children}</div>
       {aba === 'documentos' ? <AbaDocumentos clienteId={clienteId} ehMaster={ehMaster} /> : null}
+      {checklistAberta ? (
+        <div hidden={aba !== 'checklist'}>
+          <AbaChecklist clienteId={clienteId} ehMaster={ehMaster} />
+        </div>
+      ) : null}
     </>
   );
 }

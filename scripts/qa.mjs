@@ -435,6 +435,39 @@ await passo(pagina, 'cliente-parecer-com-respiro', async () => {
   }
 });
 
+await passo(pagina, 'cliente-aba-checklist', async () => {
+  // Checklist de documentos (specs/18). Espera a varredura terminar
+  // (aria-busy=false) e os itens aparecerem — nunca só a classe.
+  await pagina.click('.lc-dialog button[role="tab"]:has-text("Checklist")');
+  await pagina.waitForSelector('.lc-dialog .ck[aria-busy="false"] .ck__texto', { timeout: 30000 });
+  const itens = await pagina.locator('.lc-dialog .ck__linha:not(.ck__linha--esqueleto)').count();
+  if (itens < 23) throw new Error(`a checklist mostrou ${itens} itens, esperado 23 ou mais`);
+  // O status fica à direita do texto, na mesma linha.
+  const linha = pagina.locator('.lc-dialog .ck__linha').first();
+  const texto = await linha.locator('.ck__texto').boundingBox();
+  const status = await linha.locator('.ck__status').boundingBox();
+  if (!texto || !status || !(status.x > texto.x + texto.width)) throw new Error('o status não está à direita do item');
+});
+
+await passo(pagina, 'cliente-checklist-dica', async () => {
+  // A dica do status aparece ao passar o mouse.
+  const botao = pagina.locator('.lc-dialog .ck__status').first();
+  await botao.hover();
+  await pagina.waitForTimeout(450);
+  const dica = await botao.evaluate((el) => getComputedStyle(el, '::after').content);
+  if (!/recebido|parcial|aplica/i.test(dica)) throw new Error(`dica inesperada: ${dica}`);
+});
+
+await passo(pagina, 'cliente-checklist-fim', async () => {
+  // O fim da lista: itens extras e o campo de adicionar.
+  await pagina.locator('.lc-dialog .ck__novo-campo').scrollIntoViewIfNeeded();
+});
+
+await passo(pagina, 'cliente-checklist-volta', async () => {
+  await pagina.click('.lc-dialog button[role="tab"]:has-text("Cadastro")');
+  await pagina.waitForTimeout(150);
+});
+
 await passo(pagina, 'cliente-fechado', async () => {
   await pagina.keyboard.press('Escape');
   await pagina.waitForTimeout(200);
@@ -653,6 +686,12 @@ await passo(pagina, 'operacao-aba-documentos', async () => {
   await pagina.waitForSelector('.lc-dialog .docs[aria-busy="false"] :is(.docs__estado-titulo, .docs__nome)', {
     timeout: 20000,
   });
+});
+
+await passo(pagina, 'operacao-aba-checklist', async () => {
+  // A mesma checklist do cliente, no pop-up da operação (specs/18).
+  await pagina.click('.lc-dialog button[role="tab"]:has-text("Checklist")');
+  await pagina.waitForSelector('.lc-dialog .ck[aria-busy="false"] .ck__texto', { timeout: 30000 });
 });
 
 await passo(pagina, 'operacao-aba-documentos-volta', async () => {

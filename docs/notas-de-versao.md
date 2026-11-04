@@ -4,6 +4,28 @@ Uma seção por rodada, a mais recente no topo. Escrito para quem usa o sistema.
 
 ---
 
+## 04/11/2026 — checklist de documentos
+
+### Clientes e Operações
+
+- **Nova aba Checklist**, ao lado de Documentos, no cliente e na operação (é
+  a mesma lista do cliente). Mostra os documentos que pedimos — BP, DRE,
+  faturamento mensal, contrato social, IRPF dos sócios, endividamento, aging,
+  curvas ABC, garantias e outros — com o status à direita.
+- **Clique no ícone para mudar o status:** não recebido → recebido → recebido
+  parcial → não se aplica. Passe o mouse para ver o nome do status. Item
+  recebido fica riscado.
+- **Marca sozinho o que já está no Drive.** Ao abrir a aba, o sistema procura
+  os documentos na pasta do cliente pelo nome do arquivo e da pasta (ex.:
+  "2023/Balanço.pdf" marca BP 2023) e mostra o arquivo achado. O que você
+  marcar à mão sempre vale mais que a busca.
+- **Itens extras por cliente:** escreva no campo abaixo da lista e clique em +.
+- **Pelo Claude (MCP):** peça para ele ver a checklist, ler os documentos do
+  Drive e marcar o que falta — ele confere o conteúdo, não só o nome.
+- Indicantes também veem e marcam, nos clientes deles.
+
+---
+
 ## 14/10/2026 — pop-ups de cadastro e opção Moderna
 
 ### Clientes, Fornecedores e Operações

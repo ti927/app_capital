@@ -21,6 +21,42 @@ export interface RodadaDeNotas {
 /** Mais recente primeiro, como no .md. */
 export const NOTAS_DE_VERSAO: RodadaDeNotas[] = [
   {
+    "id": "2026-11-04-checklist-de-documentos",
+    "data": "04/11/2026",
+    "titulo": "checklist de documentos",
+    "grupos": [
+      {
+        "titulo": "Clientes e Operações",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Nova aba Checklist**, ao lado de Documentos, no cliente e na operação (é a mesma lista do cliente). Mostra os documentos que pedimos — BP, DRE, faturamento mensal, contrato social, IRPF dos sócios, endividamento, aging, curvas ABC, garantias e outros — com o status à direita."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Clique no ícone para mudar o status:** não recebido → recebido → recebido parcial → não se aplica. Passe o mouse para ver o nome do status. Item recebido fica riscado."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Marca sozinho o que já está no Drive.** Ao abrir a aba, o sistema procura os documentos na pasta do cliente pelo nome do arquivo e da pasta (ex.: \"2023/Balanço.pdf\" marca BP 2023) e mostra o arquivo achado. O que você marcar à mão sempre vale mais que a busca."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Itens extras por cliente:** escreva no campo abaixo da lista e clique em +."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Pelo Claude (MCP):** peça para ele ver a checklist, ler os documentos do Drive e marcar o que falta — ele confere o conteúdo, não só o nome."
+          },
+          {
+            "tipo": "item",
+            "texto": "Indicantes também veem e marcam, nos clientes deles."
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "2026-10-14-pop-ups-de-cadastro-e-opcao-moderna",
     "data": "14/10/2026",
     "titulo": "pop-ups de cadastro e opção Moderna",

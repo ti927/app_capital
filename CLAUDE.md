@@ -73,6 +73,8 @@ docs: decisão sobre o de-para de status
 | `db/010_google_agenda.sql` | tokens do Google Agenda e colunas do evento na tarefa — **aplicada** |
 | `db/016_google_drive.sql` | conexão única com o Drive da Lure (token cifrado, pasta raiz) — **aplicada em 22/10/2026** |
 | `specs/17-google-drive-documentos.md` | aba Documentos do cliente e a página Conexões (Agenda + Drive) |
+| `db/017_cliente_checklist.sql` | checklist de documentos do cliente (marcação à mão e itens extras) — **aplicada em 04/11/2026** |
+| `specs/18-checklist-documentos.md` | aba Checklist (cliente e operação), varredura do Drive e ferramentas no MCP |
 | `design/` | marca, tokens e o brief para o Claude Design |
 | `docs/estado-do-projeto.md` | **onde o app está hoje** — leia primeiro |
 | `docs/aprendizados.md` | o que as rodadas ensinaram, e o que mudou por causa disso |

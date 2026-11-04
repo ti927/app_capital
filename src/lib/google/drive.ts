@@ -213,6 +213,92 @@ export async function listarPasta(pastaId: string): Promise<ItemDoDrive[]> {
 }
 
 /**
+ * Todos os arquivos dentro da pasta do cliente, descendo as subpastas
+ * (checklist, specs/18). Uma chamada por nível — os pais de um nível vão
+ * juntos no `q` —, até 6 níveis e 2.000 arquivos. Pastas não entram; o
+ * `caminho` traz as pastas do meio para a varredura ler "2023/BP.pdf".
+ */
+export async function varrerPasta(
+  pastaId: string,
+): Promise<Array<{ id: string; nome: string; caminho: string; mimeType: string }>> {
+  const token = await accessToken();
+  const arquivos: Array<{ id: string; nome: string; caminho: string; mimeType: string }> = [];
+  let nivel = new Map<string, string>([[pastaId, '']]);
+
+  for (let profundidade = 0; profundidade < 6 && nivel.size && arquivos.length < 2000; profundidade++) {
+    const proximo = new Map<string, string>();
+    // O Google limita o tamanho do `q`: até 40 pais por chamada.
+    const pais = [...nivel.keys()];
+    for (let i = 0; i < pais.length; i += 40) {
+      const lote = pais.slice(i, i + 40);
+      const q = `(${lote.map((id) => `'${escaparConsulta(id)}' in parents`).join(' or ')}) and trashed = false`;
+      let pagina: string | undefined;
+      do {
+        const r = await chamar<{ files: ArquivoDaApi[]; nextPageToken?: string }>(
+          `/files?q=${encodeURIComponent(q)}&fields=nextPageToken,files(id,name,mimeType,parents)&pageSize=1000&${TODOS_OS_DRIVES}${pagina ? `&pageToken=${pagina}` : ''}`,
+          token,
+        );
+        for (const f of r.files) {
+          const pai = f.parents?.find((p) => nivel.has(p));
+          const base = pai !== undefined ? nivel.get(pai)! : '';
+          const caminho = base ? `${base}/${f.name}` : f.name;
+          if (f.mimeType === MIME_PASTA) proximo.set(f.id, caminho);
+          else arquivos.push({ id: f.id, nome: f.name, caminho, mimeType: f.mimeType });
+        }
+        pagina = r.nextPageToken;
+      } while (pagina && arquivos.length < 2000);
+    }
+    nivel = proximo;
+  }
+  return arquivos;
+}
+
+/**
+ * O conteúdo de um arquivo para o Claude ler pelo MCP (specs/18). Docs do
+ * Google saem em texto; Planilhas em CSV; o resto vai em bytes (base64) com
+ * o tipo, até `limite` bytes.
+ */
+export async function conteudoDoArquivo(
+  arquivoId: string,
+  limite = 8 * 1024 * 1024,
+): Promise<{ nome: string; mimeType: string; texto?: string; base64?: string; tamanho: number }> {
+  const token = await accessToken();
+  const meta = await chamar<ArquivoDaApi>(
+    `/files/${encodeURIComponent(arquivoId)}?fields=${CAMPOS}&supportsAllDrives=true`,
+    token,
+  );
+  if (meta.mimeType === MIME_PASTA) throw new ErroDrive('isso é uma pasta');
+
+  const comoTexto: Record<string, string> = {
+    'application/vnd.google-apps.document': 'text/plain',
+    'application/vnd.google-apps.spreadsheet': 'text/csv',
+    'application/vnd.google-apps.presentation': 'text/plain',
+  };
+  const exportar = comoTexto[meta.mimeType];
+  if (!exportar && meta.mimeType.startsWith('application/vnd.google-apps.')) {
+    throw new ErroDrive('esse tipo de arquivo do Google não tem conteúdo para ler');
+  }
+  if (!exportar && meta.size && Number(meta.size) > limite) {
+    throw new ErroDrive(
+      `o arquivo tem ${Math.round(Number(meta.size) / 1024 / 1024)} MB; o limite de leitura é ${Math.round(limite / 1024 / 1024)} MB`,
+    );
+  }
+
+  const url = exportar
+    ? `${API}/files/${encodeURIComponent(arquivoId)}/export?mimeType=${encodeURIComponent(exportar)}`
+    : `${API}/files/${encodeURIComponent(arquivoId)}?alt=media&supportsAllDrives=true`;
+  const resposta = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!resposta.ok) throw new ErroDrive(`o Drive não entregou o arquivo (${resposta.status})`);
+  const bytes = Buffer.from(await resposta.arrayBuffer());
+
+  const tipo = exportar ?? meta.mimeType;
+  const ehTexto = Boolean(exportar) || tipo.startsWith('text/') || tipo === 'application/json';
+  return ehTexto
+    ? { nome: meta.name, mimeType: tipo, texto: bytes.toString('utf8').slice(0, 200_000), tamanho: bytes.length }
+    : { nome: meta.name, mimeType: tipo, base64: bytes.toString('base64'), tamanho: bytes.length };
+}
+
+/**
  * O arquivo (ou pasta) está dentro de `pastaId`? Sobe os pais até 8 níveis.
  * É a trava que impede abrir pelo app um arquivo de fora da pasta do cliente.
  */

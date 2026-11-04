@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { createClient } from '@supabase/supabase-js';
 import { registrarFerramentas } from '@/lib/mcp/ferramentas';
+import { registrarFerramentasChecklist } from '@/lib/mcp/ferramentas-checklist';
 import { registrarFerramentasMaster, registrarReuniao } from '@/lib/mcp/ferramentas-master';
 import { origemDe } from '@/lib/mcp/origem';
 
@@ -84,6 +85,8 @@ async function atender(req: Request) {
   };
   registrarFerramentas(servidor, ctx);
   registrarReuniao(servidor, ctx);
+  // Checklist e documentos do Drive: todo mundo, nos clientes que enxerga (specs/18).
+  registrarFerramentasChecklist(servidor, ctx);
   // Acesso total (consultar, gravar, excluir, pessoas): só master.
   if (ehMaster) registrarFerramentasMaster(servidor, ctx);
 

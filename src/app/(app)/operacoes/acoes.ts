@@ -12,6 +12,9 @@ const TITULO_DO_PRINT: Record<string, string> = {
   observacoes: 'Observações',
   fundos: 'Fundos',
   'fundos-resumo': 'Fundos (resumido)',
+  // Sem a coluna "Na mão de": para o cliente o título é o mesmo.
+  'fundos-sem-na-mao': 'Fundos',
+  'fundos-resumo-sem-na-mao': 'Fundos (resumido)',
 };
 const ASSINATURA_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 

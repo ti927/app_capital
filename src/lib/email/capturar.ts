@@ -18,6 +18,12 @@ export const ALVOS = {
   observacoes: { seletor: '[data-print="observacoes"]', titulo: 'Observações' },
   fundos: { seletor: '[data-print="fundos"]', titulo: 'Fundos' },
   'fundos-resumo': { seletor: '[data-print="fundos-resumo"]', titulo: 'Fundos (resumido)' },
+  // As mesmas duas, sem a coluna "Na mão de".
+  'fundos-sem-na-mao': { seletor: '[data-print="fundos-sem-na-mao"]', titulo: 'Fundos (sem "Na mão de")' },
+  'fundos-resumo-sem-na-mao': {
+    seletor: '[data-print="fundos-resumo-sem-na-mao"]',
+    titulo: 'Fundos (resumido, sem "Na mão de")',
+  },
 } as const;
 
 export type Alvo = keyof typeof ALVOS;

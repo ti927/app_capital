@@ -13,6 +13,8 @@ const CHAVES: Array<{ alvo: Alvo; rotulo: string }> = [
   { alvo: 'observacoes', rotulo: 'Observação' },
   { alvo: 'fundos', rotulo: 'Fundos' },
   { alvo: 'fundos-resumo', rotulo: 'Fundos (Resumido)' },
+  { alvo: 'fundos-sem-na-mao', rotulo: 'Fundos (sem "Na mão de")' },
+  { alvo: 'fundos-resumo-sem-na-mao', rotulo: 'Fundos (Resumido, sem "Na mão de")' },
 ];
 
 /** `undefined`: não pedido · `'carregando'` · `null`: não há o que fotografar · string: o PNG. */

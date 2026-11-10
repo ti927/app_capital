@@ -112,6 +112,17 @@ export function bancoSupabase(supabase: SupabaseClient): Banco {
 
 
     async catalogo(tabela): Promise<Mapa<number>> {
+      // status_etapa tem `rotulo_bubble` (018): o Bubble ainda manda o rótulo
+      // antigo de status renomeados aqui, e os dois precisam casar.
+      if (tabela === 'status_etapa') {
+        const linhas = await tudo<{ id: number; rotulo: string; rotulo_bubble: string | null }>(
+          tabela,
+          'id, rotulo, rotulo_bubble',
+        );
+        const mapa = new Map<string, number>(linhas.map((l) => [l.rotulo, l.id]));
+        for (const l of linhas) if (l.rotulo_bubble) mapa.set(l.rotulo_bubble, l.id);
+        return mapa;
+      }
       const linhas = await tudo<{ id: number; rotulo: string }>(tabela, 'id, rotulo');
       return new Map(linhas.map((l) => [l.rotulo, l.id]));
     },

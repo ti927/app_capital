@@ -52,8 +52,8 @@ export default async function PaginaOperacoes() {
     supabase.from('operacao').select(CAMPOS).eq('arquivado', true).order('identificador'),
     supabase.from('cliente').select('id, nome_razao, parecer, faturamento_anual, arquivado').order('nome_razao'),
     supabase.from('fornecedor').select('id, nome_fundo').eq('arquivado', false).order('nome_fundo'),
-    supabase.from('tipo_operacao').select('id, chave, rotulo, ordem').order('ordem'),
-    supabase.from('status_etapa').select('id, chave, rotulo, ordem').order('ordem'),
+    supabase.from('tipo_operacao').select('id, chave, rotulo, ordem, ativo').order('ordem'),
+    supabase.from('status_etapa').select('id, chave, rotulo, ordem, ativo').order('ordem'),
     supabase.from('status_operacao').select('id, chave, rotulo, ordem').order('ordem'),
     supabase
       .from('etapa_operacao')

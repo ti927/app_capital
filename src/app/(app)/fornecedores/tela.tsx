@@ -268,7 +268,7 @@ function MatrizDeTipos({
         </tr>
       </thead>
       <tbody>
-        {tipos.map((t) => {
+        {tipos.filter((t) => t.ativo !== false).map((t) => {
           const habilitados = fundosCom(t.id, 'atende');
           return (
             <tr key={t.id}>

@@ -105,7 +105,10 @@ export function DialogoEsteira({
   const [instrumentoIds, setInstrumentoIds] = useState<number[]>(escolhidos);
 
   /** Só os instrumentos da esteira entram na lista de pílulas. */
-  const tiposDeInstrumento = useMemo(() => tipos.filter((t) => INSTRUMENTOS.has(t.rotulo)), [tipos]);
+  const tiposDeInstrumento = useMemo(
+    () => tipos.filter((t) => INSTRUMENTOS.has(t.rotulo) && (t.ativo !== false || escolhidos.includes(t.id))),
+    [tipos, escolhidos],
+  );
   useEffect(() => setInstrumentoIds(escolhidos), [escolhidos]);
 
   const rotulosEscolhidos = useMemo(() => {

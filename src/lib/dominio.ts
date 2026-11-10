@@ -102,6 +102,19 @@ export interface TabelaApoio {
   chave: string;
   rotulo: string;
   ordem: number;
+  /** false = fora das listas de escolha (018). Nunca se apaga a linha. */
+  ativo?: boolean;
+}
+
+/**
+ * Itens que podem aparecer num seletor: os ativos, mais o que já está gravado
+ * (`atual`) mesmo que inativo — senão o valor some da tela ao editar.
+ */
+export function paraEscolha<T extends { id: number; ativo?: boolean }>(
+  lista: T[],
+  atual?: number | null,
+): T[] {
+  return lista.filter((i) => i.ativo !== false || i.id === atual);
 }
 
 export interface FunilCartao {
@@ -123,7 +136,7 @@ export interface FunilCartao {
 }
 
 /* ---------------------------------------------------------------------------
-   Status da etapa: os 14 valores caem em 7 grupos de cor.
+   Status da etapa: os 15 valores caem em 7 grupos de cor.
    Os grupos e os tokens vêm de design/design-system/tokens.json.
    --------------------------------------------------------------------------- */
 
@@ -142,6 +155,7 @@ const GRUPO_POR_CHAVE: Record<string, GrupoStatus> = {
   documentacao_inicial_enviada: 'em-curso',
   docs_requeridos: 'em-curso',
   operacao_em_analise: 'em-curso',
+  call_solicitado: 'em-curso',
   proposta_feita: 'em-curso',
   em_estudo: 'em-curso',
   operacao_aprovada: 'avanco',

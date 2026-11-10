@@ -753,6 +753,26 @@ export function PrintsParaEmail({
       </div>
 
       <ResumoParaEmail linhas={principais} fornecedores={fornecedores} statusEtapa={statusEtapa} />
+
+      {/* As mesmas duas, sem a coluna "Na mão de" — opção do e-mail para o cliente. */}
+      <div data-print="fundos-sem-na-mao">
+        <GradeDeEtapas
+          linhas={principais}
+          fornecedores={fornecedores}
+          tipos={tipos}
+          statusEtapa={statusEtapa}
+          editando={null}
+          rascunho={null}
+          mudarRascunho={nada}
+          abrirEdicao={nada}
+          cancelar={nada}
+          salvar={nada}
+          excluir={nada}
+          semNaMao
+        />
+      </div>
+
+      <ResumoParaEmail linhas={principais} fornecedores={fornecedores} statusEtapa={statusEtapa} semNaMao />
     </div>
   );
 }
@@ -766,27 +786,33 @@ export function ResumoParaEmail({
   linhas,
   fornecedores,
   statusEtapa,
+  semNaMao = false,
 }: {
   linhas: EtapaOperacao[];
   fornecedores: Fundo[];
   statusEtapa: TabelaApoio[];
+  /** Sem a coluna "Na mão de" — vira o alvo `fundos-resumo-sem-na-mao`. */
+  semNaMao?: boolean;
 }) {
   if (!linhas.length) return null;
   const nomeFundo = new Map(fornecedores.map((f) => [f.id, f.nome_fundo]));
   const statusPorId = new Map(statusEtapa.map((s) => [s.id, s]));
 
   return (
-    <table className="lc-table tabela-etapas" data-print="fundos-resumo">
+    <table
+      className="lc-table tabela-etapas"
+      data-print={semNaMao ? 'fundos-resumo-sem-na-mao' : 'fundos-resumo'}
+    >
       <colgroup>
-        <col style={{ width: '34%' }} />
-        <col style={{ width: '26%' }} />
-        <col style={{ width: '40%' }} />
+        <col style={{ width: semNaMao ? '55%' : '34%' }} />
+        <col style={{ width: semNaMao ? '45%' : '26%' }} />
+        {semNaMao ? null : <col style={{ width: '40%' }} />}
       </colgroup>
       <thead>
         <tr>
           <th scope="col">Fundo</th>
           <th scope="col">Status</th>
-          <th scope="col">Na mão de</th>
+          {semNaMao ? null : <th scope="col">Na mão de</th>}
         </tr>
       </thead>
       <tbody>
@@ -800,7 +826,7 @@ export function ResumoParaEmail({
                   {st?.rotulo || '-'}
                 </span>
               </td>
-              <td className="na-mao-de">{e.na_mao_de || '-'}</td>
+              {semNaMao ? null : <td className="na-mao-de">{e.na_mao_de || '-'}</td>}
             </tr>
           );
         })}
@@ -824,6 +850,7 @@ export function GradeDeEtapas({
   salvar,
   excluir,
   somenteLeitura = false,
+  semNaMao = false,
 }: {
   /** A principal vem sem: o título "Lista de Fornecedores" fica acima da inclusão. */
   titulo?: string;
@@ -840,6 +867,8 @@ export function GradeDeEtapas({
   excluir: (id: string) => void;
   /** Indicante: a coluna de ações fica vazia. */
   somenteLeitura?: boolean;
+  /** Sem a coluna "Na mão de" — só na cópia do print `fundos-sem-na-mao`. */
+  semNaMao?: boolean;
 }) {
   if (!linhas.length) return null;
 
@@ -857,20 +886,30 @@ export function GradeDeEtapas({
 
       <table className="lc-table tabela-etapas" style={{ marginTop: 'var(--space-3)' }}>
         {/* "Na mão de" é texto corrido e precisa da maior fatia; Fundo cede. */}
-        <colgroup>
-          <col style={{ width: '20%' }} />
-          <col style={{ width: '18%' }} />
-          <col style={{ width: '18%' }} />
-          <col style={{ width: '26%' }} />
-          <col style={{ width: '10%' }} />
-          <col style={{ width: '8%' }} />
-        </colgroup>
+        {semNaMao ? (
+          <colgroup>
+            <col style={{ width: '30%' }} />
+            <col style={{ width: '26%' }} />
+            <col style={{ width: '26%' }} />
+            <col style={{ width: '4%' }} />
+            <col style={{ width: '14%' }} />
+          </colgroup>
+        ) : (
+          <colgroup>
+            <col style={{ width: '20%' }} />
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '26%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '8%' }} />
+          </colgroup>
+        )}
         <thead>
           <tr>
             <th scope="col">Fundo</th>
             <th scope="col">Tipo de operação</th>
             <th scope="col">Status</th>
-            <th scope="col">Na mão de</th>
+            {semNaMao ? null : <th scope="col">Na mão de</th>}
             <th scope="col" />
             <th scope="col">Alterado em:</th>
           </tr>
@@ -934,19 +973,21 @@ export function GradeDeEtapas({
                 </td>
 
                 {/* Em leitura quebra linha e mostra tudo; em edição é textarea. */}
-                <td className="na-mao-de">
-                  {emEdicao ? (
-                    <Campo
-                      multilinha
-                      linhas={2}
-                      placeholder="Na mão de"
-                      valor={rascunho?.na_mao_de ?? ''}
-                      aoMudar={(v) => mudarRascunho({ na_mao_de: v || null })}
-                    />
-                  ) : (
-                    e.na_mao_de || '-'
-                  )}
-                </td>
+                {semNaMao ? null : (
+                  <td className="na-mao-de">
+                    {emEdicao ? (
+                      <Campo
+                        multilinha
+                        linhas={2}
+                        placeholder="Na mão de"
+                        valor={rascunho?.na_mao_de ?? ''}
+                        aoMudar={(v) => mudarRascunho({ na_mao_de: v || null })}
+                      />
+                    ) : (
+                      e.na_mao_de || '-'
+                    )}
+                  </td>
+                )}
 
                 <td>
                   {somenteLeitura ? null : (

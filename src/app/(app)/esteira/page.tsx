@@ -61,8 +61,8 @@ export default async function PaginaEsteira() {
   const apoio = Promise.all([
     supabase.from('cliente').select('id, nome_razao'),
     supabase.from('fornecedor').select('id, nome_fundo'),
-    supabase.from('tipo_operacao').select('id, chave, rotulo, ordem').order('ordem'),
-    supabase.from('status_etapa').select('id, chave, rotulo, ordem').order('ordem'),
+    supabase.from('tipo_operacao').select('id, chave, rotulo, ordem, ativo').order('ordem'),
+    supabase.from('status_etapa').select('id, chave, rotulo, ordem, ativo').order('ordem'),
     supabase.from('etapa_operacao').select(CAMPOS_ETAPA),
     supabase.from('etapa_checklist_item').select('id, etapa_id, chave, rotulo, descricao, valor, ordem'),
     supabase.from('etapa_instrumento').select('etapa_id, tipo_operacao_id'),

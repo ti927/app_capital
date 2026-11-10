@@ -33,10 +33,15 @@ interface PropsDialogoFornecedor {
 function CorpoDialogoFornecedor({
   aberto,
   fornecedor,
-  tipos,
+  tipos: todosTipos,
   vinculos,
   aoFechar,
 }: PropsDialogoFornecedor) {
+  // Tipo inativo (018) some da escolha, a não ser que o fundo já o tenha.
+  const tipos = useMemo(
+    () => todosTipos.filter((t) => t.ativo !== false || vinculos.some((v) => v.tipo_operacao_id === t.id)),
+    [todosTipos, vinculos],
+  );
   const inicial = (papel: VinculoTipo['papel']) =>
     vinculos.filter((v) => v.papel === papel).map((v) => String(v.tipo_operacao_id));
 

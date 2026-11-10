@@ -15,6 +15,7 @@ import {
 import { Dialogo } from '@/components/ui/dialogo';
 import {
   dataCurta,
+  paraEscolha,
   tokenDoStatus,
   type EtapaOperacao,
   type Fornecedor,
@@ -634,7 +635,7 @@ export function TabelaDeEtapas({
           key={`novo-tipo-${nova.tipo_operacao_id ?? 'vazio'}`}
           placeholder="Tipo de operação"
           valorInicial={nova.tipo_operacao_id ? String(nova.tipo_operacao_id) : ''}
-          opcoes={tipos.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
+          opcoes={paraEscolha(tipos).map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
           aoEscolher={(v) => setNova((n) => ({ ...n, tipo_operacao_id: v ? Number(v) : null }))}
         />
 
@@ -642,7 +643,7 @@ export function TabelaDeEtapas({
           key={`novo-status-${nova.status_id ?? 'vazio'}`}
           placeholder="Status"
           valorInicial={nova.status_id ? String(nova.status_id) : ''}
-          opcoes={statusEtapa.map((s) => ({
+          opcoes={paraEscolha(statusEtapa).map((s) => ({
             valor: String(s.id),
             rotulo: s.rotulo,
             cor: `var(--${tokenDoStatus(s.chave)})`,
@@ -901,7 +902,10 @@ export function GradeDeEtapas({
                       key={`tipo-${e.id}`}
                       valorInicial={rascunho?.tipo_operacao_id ? String(rascunho.tipo_operacao_id) : ''}
                       placeholder="Escolha o tipo"
-                      opcoes={tipos.map((t) => ({ valor: String(t.id), rotulo: t.rotulo }))}
+                      opcoes={paraEscolha(tipos, rascunho?.tipo_operacao_id).map((t) => ({
+                        valor: String(t.id),
+                        rotulo: t.rotulo,
+                      }))}
                       aoEscolher={(v) => mudarRascunho({ tipo_operacao_id: v ? Number(v) : null })}
                     />
                   ) : (
@@ -915,7 +919,7 @@ export function GradeDeEtapas({
                       key={`status-${e.id}`}
                       valorInicial={rascunho?.status_id ? String(rascunho.status_id) : ''}
                       placeholder="Escolha o status"
-                      opcoes={statusEtapa.map((s) => ({
+                      opcoes={paraEscolha(statusEtapa, rascunho?.status_id).map((s) => ({
                         valor: String(s.id),
                         rotulo: s.rotulo,
                         cor: `var(--${tokenDoStatus(s.chave)})`,

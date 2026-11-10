@@ -33,7 +33,7 @@ export default async function PaginaFornecedores() {
   const pedidos = Promise.all([
     supabase.from('fornecedor').select(CAMPOS).eq('arquivado', false).order('nome_fundo'),
     supabase.from('fornecedor').select(CAMPOS).eq('arquivado', true).order('nome_fundo'),
-    supabase.from('tipo_operacao').select('id, chave, rotulo, ordem').order('ordem'),
+    supabase.from('tipo_operacao').select('id, chave, rotulo, ordem, ativo').order('ordem'),
     supabase.from('fornecedor_tipo_operacao').select('fornecedor_id, tipo_operacao_id, papel'),
   ]);
   pedidos.catch(() => {});

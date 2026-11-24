@@ -263,19 +263,11 @@ export function DialogoOperacao({
         </div>
 
         {/*
-          Ordem: Observações → Limites/fundos assinados → Lista de Fornecedores
-          → Declínios (o último, pedido de 14/10/2026). As observações moram
-          dentro do <form> (os botões delas são type="button" e o campo de nova
-          observação não tem `name`: não interferem no salvar). Declínios fica
-          depois da tabela, fora do form, e viaja no salvar pelo `form=`.
+          Ordem: Limites/fundos assinados → Lista de Fornecedores → Observações
+          (abaixo dos fundos, pedido de 24/11/2026) → Declínios (o último,
+          14/10/2026). Observações ficam fora do <form>: os botões delas são
+          type="button" e gravam sozinhos. Declínios viaja no salvar pelo `form=`.
         */}
-        {temCliente && operacao ? (
-          <div className="grade__inteiro">
-            <hr className="grade__regua" />
-            <BlocoObservacoes operacaoId={operacao.id} observacoes={observacoes} />
-          </div>
-        ) : null}
-
         <Campo className="grade__inteiro" rotulo="Limites/fundos assinados" nome="limites_fundos_assinados" valorInicial={operacao?.limites_fundos_assinados ?? ''} placeholder="Digite aqui" />
 
       </form>
@@ -293,6 +285,15 @@ export function DialogoOperacao({
             somenteLeitura={!master}
           />
         </>
+      ) : null}
+
+      {temCliente && operacao ? (
+        <div className="grade">
+          <div className="grade__inteiro">
+            <hr className="grade__regua" />
+            <BlocoObservacoes operacaoId={operacao.id} observacoes={observacoes} />
+          </div>
+        </div>
       ) : null}
 
       {/* O último campo, abaixo das tabelas (14/10/2026). */}

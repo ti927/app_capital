@@ -294,11 +294,6 @@ export function DialogoOperacaoModerno({
           </Secao>
 
           <Secao id="ui2-op-acompanhamento" ordem={4} icone={<IconeLista tamanho={16} />} titulo="Acompanhamento">
-            {temCliente && operacao ? (
-              <div className="ui2-c12">
-                <BlocoObservacoes operacaoId={operacao.id} observacoes={observacoes} />
-              </div>
-            ) : null}
             <Campo className="ui2-c12" rotulo="Limites/fundos assinados" nome="limites_fundos_assinados" valorInicial={operacao?.limites_fundos_assinados ?? ''} placeholder="Digite aqui" />
           </Secao>
         </form>
@@ -324,8 +319,17 @@ export function DialogoOperacaoModerno({
           />
         ) : null}
 
+        {/* Abaixo dos fundos, antes de Declínios (24/11/2026). Fora da <form>: grava sozinho. */}
+        {temCliente && operacao ? (
+          <Secao id="ui2-op-observacoes" ordem={6} icone={<IconeLista tamanho={16} />} titulo="Observações">
+            <div className="ui2-c12">
+              <BlocoObservacoes operacaoId={operacao.id} observacoes={observacoes} />
+            </div>
+          </Secao>
+        ) : null}
+
         {/* O último campo, abaixo das tabelas (14/10/2026): fora da <form>, viaja pelo `form=`. */}
-        <Secao id="ui2-op-declinios" ordem={6} icone={<IconeProibido tamanho={16} />} titulo="Declínios">
+        <Secao id="ui2-op-declinios" ordem={7} icone={<IconeProibido tamanho={16} />} titulo="Declínios">
           <Declinios fornecedores={fundosOrdenados} escolhidos={declinios} form={FORMA} className="ui2-c12" />
         </Secao>
         </AbasDoCliente>

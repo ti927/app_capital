@@ -6,8 +6,8 @@ import { useCallback, useMemo, useState, useTransition } from 'react';
 import { Botao, Vazio } from '@/components/ui/base';
 import { TopoDaTela } from '@/components/ui/casca';
 import { AcoesLinha, BlocoArquivados, Busca, ConfirmarExclusao, ItemDaLista } from '@/components/listas';
-import { IconeMais } from '@/components/ui/icones';
-import { SeletorPopup } from '@/components/ui/seletor-popup';
+import { IconeChevronBaixo, IconeChevronCima, IconeMais } from '@/components/ui/icones';
+import { SeletorMultiploPopup, SeletorPopup } from '@/components/ui/seletor-popup';
 import { CarregarMais, useListaIncremental } from '@/components/ui/rolagem';
 import { tokenDoStatus, type EtapaOperacao, type Fornecedor, type Operacao, type TabelaApoio } from '@/lib/dominio';
 import { arquivarOperacao, excluirOperacao } from './acoes';
@@ -17,7 +17,7 @@ import { usePreferencias } from '@/components/preferencias';
 import type { ClienteResumo, Declinio, Observacao, Visualizador } from './page';
 import './operacao.css';
 
-type Aba = 'cliente' | 'fornecedor' | 'status';
+type Aba = 'cliente' | 'fornecedor' | 'status' | 'requerencias';
 
 /** Para busca: "agronegócios" casa com "AGRONEGOCIOS". */
 const semAcento = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
@@ -209,6 +209,9 @@ export function TelaOperacoes(props: {
             <button type="button" role="tab" className="abas__item" aria-selected={aba === 'status'} onClick={() => setAba('status')}>
               Status
             </button>
+            <button type="button" role="tab" className="abas__item" aria-selected={aba === 'requerencias'} onClick={() => setAba('requerencias')}>
+              Requerências
+            </button>
             <div className="abas__acoes">
               <Botao variante="primary" onClick={() => abrirOperacao(null)}>
                 <IconeMais tamanho={15} /> Nova Operação
@@ -270,6 +273,18 @@ export function TelaOperacoes(props: {
           statusOperacao={statusOperacao}
           nomeCliente={nomeCliente}
           tipoDaOperacao={tipoDaOperacao}
+        />
+      ) : null}
+
+      {aba === 'requerencias' ? (
+        <AbaRequerencias
+          etapas={etapas}
+          operacoes={operacoes}
+          clientesArquivados={clientesArquivados}
+          nomeCliente={nomeCliente}
+          fornecedores={props.fornecedores}
+          statusEtapa={statusEtapa}
+          aoAbrir={abrirOperacao}
         />
       ) : null}
       </div>
@@ -526,5 +541,164 @@ function AbaStatus({
         );
       })}
     </div>
+  );
+}
+
+/* ------------------------------------------------------- aba Requerências -- */
+
+type ColunaOrdem = 'cliente' | 'fundo';
+
+/**
+ * Todas as etapas das operações ativas numa tabela só (specs/19): uma linha por
+ * etapa, o nome do cliente repetindo em cada uma. Serve para, de manhã, ver o
+ * que está pendente em cada fundo sem abrir cliente por cliente.
+ *
+ * Cliente e Fundo ordenam pela setinha do cabeçalho (A→Z / Z→A); Status filtra
+ * por vários status de uma vez. Não há busca — pedido explícito.
+ */
+function AbaRequerencias({
+  etapas,
+  operacoes,
+  clientesArquivados,
+  nomeCliente,
+  fornecedores,
+  statusEtapa,
+  aoAbrir,
+}: {
+  etapas: EtapaOperacao[];
+  /** Só as ativas: etapa de operação arquivada não entra. */
+  operacoes: Operacao[];
+  clientesArquivados: Set<string>;
+  nomeCliente: Map<string, string>;
+  fornecedores: Array<Pick<Fornecedor, 'id' | 'nome_fundo'>>;
+  statusEtapa: TabelaApoio[];
+  aoAbrir: (op: Operacao) => void;
+}) {
+  const [ordem, setOrdem] = useState<{ coluna: ColunaOrdem; asc: boolean }>({ coluna: 'cliente', asc: true });
+  /** Vazio = todos os status. */
+  const [filtroStatus, setFiltroStatus] = useState<string[]>([]);
+
+  const statusPorId = useMemo(() => new Map(statusEtapa.map((s) => [s.id, s])), [statusEtapa]);
+  const operacaoPorId = useMemo(() => new Map(operacoes.map((o) => [o.id, o])), [operacoes]);
+  const nomeFundo = useMemo(() => new Map(fornecedores.map((f) => [f.id, f.nome_fundo])), [fornecedores]);
+
+  const opcoesStatus = useMemo(
+    () =>
+      statusEtapa.map((s) => ({
+        valor: String(s.id),
+        rotulo: s.rotulo,
+        cor: `var(--${tokenDoStatus(s.chave)})`,
+      })),
+    [statusEtapa],
+  );
+
+  const linhas = useMemo(() => {
+    const filtro = new Set(filtroStatus);
+    const comChave = etapas
+      .filter((e) => operacaoPorId.has(e.operacao_id) && !(e.cliente_id && clientesArquivados.has(e.cliente_id)))
+      .filter((e) => filtro.size === 0 || filtro.has(String(e.status_id)))
+      .map((e) => ({
+        e,
+        cliente: (e.cliente_id && nomeCliente.get(e.cliente_id)) || '',
+        fundo: (e.fornecedor_id && nomeFundo.get(e.fornecedor_id)) || '',
+      }));
+    const cmp = (a: string, b: string, asc: boolean) => {
+      // Sem nome vai para o fim nos dois sentidos.
+      if (!a || !b) return a ? -1 : b ? 1 : 0;
+      const r = a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
+      return asc ? r : -r;
+    };
+    const outra: ColunaOrdem = ordem.coluna === 'cliente' ? 'fundo' : 'cliente';
+    return comChave.sort(
+      (a, b) =>
+        cmp(a[ordem.coluna], b[ordem.coluna], ordem.asc) ||
+        // Empate: a outra coluna, sempre A→Z — agrupa o fundo dentro do cliente e vice-versa.
+        cmp(a[outra], b[outra], true),
+    );
+  }, [etapas, filtroStatus, ordem, operacaoPorId, clientesArquivados, nomeCliente, nomeFundo]);
+
+  const tabela = useListaIncremental(linhas);
+
+  const alternarOrdem = (coluna: ColunaOrdem) =>
+    setOrdem((o) => (o.coluna === coluna ? { coluna, asc: !o.asc } : { coluna, asc: true }));
+
+  const cabecalhoOrdenavel = (coluna: ColunaOrdem, rotulo: string) => {
+    const ativa = ordem.coluna === coluna;
+    return (
+      <th scope="col" aria-sort={ativa ? (ordem.asc ? 'ascending' : 'descending') : 'none'}>
+        <button
+          type="button"
+          className={['th-ordenar', ativa && 'th-ordenar--ativa'].filter(Boolean).join(' ')}
+          onClick={() => alternarOrdem(coluna)}
+          title={ativa && ordem.asc ? 'Ordenar de Z a A' : 'Ordenar de A a Z'}
+        >
+          {rotulo}
+          {ativa && !ordem.asc ? <IconeChevronCima tamanho={13} /> : <IconeChevronBaixo tamanho={13} />}
+        </button>
+      </th>
+    );
+  };
+
+  return (
+    <>
+      <div className="tabela-rolavel">
+        <table className="lc-table tabela-etapas tabela-requerencias">
+          <colgroup>
+            <col style={{ width: '22%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '28%' }} />
+          </colgroup>
+          <thead>
+            <tr>
+              {cabecalhoOrdenavel('cliente', 'Cliente')}
+              <th scope="col">Identificador</th>
+              {cabecalhoOrdenavel('fundo', 'Fundo')}
+              {/* Filtro no próprio cabeçalho, como na aba Fornecedor — mas de vários status. */}
+              <th scope="col" className="th-filtro">
+                <span className="th-filtro__caixa">
+                  <span>Status</span>
+                  <SeletorMultiploPopup
+                    className="th-filtro__seletor"
+                    nome="filtro-status"
+                    placeholder="Todos"
+                    opcoes={opcoesStatus}
+                    aoMudar={setFiltroStatus}
+                  />
+                </span>
+              </th>
+              <th scope="col">Na mão de</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tabela.visiveis.map(({ e, cliente, fundo }) => {
+              const op = operacaoPorId.get(e.operacao_id);
+              const st = e.status_id ? statusPorId.get(e.status_id) : undefined;
+              return (
+                <tr key={e.id} className="linha-clicavel" onClick={() => op && aoAbrir(op)} title="Abrir a operação">
+                  <td style={{ fontWeight: 600 }}>{cliente || '-'}</td>
+                  <td>{op?.identificador || '-'}</td>
+                  <td>{fundo || '-'}</td>
+                  {/* Status é texto colorido, sem pílula — igual à aba Fornecedor. */}
+                  <td style={{ color: st ? `var(--${tokenDoStatus(st.chave)}-ink)` : undefined, fontWeight: 600 }}>
+                    {st?.rotulo || '-'}
+                  </td>
+                  <td className="na-mao-de">{e.na_mao_de || '-'}</td>
+                </tr>
+              );
+            })}
+            {linhas.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="apoio">
+                  {filtroStatus.length ? 'Nenhuma etapa com estes status.' : 'Nenhuma etapa ainda.'}
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+      <CarregarMais faltam={tabela.faltam} aoCarregar={tabela.carregarMais} substantivo="etapas" />
+    </>
   );
 }

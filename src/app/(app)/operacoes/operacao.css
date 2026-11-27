@@ -190,3 +190,51 @@
     padding-right: var(--space-2);
   }
 }
+
+/* ------------------------------------------------- aba Requerências ---- */
+
+/*
+  Cabeçalho ordenável: o rótulo vira botão com a setinha ao lado. Herda a
+  tipografia do `<th>` (caixa alta, 11px, muted) — a coluna ativa ganha a cor
+  do texto para mostrar qual ordem está valendo.
+*/
+.th-ordenar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.th-ordenar:hover,
+.th-ordenar--ativa {
+  color: var(--text);
+}
+
+.th-ordenar:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Cada linha abre a operação da etapa. */
+.tabela-requerencias tbody tr.linha-clicavel {
+  cursor: pointer;
+}
+
+/* No celular as cinco colunas não cabem: a tabela rola de lado, não a página. */
+.tabela-rolavel {
+  overflow-x: auto;
+}
+
+@media (max-width: 720px) {
+  .tabela-rolavel .tabela-requerencias {
+    min-width: 720px;
+  }
+}

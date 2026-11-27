@@ -621,6 +621,34 @@ await passo(pagina, 'operacao-aba-status', async () => {
   await pagina.waitForSelector('.painel-status', { timeout: 10000 });
 });
 
+await passo(pagina, 'operacao-aba-requerencias', async () => {
+  await pagina.click('button[role="tab"]:has-text("Requerências")');
+  // Espera linha com conteúdo, não a classe da tabela (aprendizados, seção 1).
+  await pagina.waitForSelector('.tabela-requerencias tbody tr.linha-clicavel td', { timeout: 10000 });
+});
+
+await passo(pagina, 'operacao-aba-requerencias-fundo-za', async () => {
+  // Duas vezes na setinha do Fundo: A→Z e depois Z→A.
+  await pagina.click('.tabela-requerencias .th-ordenar:has-text("Fundo")');
+  await pagina.click('.tabela-requerencias .th-ordenar:has-text("Fundo")');
+  const sentido = await pagina.locator('.tabela-requerencias th[aria-sort="descending"]').count();
+  if (!sentido) throw new Error('a setinha do Fundo não inverteu a ordem');
+});
+
+await passo(pagina, 'operacao-aba-requerencias-filtro-status', async () => {
+  await pagina.click('.tabela-requerencias .th-filtro .gatilho');
+  await pagina.waitForSelector('.lc-popover .opcoes__item', { timeout: 5000 });
+  await confereMenu(pagina, 'filtro de status da aba Requerências', 0);
+  // Dois status de uma vez — o menu é múltiplo e não fecha a cada clique.
+  await pagina.locator('.lc-popover .opcoes__item').nth(0).click();
+  await pagina.locator('.lc-popover .opcoes__item').nth(1).click();
+});
+
+await passo(pagina, 'operacao-aba-requerencias-filtrada', async () => {
+  await pagina.keyboard.press('Escape');
+  await pagina.waitForSelector('.lc-popover', { state: 'detached', timeout: 5000 });
+});
+
 await passo(pagina, 'operacao-dialogo', async () => {
   await pagina.click('button[role="tab"]:has-text("Cliente")');
   await pagina.waitForTimeout(400);

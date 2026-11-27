@@ -4,6 +4,21 @@ Uma seção por rodada, a mais recente no topo. Escrito para quem usa o sistema.
 
 ---
 
+## 27/11/2026 — aba Requerências
+
+### Operações
+
+- **Nova aba Requerências**, ao lado de Status. Uma tabela com todos os fundos
+  de todas as operações ativas, uma linha por fundo: Cliente, Identificador,
+  Fundo, Status e Na mão de.
+- **Ordene por Cliente ou por Fundo** clicando na setinha do título da coluna;
+  clique de novo para inverter (A→Z / Z→A). Ordenando por fundo, você vê de
+  uma vez todas as operações paradas em cada fundo.
+- **Filtre por vários status** de uma vez, no título da coluna Status.
+- Clique numa linha para abrir a operação.
+
+---
+
 ## 04/11/2026 — checklist de documentos
 
 ### Clientes e Operações

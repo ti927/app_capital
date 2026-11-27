@@ -21,6 +21,34 @@ export interface RodadaDeNotas {
 /** Mais recente primeiro, como no .md. */
 export const NOTAS_DE_VERSAO: RodadaDeNotas[] = [
   {
+    "id": "2026-11-27-aba-requerencias",
+    "data": "27/11/2026",
+    "titulo": "aba Requerências",
+    "grupos": [
+      {
+        "titulo": "Operações",
+        "itens": [
+          {
+            "tipo": "item",
+            "texto": "**Nova aba Requerências**, ao lado de Status. Uma tabela com todos os fundos de todas as operações ativas, uma linha por fundo: Cliente, Identificador, Fundo, Status e Na mão de."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Ordene por Cliente ou por Fundo** clicando na setinha do título da coluna; clique de novo para inverter (A→Z / Z→A). Ordenando por fundo, você vê de uma vez todas as operações paradas em cada fundo."
+          },
+          {
+            "tipo": "item",
+            "texto": "**Filtre por vários status** de uma vez, no título da coluna Status."
+          },
+          {
+            "tipo": "item",
+            "texto": "Clique numa linha para abrir a operação."
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "2026-11-04-checklist-de-documentos",
     "data": "04/11/2026",
     "titulo": "checklist de documentos",
